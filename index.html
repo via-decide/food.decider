@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Harvey's Decision Engine | SWIPE-OS v6.8 (Punjabi Edition)</title>
+    <title>Harvey's Decision Engine | SWIPE-OS v6.9 (Voice Commander)</title>
     <style>
         /* =========================================
            CORE SYSTEM
@@ -286,7 +285,7 @@
 <div id="depth-fill"></div>
 <div id="toast" class="toast-msg">ACTION CONFIRMED</div>
 
-<div id="mic-toggle" onclick="toggleListenMode()">
+<div id="mic-toggle" onclick="startVoice()">
     <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
 </div>
 <div id="voice-feedback">LISTENING...</div>
@@ -296,21 +295,26 @@
        1. GLOBAL STATE (PATCH 1: USER SIGNALS)
        ========================================= */
     const USER_SIGNALS = {
-      selected: {},      // Explicit selections (The Truth)
-      inferred: {},      // AI suggestions (The Hints)
+      selected: {},      // Explicit selections
+      inferred: {},      // AI suggestions
       timestamps: []
     };
 
     function logUserChoice(key, value, source = "explicit") {
+        // Voice commands usually don't map to keys directly, so we map them to "voice_add"
+        // But for consistency with UI, if we know the category, we can set it.
+        // For simplicity, voice adds items directly to the 'selected' map by item name.
         if (source === "explicit") {
-            USER_SIGNALS.selected[key] = value;
-        } else {
-            USER_SIGNALS.inferred[key] = value;
+            // Find category for this value if possible, else use generic key
+            let cat = "extra";
+            DATA_SOURCE.categories.forEach(c => {
+                c.items.forEach(i => { if(i.name === value) cat = c.id; });
+            });
+            USER_SIGNALS.selected[cat] = value;
         }
         USER_SIGNALS.timestamps.push({ key, value, source, time: Date.now() });
     }
 
-    // PATCH 3: Remove Assumptions - Cart starts empty.
     const USER_CART = USER_SIGNALS.selected;
 
     /* =========================================
@@ -320,13 +324,12 @@
         const cart = USER_SIGNALS.selected;
         let items = [];
         
-        // Only list what exists in USER_SIGNALS
         for (const [key, val] of Object.entries(cart)) {
-            items.push(`${key.toUpperCase()}: ${val}`);
+            items.push(`${val}`); // Just item names for clarity
         }
         
-        if (items.length === 0) return "Punjabi Food (No specifics selected)";
-        return items.join("\n");
+        if (items.length === 0) return "Punjabi Food";
+        return items.join(", ");
     }
 
     const PLATFORM_LINKS = {
@@ -412,7 +415,7 @@
             { "id": "jeera_rice", "name": "Jeera Rice", "veg": true, "tags": ["light"] },
             { "id": "steam_rice", "name": "Plain Rice", "veg": true, "tags": ["basic"] },
             { "id": "veg_pulao", "name": "Veg Pulao", "veg": true, "tags": ["aromatic"] },
-            { "id": "chicken_biryani", "name": "Chicken Biryani (Punjabi Style)", "veg": false, "tags": ["heavy","spiced"] }
+            { "id": "chicken_biryani", "name": "Chicken Biryani", "veg": false, "tags": ["heavy","spiced"] }
           ]
         },
         {
@@ -465,19 +468,6 @@
       ]
     };
 
-    // Helper: Build alias map from new JSON for Voice
-    const ITEM_ALIASES = {};
-    DATA_SOURCE.categories.forEach(cat => {
-        cat.items.forEach(item => {
-            const name = item.name.toLowerCase();
-            ITEM_ALIASES[name] = { id: item.name, cat: cat.id };
-            // Add tags as aliases too
-            item.tags.forEach(tag => {
-                if(!ITEM_ALIASES[tag]) ITEM_ALIASES[tag] = { id: item.name, cat: cat.id };
-            });
-        });
-    });
-
     /* =========================================
        4. STATE & BUILDER
        ========================================= */
@@ -489,7 +479,7 @@
     const TRIGGER_THRESHOLD = 0.9;
 
     function init() {
-        console.log("BOOTING SWIPE-OS v6.8...");
+        console.log("BOOTING SWIPE-OS v6.9...");
         
         // 1. Build Slides from DATA_SOURCE
         let slides = [];
@@ -542,6 +532,7 @@
 
         slideElements = Array.from(document.querySelectorAll('.main-slide'));
         attachEvents();
+        initVoice(); // PATCH 1: Start Voice Engine
     }
 
     /* =========================================
@@ -561,19 +552,11 @@
             });
         }
         
-        if (Object.keys(USER_SIGNALS.inferred).length > 0) {
-             html += `<div style="margin-top:20px; border-top:1px dashed #333; padding-top:10px;"><div class="choice-header" style="font-size:0.6rem;">SYSTEM SUGGESTION</div>`;
-             for(const [k, v] of Object.entries(USER_SIGNALS.inferred)) {
-                 html += `<div class="input-row" style="opacity:0.5"><span class="input-key">${k.toUpperCase()}</span><span class="input-val">${v}</span></div>`;
-             }
-             html += `</div>`;
-        }
-
         container.innerHTML = html;
     }
 
     function sendWhatsappTicket() {
-        let msg = "MY HARVEY'S ORDER (User Confirmed):\n";
+        let msg = "MY ORDER (User Confirmed):\n";
         const cart = USER_SIGNALS.selected;
         
         if (Object.keys(cart).length === 0) {
@@ -604,128 +587,141 @@
         next.classList.add('active');
         dragRatio = 0;
         document.getElementById('depth-fill').style.height = '0%';
-        if(next.id === 'final' || next.id === 'breads') updateResult(); // Force update
+        if(next.id === 'final') updateResult();
     }
 
     /* =========================================
-       6. VOICE COMMANDER
+       6. VOICE COMMANDER (PATCHES V1-V7)
        ========================================= */
-    const VOICE_INTENTS = {
-        ADD: ["add", "order", "chahiye", "dal do", "include", "want", "pa do", "select", "choose"],
-        REMOVE: ["remove", "hatao", "delete", "nahi", "no", "cancel", "clear", "without", "katto"],
-        REPEAT: ["repeat", "ek aur", "one more", "double", "same", "hor"],
-        SHOW: ["show", "cart", "order", "list", "kya order hai", "order dikhao"],
-        FINALIZE: ["final", "done", "place", "lock", "bas", "theek hai"]
+    
+    // PATCH V1: CORE
+    const VoiceCommander = {
+      enabled: false,
+      listening: false,
+      lang: "en-IN", // supports Punjabi via phonetics
+      recognition: null
     };
 
-    function speak(text) {
-        const msg = new SpeechSynthesisUtterance(text);
-        window.speechSynthesis.speak(msg);
-        document.getElementById('voice-feedback').innerText = text;
+    function initVoice() {
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SR) return;
+
+        const rec = new SR();
+        rec.lang = VoiceCommander.lang;
+        rec.continuous = true;
+        rec.interimResults = false;
+
+        rec.onresult = e => {
+            const text = e.results[e.results.length - 1][0].transcript.trim();
+            handleVoiceInput(text);
+        };
+
+        rec.onerror = e => console.log("VOICE ERROR", e);
+
+        VoiceCommander.recognition = rec;
+        VoiceCommander.enabled = true;
     }
 
-    function parseVoice(cmd) {
-        cmd = cmd.toLowerCase();
-        let intent = "ADD"; 
-        let itemData = null;
-
-        for (const [key, triggers] of Object.entries(VOICE_INTENTS)) {
-            if (triggers.some(t => cmd.includes(t))) {
-                intent = key;
-                break; 
-            }
-        }
-
-        for (const [alias, data] of Object.entries(ITEM_ALIASES)) {
-            if (cmd.includes(alias)) {
-                itemData = data;
-                break; 
-            }
-        }
-
-        return { intent, itemData };
+    // PATCH V2: NORMALIZE
+    function normalizeSpeech(t) {
+      return t
+        .toLowerCase()
+        .replace(/da|di|de/g, "")
+        .replace(/butter chicken|makhan chicken/g, "butter_chicken")
+        .replace(/dal makhni|dal makhani/g, "dal_makhani")
+        .replace(/lassi sweet|meethi lassi/g, "lassi_sweet")
+        .replace(/lassi namkeen|salt lassi/g, "lassi_salted")
+        .replace(/add|order|chahiye|mangao/g, "add")
+        .replace(/remove|hatao/g, "remove")
+        .replace(/done|bas|final/g, "finalize")
+        .replace(/\s+/g, " ")
+        .trim();
     }
 
-    function executeVoice(cmd) {
-        const { intent, itemData } = parseVoice(cmd);
+    // PATCH V3: INTENT PARSER
+    function handleVoiceInput(raw) {
+      const text = normalizeSpeech(raw);
+      showToast(`Heard: "${text}"`);
 
-        if (intent === "SHOW") {
-            const items = Object.values(USER_SIGNALS.selected);
-            if (items.length > 0) speak("You have " + items.join(", "));
-            else speak("Your cart is empty");
-            goToSlide(slideElements.length - 1); 
-            return;
-        }
+      if (text.includes("add")) {
+        matchAddItem(text);
+        speak("Added");
+        return;
+      }
 
-        if (intent === "FINALIZE") {
-            speak("Order locked. Opening WhatsApp.");
-            sendWhatsappTicket();
-            return;
-        }
+      if (text.includes("remove")) {
+        matchRemoveItem(text);
+        speak("Removed");
+        return;
+      }
 
-        if (!itemData) {
-            speak("I didn't catch the item name.");
-            return;
-        }
+      if (text.includes("finalize") || text.includes("order")) {
+        speak("Order ready");
+        goToSlide(slideElements.length - 1);
+        return;
+      }
 
-        if (intent === "ADD" || intent === "REPEAT") {
-            logUserChoice(itemData.cat, itemData.id, "explicit");
-            if (intent === "REPEAT") speak(`Added another ${itemData.id}`);
-            else speak(`Added ${itemData.id}`);
-            showToast(`VOICE: ${itemData.id}`);
+      // Online redirect simulation
+      if (text.includes("online")) {
+        speak("Opening online options");
+        copyAndRedirect('zomato');
+        return;
+      }
+    }
+
+    // PATCH V4: MENU MATCH
+    function matchAddItem(text) {
+      DATA_SOURCE.categories.forEach(cat => {
+        cat.items.forEach(item => {
+          // Check if item name/id exists in spoken text
+          if (text.includes(item.id.replace("_"," ")) || text.includes(item.name.toLowerCase())) {
+            logUserChoice(cat.id, item.name, "voice");
+            updateResult(); // If on final slide
+          }
+        });
+      });
+    }
+
+    function matchRemoveItem(text) {
+      Object.keys(USER_SIGNALS.selected).forEach(cat => {
+        const val = USER_SIGNALS.selected[cat];
+        if (text.includes(val.toLowerCase())) {
+            delete USER_SIGNALS.selected[cat];
             updateResult();
         }
-
-        if (intent === "REMOVE") {
-            if (USER_SIGNALS.selected[itemData.cat] === itemData.id) {
-                delete USER_SIGNALS.selected[itemData.cat];
-                speak(`Removed ${itemData.id}`);
-                showToast(`REMOVED: ${itemData.id}`);
-            } else {
-                speak(`${itemData.id} isn't in your cart.`);
-            }
-            updateResult();
-        }
+      });
     }
 
-    let recognition;
-    let isListening = false;
+    // PATCH V5: VOICE FEEDBACK
+    function speak(msg) {
+      const u = new SpeechSynthesisUtterance(msg);
+      u.lang = "en-IN";
+      window.speechSynthesis.speak(u);
+    }
 
-    function toggleListenMode() {
-        if (!('webkitSpeechRecognition' in window)) return alert("Use Chrome");
-        const btn = document.getElementById('mic-toggle');
-        const fb = document.getElementById('voice-feedback');
+    // PATCH V6: UI CONTROLS
+    function startVoice() {
+      if (!VoiceCommander.enabled) return initVoice(); // Retry init
+      if (VoiceCommander.listening) return stopVoice();
+      
+      VoiceCommander.recognition.start();
+      VoiceCommander.listening = true;
+      document.getElementById('mic-toggle').classList.add('listening');
+      document.getElementById('voice-feedback').classList.add('visible');
+      document.getElementById('voice-feedback').innerText = "LISTENING...";
+      
+      // PATCH V7: FAILSAFE
+      setTimeout(() => {
+          if (VoiceCommander.listening) stopVoice();
+      }, 60000); 
+    }
 
-        if (isListening) {
-            recognition.stop();
-            isListening = false;
-            btn.classList.remove('listening');
-            fb.classList.remove('visible');
-        } else {
-            recognition = new webkitSpeechRecognition();
-            recognition.lang = 'en-IN'; 
-            recognition.continuous = false;
-
-            recognition.onstart = () => {
-                isListening = true;
-                btn.classList.add('listening');
-                fb.classList.add('visible');
-                fb.innerText = "LISTENING...";
-            };
-
-            recognition.onend = () => {
-                isListening = false;
-                btn.classList.remove('listening');
-                setTimeout(() => fb.classList.remove('visible'), 2000);
-            };
-
-            recognition.onresult = (e) => {
-                const txt = e.results[0][0].transcript;
-                fb.innerText = `"${txt}"`;
-                executeVoice(txt);
-            };
-            recognition.start();
-        }
+    function stopVoice() {
+      if (!VoiceCommander.enabled) return;
+      VoiceCommander.recognition.stop();
+      VoiceCommander.listening = false;
+      document.getElementById('mic-toggle').classList.remove('listening');
+      document.getElementById('voice-feedback').classList.remove('visible');
     }
 
     /* =========================================
@@ -745,20 +741,19 @@
                 const dx = e.touches[0].clientX - startX;
                 const dy = e.touches[0].clientY - startY;
                 if(!axis) axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+                
                 const parentSlide = view.closest('.main-slide');
-                const isOptions = parentSlide.dataset.mode === 'options';
+                const mode = parentSlide.dataset.mode;
 
                 if(axis === 'y' && dy < 0) return; 
 
-                if(isOptions) {
+                if(mode === 'options') {
                     if(axis === 'x') slides.forEach(s => s.style.transform = `translateX(${dx}px)`);
-                    if(axis === 'y' && dy > 0) slides.forEach(s => s.style.transform = `translateY(${dy * 0.3}px)`);
-                    return;
-                }
-                if(axis === 'y' && dy > 0) {
-                    e.preventDefault();
-                    dragRatio = Math.min(dy / MAX_DRAG, 1);
-                    document.getElementById('depth-fill').style.height = (dragRatio * 100) + '%';
+                    if(axis === 'y' && dy > 0) {
+                        e.preventDefault();
+                        dragRatio = Math.min(dy / MAX_DRAG, 1);
+                        document.getElementById('depth-fill').style.height = (dragRatio * 100) + '%';
+                    }
                 }
             }, {passive: false});
 
@@ -768,11 +763,11 @@
                 const dx = e.changedTouches[0].clientX - startX;
                 const dy = e.changedTouches[0].clientY - startY;
                 const parentSlide = view.closest('.main-slide');
-                const isOptions = parentSlide.dataset.mode === 'options';
+                const mode = parentSlide.dataset.mode;
 
                 if (axis === 'y' && dy < -50) { if(currentIdx > 0) goToSlide(currentIdx - 1); return; }
 
-                if(isOptions) {
+                if(mode === 'options') {
                     const key = view.dataset.id; // Corrected: use category id
                     const total = slides.length;
                     let curr = view._currOpt;
