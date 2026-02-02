@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Harvey's Decision Engine | SWIPE-OS v7.3 (Full Voice)</title>
+    <title>Harvey's Decision Engine | SWIPE-OS v7.4 (Platform Voice Fix)</title>
     <style>
         /* =========================================
-           CORE SYSTEM (UNCHANGED)
+           CORE SYSTEM
            ========================================= */
         :root {
             --brand-orange: #ff671f;
@@ -300,7 +300,7 @@
     let currentIdx = 0;
 
     function init() {
-        console.log("BOOTING SWIPE-OS v7.3...");
+        console.log("BOOTING SWIPE-OS v7.4...");
         
         let slides = [];
         DATA_SOURCE.categories.forEach((cat, idx) => {
@@ -344,6 +344,7 @@
                         <div class="final-actions">
                             <button class="btn btn-zomato" onclick="copyAndRedirect('zomato')">ZOMATO</button>
                             <button class="btn btn-swiggy" onclick="copyAndRedirect('swiggy')">SWIGGY</button>
+                            <button class="btn btn-blinkit" onclick="copyAndRedirect('blinkit')">BLINKIT</button>
                             <button class="btn btn-cloud" onclick="saveToCloud()">SAVE TO CLOUD</button>
                             <button class="btn btn-wa" onclick="sendWhatsapp()">WHATSAPP</button>
                         </div>
@@ -490,7 +491,7 @@
     }
 
     /* =========================================
-       5. VOICE COMMANDER (EXPANDED FOR V7.3)
+       5. VOICE COMMANDER (EXPANDED FOR PLATFORMS)
        ========================================= */
     const VOICE_MAP = {
         NEXT: ["next", "continue", "go ahead"],
@@ -524,7 +525,16 @@
                 return;
             }
 
-            // 3. NAVIGATION COMMANDS
+            // 3. PLATFORM ACTIONS (FINAL SLIDE FIX)
+            if (slideElements[currentIdx].id === 'final') {
+                if (txt.includes("zomato")) { speak("Opening Zomato"); copyAndRedirect('zomato'); return; }
+                if (txt.includes("swiggy")) { speak("Opening Swiggy"); copyAndRedirect('swiggy'); return; }
+                if (txt.includes("blinkit")) { speak("Opening Blinkit"); copyAndRedirect('blinkit'); return; }
+                if (txt.includes("whatsapp")) { speak("Opening WhatsApp"); sendWhatsapp(); return; }
+                if (txt.includes("save") || txt.includes("cloud")) { speak("Saving order"); saveToCloud(); return; }
+            }
+
+            // 4. NAVIGATION COMMANDS
             for (const [action, words] of Object.entries(VOICE_MAP)) {
                 if (words.some(w => txt.includes(w))) { executeAction(action); return; }
             }
@@ -535,7 +545,6 @@
         };
     }
 
-    // PATCH: Search entire menu to ADD item
     function handleGlobalAdd(txt) {
         let found = false;
         DATA_SOURCE.categories.forEach(cat => {
@@ -544,7 +553,6 @@
                     logUserChoice(cat.id, item.name, "voice");
                     showToast(`ADDED ${item.name}`);
                     found = true;
-                    // If on final slide, update UI immediately
                     if (slideElements[currentIdx].id === 'final') updateResult();
                 }
             });
@@ -552,7 +560,6 @@
         if(!found) showToast("ITEM NOT FOUND");
     }
 
-    // PATCH: Search active selections to REMOVE item
     function handleGlobalRemove(txt) {
         let found = false;
         const cart = USER_SIGNALS.selected;
@@ -565,6 +572,10 @@
             }
         }
         if(!found) showToast("ITEM NOT IN CART");
+    }
+
+    function speak(text) {
+        window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
     }
 
     /* =========================================
