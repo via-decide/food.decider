@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Harvey's Decision Engine | SWIPE-OS v6.5 (Smart Clipboard)</title>
+    <title>Harvey's Decision Engine | SWIPE-OS v6.6 (Voice Commander)</title>
     <style>
         /* =========================================
            CORE SYSTEM
@@ -180,9 +180,9 @@
             height: 0%; transition: height 0.05s linear, background 0.3s;
         }
 
-        /* Toast for copy feedback */
+        /* Toast for feedback */
         .toast-msg {
-            position: fixed; bottom: 50px; left: 50%; transform: translateX(-50%);
+            position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
             background: #222; color: #00e676; padding: 12px 24px;
             border: 1px solid #00e676;
             border-radius: 30px; font-size: 0.8rem; opacity: 0; pointer-events: none;
@@ -190,6 +190,59 @@
             white-space: nowrap;
         }
         .toast-msg.visible { opacity: 1; }
+
+        /* =========================================
+           LISTEN MODE UI
+           ========================================= */
+        #mic-toggle {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            width: 60px;
+            height: 60px;
+            background: #111;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #444;
+            z-index: 2000;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+        #mic-toggle svg { width: 28px; height: 28px; fill: #666; transition: fill 0.3s; }
+        
+        #mic-toggle.listening {
+            border-color: var(--accent-go);
+            background: rgba(0, 230, 118, 0.15);
+            animation: pulse-mic 1.5s infinite;
+        }
+        #mic-toggle.listening svg { fill: var(--accent-go); }
+
+        @keyframes pulse-mic {
+            0% { box-shadow: 0 0 0 0 rgba(0, 230, 118, 0.4); }
+            70% { box-shadow: 0 0 0 15px rgba(0, 230, 118, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 230, 118, 0); }
+        }
+
+        #voice-feedback {
+            position: fixed;
+            bottom: 30px;
+            left: 90px;
+            font-family: var(--font-tech);
+            font-size: 0.8rem;
+            color: #fff;
+            background: rgba(0,0,0,0.7);
+            padding: 8px 12px;
+            border-radius: 4px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            z-index: 2000;
+            border-left: 2px solid var(--accent-go);
+        }
+        #voice-feedback.visible { opacity: 1; }
 
     </style>
 </head>
@@ -199,6 +252,11 @@
 <div id="depth-fill"></div>
 <div id="toast" class="toast-msg">ACTION CONFIRMED</div>
 
+<div id="mic-toggle" onclick="toggleListenMode()">
+    <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+</div>
+<div id="voice-feedback">LISTENING...</div>
+
 <script>
     /* =========================================
        1. SMART CLIPBOARD & DEEP LINK RESOLVER
@@ -207,15 +265,14 @@
     // PATCH 1: Cart Text Generator
     function buildCartText(cart) {
         let items = [];
-        if (cart.burger) items.push("Burger: " + cart.burger);
-        if (cart.chicken) items.push("Chicken: " + cart.chicken);
-        if (cart.side) items.push("Side: " + cart.side);
-        if (cart.drink) items.push("Drink: " + cart.drink);
-        if (cart.value) items.push("Value: " + cart.value);
+        // Map user cart keys to display text
+        for (const [key, val] of Object.entries(cart)) {
+            if (val) items.push(`${key.toUpperCase()}: ${val}`);
+        }
         
         if (items.length === 0) return "Punjabi Food";
         
-        return items.join(", ");
+        return items.join("\n");
     }
 
     const PLATFORM_LINKS = {
@@ -238,18 +295,13 @@
         const text = buildCartText(USER_CART);
         
         try {
-            // Write to clipboard
             await navigator.clipboard.writeText(text);
-            
-            // Show custom hint
             showPasteHint(platform);
             
-            // Wait slightly so user sees hint, then redirect
             setTimeout(() => {
                 const links = PLATFORM_LINKS[platform];
                 if (!links) return;
                 
-                // Deep Link Logic
                 const start = Date.now();
                 window.location.href = links.app(text);
                 
@@ -262,7 +314,6 @@
 
         } catch (e) {
             console.error("Clipboard failed", e);
-            // Fallback: Just open search without copy
             const links = PLATFORM_LINKS[platform];
             window.location.href = links.web(text);
         }
@@ -586,6 +637,152 @@
                 }
             });
         });
+    }
+
+    /* =========================================
+       VOICE COMMANDER (V1 LOGIC)
+       ========================================= */
+    
+    // 1. INTENT SCHEMA & ALIAS MAP (PATCH 1 & 2)
+    const VOICE_INTENTS = {
+      ADD: ["add", "order", "chahiye", "dal do", "include", "want"],
+      REMOVE: ["remove", "hatao", "delete", "nahi", "no"],
+      REPEAT: ["repeat", "ek aur", "one more", "double"],
+      SHOW: ["show", "cart", "order", "list"],
+      FINALIZE: ["final", "done", "place", "lock", "bas"]
+    };
+
+    const ITEM_ALIASES = {
+      "paneer": "Paneer Butter Masala", "pbm": "Paneer Butter Masala", "butter paneer": "Paneer Butter Masala",
+      "chicken": "Butter Chicken", "bc": "Butter Chicken", "butter chicken": "Butter Chicken",
+      "chole": "Chole Bhature", "bhature": "Chole Bhature",
+      "crispy": "Crispy Sandwich", "burger": "Original Burger",
+      "poutine": "Classic Poutine", "fries": "Frings", "rings": "Frings",
+      "shake": "Chocolate Shake", "lassi": "Chocolate Shake" // Fallback alias
+    };
+
+    // 2. PARSER
+    function parseVoice(cmd) {
+        cmd = cmd.toLowerCase();
+        let intent = "ADD"; // Default
+        let item = null;
+
+        // Detect Intent
+        for (const [key, triggers] of Object.entries(VOICE_INTENTS)) {
+            if (triggers.some(t => cmd.includes(t))) intent = key;
+        }
+
+        // Detect Item
+        for (const [alias, realName] of Object.entries(ITEM_ALIASES)) {
+            if (cmd.includes(alias)) {
+                item = realName;
+                break;
+            }
+        }
+
+        return { intent, item };
+    }
+
+    // 3. EXECUTION ENGINE
+    function executeVoice(cmd) {
+        const { intent, item } = parseVoice(cmd);
+        const feedback = document.getElementById('voice-feedback');
+
+        if (intent === "SHOW") {
+            speak("Your order has " + Object.values(USER_CART).join(", "));
+            return;
+        }
+
+        if (intent === "FINALIZE") {
+            speak("Order locked.");
+            sendWhatsappTicket();
+            return;
+        }
+
+        if (!item) {
+            speak("I didn't catch the item name.");
+            return;
+        }
+
+        if (intent === "ADD" || intent === "REPEAT") {
+            // Find category for item (simple lookup)
+            let cat = "misc";
+            if (item.includes("Burger") || item.includes("Bhature")) cat = "burger";
+            else if (item.includes("Sandwich")) cat = "chicken";
+            else if (item.includes("Poutine") || item.includes("Frings")) cat = "side";
+            else if (item.includes("Shake")) cat = "drink";
+
+            if (USER_CART[cat] && intent === "REPEAT") {
+                // Quantity logic would go here (v2)
+                speak(`Added another ${item}`);
+            } else {
+                USER_CART[cat] = item;
+                speak(`Added ${item}`);
+                showToast(`VOICE ADD: ${item}`);
+            }
+        }
+
+        if (intent === "REMOVE") {
+            // Find key by value
+            const key = Object.keys(USER_CART).find(k => USER_CART[k] === item);
+            if (key) {
+                delete USER_CART[key];
+                speak(`Removed ${item}`);
+                showToast(`REMOVED: ${item}`);
+            } else {
+                speak(`${item} is not in your cart.`);
+            }
+        }
+    }
+
+    // 4. TTS (PATCH 5)
+    function speak(text) {
+        const msg = new SpeechSynthesisUtterance(text);
+        window.speechSynthesis.speak(msg);
+        document.getElementById('voice-feedback').innerText = text;
+    }
+
+    // 5. LISTENER
+    let recognition;
+    let isListening = false;
+
+    function toggleListenMode() {
+        if (!('webkitSpeechRecognition' in window)) return alert("Use Chrome");
+        
+        const btn = document.getElementById('mic-toggle');
+        const fb = document.getElementById('voice-feedback');
+
+        if (isListening) {
+            recognition.stop();
+            isListening = false;
+            btn.classList.remove('listening');
+            fb.classList.remove('visible');
+        } else {
+            recognition = new webkitSpeechRecognition();
+            recognition.lang = 'en-IN'; // Indian English
+            recognition.continuous = false;
+
+            recognition.onstart = () => {
+                isListening = true;
+                btn.classList.add('listening');
+                fb.classList.add('visible');
+                fb.innerText = "LISTENING...";
+            };
+
+            recognition.onend = () => {
+                isListening = false;
+                btn.classList.remove('listening');
+                setTimeout(() => fb.classList.remove('visible'), 2000);
+            };
+
+            recognition.onresult = (e) => {
+                const txt = e.results[0][0].transcript;
+                fb.innerText = `"${txt}"`;
+                executeVoice(txt);
+            };
+
+            recognition.start();
+        }
     }
 
     init(); // BOOT
