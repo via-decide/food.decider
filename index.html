@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>| food.decider |</title>
+    <title>Harvey's Decision Engine | SWIPE-OS v9.1 (Full Menu Voice)</title>
     <style>
         /* =========================================
            CORE SYSTEM
@@ -144,6 +144,7 @@
         .btn-blinkit { background: var(--accent-blinkit); color: #000; border: none; }
         .btn-cloud { background: #4285F4; border: none; } 
 
+        /* BUSINESS CTA STYLING */
         .biz-card {
             background: linear-gradient(145deg, #111, #050505);
             border: 1px solid var(--brand-orange);
@@ -223,36 +224,48 @@ Treat voice as a hardware input layer.
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyBMwKxq92U0dptKMdEHvUCXPS9AjExHtxHjcRmfh2JFjCSn9Zd82bzp34xLg6X0a7L9g/exec";
     const SHARE_LINK_TEXT = "food-decider | swipe OS";
 
-    // MASTER DATA SOURCE
+    // MASTER DATA SOURCE (FULLY POPULATED)
     const RAW_DATA = {
         punjabi: {
             label: "PUNJABI",
             categories: [
-                { id: "p_breads", label: "Breads", items: [{name:"Butter Naan"}, {name:"Tandoori Roti"}, {name:"Garlic Naan"}] },
-                { id: "p_mains", label: "Mains", items: [{name:"Dal Makhani"}, {name:"Paneer Butter Masala"}, {name:"Butter Chicken"}] },
-                { id: "p_rice", label: "Rice", items: [{name:"Jeera Rice"}, {name:"Chicken Biryani"}] }
+                { id: "p_breads", label: "Breads", items: [{name:"Butter Naan"}, {name:"Tandoori Roti"}, {name:"Garlic Naan"}, {name:"Lachha Paratha"}, {name:"Amritsari Kulcha"}] },
+                { id: "p_mains", label: "Mains", items: [{name:"Dal Makhani"}, {name:"Paneer Butter Masala"}, {name:"Butter Chicken"}, {name:"Shahi Paneer"}, {name:"Kadai Paneer"}, {name:"Chole Masala"}, {name:"Rajma"}, {name:"Sarson da Saag"}] },
+                { id: "p_rice", label: "Rice", items: [{name:"Jeera Rice"}, {name:"Chicken Biryani"}, {name:"Plain Rice"}, {name:"Veg Pulao"}] },
+                { id: "p_starters", label: "Starters", items: [{name:"Paneer Tikka"}, {name:"Chicken Tikka"}, {name:"Fish Tikka"}, {name:"Hara Bhara Kabab"}] },
+                { id: "p_bev", label: "Beverages", items: [{name:"Sweet Lassi"}, {name:"Salted Lassi"}, {name:"Masala Chaas"}] }
             ]
         },
         chinese: {
             label: "CHINESE",
             categories: [
-                { id: "c_starters", label: "Dim Sum", items: [{name:"Pork Siu Mai"}, {name:"Har Gao"}, {name:"Veg Crystal Dumpling"}] },
-                { id: "c_noodles", label: "Noodles", items: [{name:"Dan Dan Noodles"}, {name:"Hakka Noodles"}, {name:"Lo Mein"}] },
-                { id: "c_main", label: "Wok", items: [{name:"Kung Pao Chicken"}, {name:"Mapo Tofu"}, {name:"Chilli Chicken"}] }
+                { id: "c_dimsum", label: "Dim Sum", items: [{name:"Pork Siu Mai"}, {name:"Har Gao"}, {name:"Char Siu Bao"}, {name:"Veg Crystal Dumpling"}, {name:"Cheung Fun"}] },
+                { id: "c_soup", label: "Soups", items: [{name:"Hot and Sour Soup"}, {name:"Wonton Soup"}, {name:"Egg Drop Soup"}] },
+                { id: "c_noodles", label: "Noodles", items: [{name:"Dan Dan Noodles"}, {name:"Beef Hand Pulled Noodles"}, {name:"Lo Mein"}] },
+                { id: "c_rice", label: "Rice", items: [{name:"Yangzhou Fried Rice"}, {name:"Braised Pork Rice"}, {name:"Clay Pot Rice"}] },
+                { id: "c_wok", label: "Wok Specials", items: [{name:"Kung Pao Chicken"}, {name:"Mapo Tofu"}, {name:"Twice Cooked Pork"}, {name:"Dry Chilli Chicken"}] },
+                { id: "c_hotpot", label: "Hot Pot", items: [{name:"Sichuan Mala Hot Pot"}, {name:"Clear Broth Hot Pot"}] },
+                { id: "c_dessert", label: "Desserts", items: [{name:"Sesame Balls"}, {name:"Mango Pudding"}, {name:"Red Bean Buns"}] },
+                { id: "c_bev", label: "Beverages", items: [{name:"Jasmine Tea"}, {name:"Oolong Tea"}, {name:"Plum Juice"}] }
             ]
         },
         pizza: {
             label: "PIZZA",
             categories: [
-                { id: "z_classic", label: "Classic", items: [{name:"Margherita"}, {name:"Pepperoni"}, {name:"Double Cheese"}] },
-                { id: "z_gourmet", label: "Gourmet", items: [{name:"Burrata Pizza"}, {name:"Truffle Mushroom"}, {name:"Wood Fired Chicken"}] }
+                { id: "z_classic", label: "Classic", items: [{name:"Margherita"}, {name:"Marinara"}] },
+                { id: "z_gourmet_v", label: "Gourmet Veg", items: [{name:"Burrata Pizza"}, {name:"Mushroom Truffle Pizza"}, {name:"Roasted Veg Sourdough"}] },
+                { id: "z_gourmet_nv", label: "Gourmet Non-Veg", items: [{name:"Pepperoni Pizza"}, {name:"Prosciutto Pizza"}, {name:"Chicken Wood Fired Pizza"}] },
+                { id: "z_styles", label: "Styles", items: [{name:"Neapolitan Pizza"}, {name:"Roman Style Pizza"}, {name:"Detroit Style Pizza"}] }
             ]
         },
         snacks: {
             label: "NASTA PANI",
             categories: [
-                { id: "s_pkg", label: "Packaged", items: [{name:"Coke"}, {name:"Chips"}, {name:"Kurkure"}] },
-                { id: "s_hot", label: "Hot Snacks", items: [{name:"Samosa"}, {name:"Puff"}, {name:"Burger"}] }
+                { id: "s_cold", label: "Cold Drinks", items: [{name:"Coca-Cola"}, {name:"Thums Up"}, {name:"Pepsi"}, {name:"Sprite"}, {name:"Fanta"}, {name:"Mountain Dew"}, {name:"7UP"}] },
+                { id: "s_pkg", label: "Chips & Munchies", items: [{name:"Lays Classic"}, {name:"Lays Magic Masala"}, {name:"Kurkure"}, {name:"Bingo Mad Angles"}, {name:"Haldirams Bhujia"}, {name:"Pringles"}, {name:"Oreo"}, {name:"Good Day"}] },
+                { id: "s_fresh", label: "Fresh Snacks", items: [{name:"Samosa"}, {name:"Veg Puff"}, {name:"Chicken Puff"}, {name:"Grilled Sandwich"}, {name:"Veg Burger"}, {name:"Chicken Burger"}] },
+                { id: "s_bev", label: "Fresh Drinks", items: [{name:"Cold Coffee"}, {name:"Chocolate Milkshake"}, {name:"Strawberry Milkshake"}, {name:"Fresh Lime Soda"}, {name:"Orange Juice"}] },
+                { id: "s_combo", label: "Combos", items: [{name:"Chips + Coke"}, {name:"Burger + Fries + Drink"}, {name:"Samosa + Tea"}] }
             ]
         }
     };
@@ -288,7 +301,7 @@ Treat voice as a hardware input layer.
         section.id = "lobby";
         
         let html = `
-        <div class="slide-header"><span class="header-title">SWIPE-OS v9.0</span></div>
+        <div class="slide-header"><span class="header-title">SWIPE-OS v9.1</span></div>
         <div class="lobby-container">
             <h1 style="text-align:center; margin-bottom:40px;">AAJ KYA MANGVAAYEGE!</h1>
             <div id="cuisine-grid" style="display:grid; gap:15px;">
@@ -413,7 +426,7 @@ Treat voice as a hardware input layer.
 
         slideElements = Array.from(document.querySelectorAll('.main-slide'));
         currentIdx = 0;
-        attachEvents(); // Re-attach touch events to new slides
+        attachEvents(); // Re-attach touch events
     }
 
     /* =========================================
@@ -446,7 +459,8 @@ Treat voice as a hardware input layer.
             html = '<div style="text-align:center;color:#666;margin-top:20px;">No items selected.</div>';
         } else {
             for (const [cat, item] of Object.entries(cart)) {
-                html += `<div class="input-row"><span class="input-key">${cat}</span><span class="input-val">${item}</span></div>`;
+                const label = cat.includes('_') ? cat.split('_')[1].toUpperCase() : cat; 
+                html += `<div class="input-row"><span class="input-key">${label}</span><span class="input-val">${item}</span></div>`;
             }
         }
         list.innerHTML = html;
@@ -581,7 +595,6 @@ Treat voice as a hardware input layer.
       // Lobby Voice Logic
       if(document.getElementById('lobby')) {
           if(cmd.group === 'CART' && cmd.key === 'add') {
-             // Basic naive mapping for lobby
              const map = {'punjabi': 'punjabi', 'chinese': 'chinese', 'pizza': 'pizza', 'nasta': 'snacks', 'snacks': 'snacks'};
              for(let k in map) if(cmd.raw.includes(k)) toggleCuisine(map[k], document.querySelector(`button[onclick*='${map[k]}']`));
           }
@@ -593,6 +606,7 @@ Treat voice as a hardware input layer.
         case "NAV":
           if(cmd.key==="next") executeAction("NEXT");
           if(cmd.key==="prev") executeAction("PREV");
+          if(cmd.key==="jump") jumpToCategory(cmd.raw);
           break;
         case "ACTION":
           if(cmd.key==="select") executeAction("SELECT");
@@ -647,6 +661,9 @@ Treat voice as a hardware input layer.
         };
     }
 
+    /* =========================================
+       4. NEW MASTER FUNCTIONS
+       ========================================= */
     function resetCart(){
       USER_SIGNALS.selected = {};
       showToast("ORDER RESET");
@@ -658,6 +675,15 @@ Treat voice as a hardware input layer.
       const items = Object.values(USER_SIGNALS.selected);
       if(!items.length){ speak("Your cart is empty"); return; }
       speak("You have selected " + items.join(", "));
+    }
+
+    function jumpToCategory(txt){
+      DATA_SOURCE.categories.forEach((c, i)=>{
+        if(txt.includes(c.label.toLowerCase())){
+          goToSlide(i);
+          speak("Opening " + c.label);
+        }
+      });
     }
 
     function applyQuantity(type, txt){
@@ -682,22 +708,29 @@ Treat voice as a hardware input layer.
         speak("I have copied your order to the clipboard");
     }
 
+    // PATCH: Universal Search for Voice Adds
     function handleGlobalAdd(txt) {
-        // Search inside selected cuisines only
+        // If on final slide, search ALL cuisines. Otherwise, search active selection.
+        const isFinal = slideElements[currentIdx] && slideElements[currentIdx].id === 'final';
+        const searchScope = isFinal ? Object.keys(RAW_DATA) : SELECTED_CUISINES;
+        
         let found = false;
-        SELECTED_CUISINES.forEach(cId => {
-            RAW_DATA[cId].categories.forEach(cat => {
-                cat.items.forEach(item => {
-                    if (!found && txt.includes(item.name.toLowerCase())) {
-                        logUserChoice(cat.id, item.name, "voice");
-                        showToast(`ADDED ${item.name}`);
-                        found = true;
-                        if (slideElements[currentIdx].id === 'final') updateResult();
-                    }
+        searchScope.forEach(cId => {
+            if(RAW_DATA[cId]) {
+                RAW_DATA[cId].categories.forEach(cat => {
+                    cat.items.forEach(item => {
+                        if (!found && txt.includes(item.name.toLowerCase())) {
+                            logUserChoice(cat.id, item.name, "voice");
+                            showToast(`ADDED ${item.name}`);
+                            found = true;
+                            if (isFinal) updateResult();
+                        }
+                    });
                 });
-            });
+            }
         });
-        if(!found) showToast("ITEM NOT FOUND IN SELECTION");
+        if(!found && !isFinal) showToast("ITEM NOT IN SELECTION");
+        if(!found && isFinal) showToast("ITEM NOT FOUND IN DATABASE");
     }
 
     function handleGlobalRemove(txt) {
@@ -711,7 +744,7 @@ Treat voice as a hardware input layer.
     }
 
     function speak(text) { window.speechSynthesis.speak(new SpeechSynthesisUtterance(text)); }
-    function buildCartText() { return Object.values(USER_SIGNALS.selected).join(", ") || "No items"; }
+    function buildCartText() { return Object.values(USER_SIGNALS.selected).join(", ") || "Punjabi Food"; }
 
     function saveToCloud() {
         showToast("SAVING...");
@@ -742,7 +775,7 @@ Treat voice as a hardware input layer.
     function showToast(msg, type="normal") {
         const t = document.getElementById('toast');
         t.innerText = msg; t.classList.add('visible');
-        setTimeout(() => t.classList.remove('visible'), 2000);
+        setTimeout(() => t.className = "toast-msg", 2000);
     }
 
     init();
