@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Harvey's Decision Engine | SWIPE-OS v7.2 (Cloud Connected)</title>
+    <title>Harvey's Decision Engine | SWIPE-OS v7.3 (Full Voice)</title>
     <style>
         /* =========================================
-           CORE SYSTEM
+           CORE SYSTEM (UNCHANGED)
            ========================================= */
         :root {
             --brand-orange: #ff671f;
@@ -27,7 +27,7 @@
             color: var(--text-main);
             font-family: var(--font-ui);
             overflow: hidden;
-            touch-action: none; /* Prevents browser defaults */
+            touch-action: none; 
         }
 
         #master-container {
@@ -37,7 +37,6 @@
             overflow: hidden;
         }
 
-        /* Slide Transitions */
         .main-slide {
             height: 100vh;
             width: 100vw;
@@ -74,9 +73,7 @@
             text-transform: uppercase;
         }
 
-        /* =========================================
-           CONTENT DECK
-           ========================================= */
+        /* CONTENT DECK */
         .carousel-viewport {
             position: relative;
             flex-grow: 1;
@@ -127,9 +124,7 @@
             justify-content: space-between;
         }
 
-        /* =========================================
-           VERDICT & ACTIONS
-           ========================================= */
+        /* VERDICT & ACTIONS */
         .verdict-container { display: flex; flex-direction: column; height: 100%; justify-content: center; }
         .choice-header { font-family: var(--font-tech); color: #666; font-size: 0.8rem; margin-bottom: 20px; text-transform: uppercase; text-align: center; }
         
@@ -149,32 +144,15 @@
         .input-val { color: var(--accent-go); font-weight: bold; text-align: right; }
         
         .final-actions { display: grid; gap: 10px; margin-top: 20px; }
-        
-        .btn { 
-            background: #222; 
-            color: #fff; 
-            border: 1px solid #333; 
-            padding: 15px; 
-            border-radius: 8px; 
-            font-weight: 600; 
-            text-align: center; 
-            font-size: 0.9rem; 
-            cursor: pointer; 
-        }
+        .btn { background: #222; color: #fff; border: 1px solid #333; padding: 15px; border-radius: 8px; font-weight: 600; text-align: center; font-size: 0.9rem; cursor: pointer; }
         .btn-wa { background: #25D366; color: #000; border: none; }
         .btn-zomato { background: var(--accent-zomato); border: none; }
         .btn-swiggy { background: var(--accent-swiggy); border: none; }
         .btn-blinkit { background: var(--accent-blinkit); color: #000; border: none; }
-        .btn-cloud { background: #4285F4; border: none; } /* Google Blue */
+        .btn-cloud { background: #4285F4; border: none; } 
 
-        /* =========================================
-           OVERLAYS (FEEDBACK & CONTROLS)
-           ========================================= */
-        #depth-fill { 
-            position: fixed; right: 0; top: 0; bottom: 0; width: 4px; 
-            background: #333; z-index: 900; height: 0%; 
-            transition: height 0.05s linear; 
-        }
+        /* OVERLAYS */
+        #depth-fill { position: fixed; right: 0; top: 0; bottom: 0; width: 4px; background: #333; z-index: 900; height: 0%; transition: height 0.05s linear; }
         
         .toast-msg {
             position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
@@ -210,11 +188,8 @@
     /* =========================================
        0. CONFIGURATION
        ========================================= */
-    
-    // CONNECTED: Google Web App URL (Updated with Deployment ID)
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyBMwKxq92U0dptKMdEHvUCXPS9AjExHtxHjcRmfh2JFjCSn9Zd82bzp34xLg6X0a7L9g/exec";
     
-    // DATA SOURCE: Full Punjabi Menu
     const DATA_SOURCE = {
       "cuisine": "Punjabi",
       "currency": "INR",
@@ -307,19 +282,13 @@
     };
 
     /* =========================================
-       1. GLOBAL STATE (OWNERSHIP)
+       1. GLOBAL STATE
        ========================================= */
-    const USER_SIGNALS = {
-      selected: {},      // Explicit selections
-      timestamps: []     // History log for source tracking
-    };
+    const USER_SIGNALS = { selected: {}, timestamps: [] };
 
     function logUserChoice(key, value, source="explicit") {
-        if (value === "SKIPPED") {
-            delete USER_SIGNALS.selected[key];
-        } else {
-            USER_SIGNALS.selected[key] = value;
-        }
+        if (value === "SKIPPED") delete USER_SIGNALS.selected[key];
+        else USER_SIGNALS.selected[key] = value;
         USER_SIGNALS.timestamps.push({ key, value, source, time: Date.now() });
     }
 
@@ -331,11 +300,9 @@
     let currentIdx = 0;
 
     function init() {
-        console.log("BOOTING SWIPE-OS v7.2...");
+        console.log("BOOTING SWIPE-OS v7.3...");
         
         let slides = [];
-        
-        // 1. Build Item Slides
         DATA_SOURCE.categories.forEach((cat, idx) => {
             slides.push({
                 id: cat.id,
@@ -344,11 +311,8 @@
                 items: cat.items
             });
         });
-        
-        // 2. Add Final Verdict Slide
         slides.push({ id: "final", type: "final", title: "FINAL ORDER" });
 
-        // 3. Render Loop
         slides.forEach((cfg) => {
             const section = document.createElement('section');
             section.className = `main-slide ${slides.indexOf(cfg)===0 ? 'active' : 'next'}`;
@@ -408,15 +372,12 @@
         if (idx < 0 || idx >= slideElements.length) return;
         const curr = slideElements[currentIdx];
         curr.classList.remove('active');
-        
         if (idx > currentIdx) { curr.classList.add('prev'); curr.classList.remove('next'); }
         else { curr.classList.add('next'); curr.classList.remove('prev'); }
-
         currentIdx = idx;
         const next = slideElements[currentIdx];
         next.classList.remove('prev', 'next');
         next.classList.add('active');
-
         if(next.id === 'final') updateResult();
         dragRatio = 0;
         document.getElementById('depth-fill').style.height = '0%';
@@ -485,10 +446,7 @@
                 break;
                 
             case 'FINALIZE':
-                // Jump to end
-                if(currentIdx !== slideElements.length - 1) {
-                    goToSlide(slideElements.length - 1);
-                }
+                if(currentIdx !== slideElements.length - 1) goToSlide(slideElements.length - 1);
                 break;
                 
             case 'RESET':
@@ -502,34 +460,27 @@
         document.querySelectorAll('.carousel-viewport').forEach(view => {
             view._currOpt = 0;
             let isDragging = false;
-            
             view.addEventListener('touchstart', e => { startX = e.touches[0].clientX; startY = e.touches[0].clientY; isDragging = true; }, {passive: true});
             view.addEventListener('touchmove', e => {
                 if(!isDragging) return;
                 const dx = e.touches[0].clientX - startX;
                 const dy = e.touches[0].clientY - startY;
                 const axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
-
                 if(axis === 'y' && dy > 0 && view.closest('.main-slide').dataset.mode === 'options') {
                     e.preventDefault();
                     dragRatio = Math.min(dy/MAX_DRAG, 1);
                     document.getElementById('depth-fill').style.height = (dragRatio*100)+'%';
                 }
             }, {passive: false});
-
             view.addEventListener('touchend', e => {
                 if(!isDragging) return; isDragging = false;
                 const dx = e.changedTouches[0].clientX - startX;
                 const dy = e.changedTouches[0].clientY - startY;
                 const axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
-                
-                // Vertical Logic
                 if (axis === 'y') {
                     if (dy < -50) executeAction('PREV');
                     else if (dy > 0 && dragRatio > TRIGGER_THRESHOLD) executeAction('SELECT');
-                } 
-                // Horizontal Logic
-                else if (axis === 'x' && view.closest('.main-slide').dataset.mode === 'options') {
+                } else if (axis === 'x' && view.closest('.main-slide').dataset.mode === 'options') {
                     if (dx < -50) executeAction('SKIP');
                     else if (dx > 50) executeAction('BROWSE');
                 }
@@ -539,7 +490,7 @@
     }
 
     /* =========================================
-       5. VOICE COMMANDER
+       5. VOICE COMMANDER (EXPANDED FOR V7.3)
        ========================================= */
     const VOICE_MAP = {
         NEXT: ["next", "continue", "go ahead"],
@@ -557,24 +508,63 @@
         const rec = new SR();
         rec.lang = "en-IN";
         rec.continuous = true;
-        
         rec.onresult = e => {
             const txt = e.results[e.results.length - 1][0].transcript.toLowerCase();
             showToast(`Heard: "${txt}"`);
+            
+            // 1. ADD COMMAND (Global)
+            if (txt.includes("add") || txt.includes("plus") || txt.includes("include")) {
+                handleGlobalAdd(txt);
+                return;
+            }
+            
+            // 2. REMOVE COMMAND (Global)
+            if (txt.includes("remove") || txt.includes("delete") || txt.includes("hatao")) {
+                handleGlobalRemove(txt);
+                return;
+            }
+
+            // 3. NAVIGATION COMMANDS
             for (const [action, words] of Object.entries(VOICE_MAP)) {
                 if (words.some(w => txt.includes(w))) { executeAction(action); return; }
             }
         };
-        
         window.toggleListenMode = () => {
-            if (document.getElementById('mic-toggle').classList.contains('listening')) {
-                rec.stop();
-                document.getElementById('mic-toggle').classList.remove('listening');
-            } else {
-                rec.start();
-                document.getElementById('mic-toggle').classList.add('listening');
-            }
+            rec.start();
+            document.getElementById('mic-toggle').classList.add('listening');
         };
+    }
+
+    // PATCH: Search entire menu to ADD item
+    function handleGlobalAdd(txt) {
+        let found = false;
+        DATA_SOURCE.categories.forEach(cat => {
+            cat.items.forEach(item => {
+                if (!found && txt.includes(item.name.toLowerCase())) {
+                    logUserChoice(cat.id, item.name, "voice");
+                    showToast(`ADDED ${item.name}`);
+                    found = true;
+                    // If on final slide, update UI immediately
+                    if (slideElements[currentIdx].id === 'final') updateResult();
+                }
+            });
+        });
+        if(!found) showToast("ITEM NOT FOUND");
+    }
+
+    // PATCH: Search active selections to REMOVE item
+    function handleGlobalRemove(txt) {
+        let found = false;
+        const cart = USER_SIGNALS.selected;
+        for (const [key, val] of Object.entries(cart)) {
+            if (!found && txt.includes(val.toLowerCase())) {
+                delete USER_SIGNALS.selected[key];
+                showToast(`REMOVED ${val}`);
+                found = true;
+                if (slideElements[currentIdx].id === 'final') updateResult();
+            }
+        }
+        if(!found) showToast("ITEM NOT IN CART");
     }
 
     /* =========================================
@@ -587,12 +577,9 @@
         return items.length > 0 ? items.join(", ") : "Punjabi Food";
     }
 
-    // PATCH: CLOUD SAVE (Simple Request Mode)
     function saveToCloud() {
-        // Source Analysis
         const hasVoice = USER_SIGNALS.timestamps.some(t => t.source === 'voice');
         const hasTouch = USER_SIGNALS.timestamps.some(t => t.source === 'explicit'); 
-        
         let inputMode = "WEB_TOUCH";
         if (hasVoice && hasTouch) inputMode = "WEB_HYBRID";
         else if (hasVoice) inputMode = "WEB_VOICE_ONLY";
@@ -604,26 +591,15 @@
         };
 
         showToast("SAVING TO CLOUD...");
-
-        // CORS Bypass: Use 'no-cors' + 'text/plain'
         fetch(GOOGLE_SCRIPT_URL, {
-            method: "POST",
-            mode: "no-cors",
-            headers: { "Content-Type": "text/plain" },
-            body: JSON.stringify(payload)
-        })
-        .then(() => showToast("ORDER SAVED ✅"))
-        .catch(e => {
-            console.error(e);
-            showToast("SAVE FAILED ❌");
-        });
+            method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(payload)
+        }).then(() => showToast("ORDER SAVED ✅")).catch(e => showToast("SAVE FAILED ❌"));
     }
 
     function copyAndRedirect(platform) {
         const text = buildCartText();
         navigator.clipboard.writeText(text);
         showToast("COPIED! PASTE IN APP");
-        
         const links = {
             zomato: `zomato://search?q=${encodeURIComponent(text)}`,
             swiggy: `swiggy://search?query=${encodeURIComponent(text)}`,
