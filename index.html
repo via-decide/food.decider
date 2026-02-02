@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FooD.Decider | swipe-OS</title>
+    <title>| food.decider |</title>
     <style>
         /* =========================================
            CORE SYSTEM
@@ -123,7 +123,6 @@
             justify-content: space-between;
         }
 
-        /* VERDICT & ACTIONS */
         .verdict-container { display: flex; flex-direction: column; height: 100%; justify-content: center; }
         .choice-header { font-family: var(--font-tech); color: #666; font-size: 0.8rem; margin-bottom: 20px; text-transform: uppercase; text-align: center; }
         
@@ -144,7 +143,6 @@
         .btn-blinkit { background: var(--accent-blinkit); color: #000; border: none; }
         .btn-cloud { background: #4285F4; border: none; } 
 
-        /* BUSINESS CTA STYLING */
         .biz-card {
             background: linear-gradient(145deg, #111, #050505);
             border: 1px solid var(--brand-orange);
@@ -164,7 +162,6 @@
             transition: opacity 0.3s; z-index: 3000; white-space: nowrap; font-family: var(--font-tech);
         }
         .toast-msg.visible { opacity: 1; }
-        .toast-msg.skip { border-color: var(--accent-skip); color: var(--accent-skip); }
 
         #mic-toggle {
             position: fixed; bottom: 20px; left: 20px; width: 50px; height: 50px;
@@ -203,7 +200,7 @@ Treat voice as a hardware input layer.
        0. CONFIGURATION
        ========================================= */
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyBMwKxq92U0dptKMdEHvUCXPS9AjExHtxHjcRmfh2JFjCSn9Zd82bzp34xLg6X0a7L9g/exec";
-    const SHARE_LINK = "via-decide.github.io";
+    const SHARE_LINK = "food-decider | swipe OS";
 
     const DATA_SOURCE = {
       "cuisine": "Punjabi",
@@ -243,7 +240,7 @@ Treat voice as a hardware input layer.
     let currentIdx = 0;
 
     function init() {
-        console.log("BOOTING SWIPE-OS v8.0...");
+        console.log("BOOTING SWIPE-OS v8.2...");
         
         let slides = [];
         DATA_SOURCE.categories.forEach((cat, idx) => {
@@ -443,38 +440,85 @@ Treat voice as a hardware input layer.
     }
 
     /* =========================================
-       PATCH V1: GLOBAL VOICE ROUTER (DO NOT DELETE)
+       PATCH V1: MASTER INTENT MAP
        ========================================= */
-    function routeVoiceIntent(txt) {
-        txt = txt.toLowerCase().trim();
+    const VOICE_INTENTS = {
+      NAV: {
+        next: ["next","continue","go ahead"],
+        prev: ["back","previous","go back"],
+        jump: ["go to","open","show me"]
+      },
+      ACTION: {
+        select: ["select","choose","pick"],
+        skip: ["skip","ignore"],
+        browse: ["browse","show","next option"]
+      },
+      CART: {
+        add: ["add","include"],
+        remove: ["remove","delete"],
+        reset: ["clear cart","start over","reset order"],
+        read: ["read cart","what did i choose","list items"]
+      },
+      QUANTITY: {
+        double: ["double","two portions","make it two"],
+        half: ["half","less","small portion"]
+      },
+      PLATFORM: {
+        zomato: ["zomato"],
+        swiggy: ["swiggy"],
+        blinkit: ["blinkit"],
+        whatsapp: ["whatsapp"]
+      },
+      SYSTEM: {
+        help: ["help","what can i say","commands"],
+        copy: ["copy","clipboard","phone"],
+        save: ["save","cloud"]
+      }
+    };
 
-        // PLATFORM
-        if (txt.includes("zomato")) return { type: "PLATFORM", val: "zomato" };
-        if (txt.includes("swiggy")) return { type: "PLATFORM", val: "swiggy" };
-        if (txt.includes("blinkit")) return { type: "PLATFORM", val: "blinkit" };
+    function parseVoice(text){
+      const t = text.toLowerCase();
+      for (const [group, intents] of Object.entries(VOICE_INTENTS)) {
+        for (const [key, words] of Object.entries(intents)) {
+          if (words.some(w => t.includes(w))) {
+            return { group, key, raw: t };
+          }
+        }
+      }
+      return null;
+    }
 
-        // NAVIGATION
-        if (txt.includes("next") || txt.includes("continue")) return { type: "NAV", val: "NEXT" };
-        if (txt.includes("back") || txt.includes("previous")) return { type: "NAV", val: "PREV" };
-        if (txt.includes("business") || txt.includes("automation") || txt.includes("contact")) return { type: "NAV", val: "NEXT" };
-
-        // SELECTION
-        if (txt.includes("select") || txt.includes("choose")) return { type: "ACTION", val: "SELECT" };
-        if (txt.includes("skip")) return { type: "ACTION", val: "SKIP" };
-        if (txt.includes("browse") || txt.includes("show")) return { type: "ACTION", val: "BROWSE" };
-
-        // CART
-        if (txt.includes("add")) return { type: "CART", val: "ADD", raw: txt };
-        if (txt.includes("remove")) return { type: "CART", val: "REMOVE", raw: txt };
-
-        // STORAGE
-        if (txt.includes("save")) return { type: "SAVE" };
-        if (txt.includes("whatsapp")) return { type: "WHATSAPP" };
-        
-        // AUTO-COPY UPGRADE
-        if (txt.includes("copy") || txt.includes("clipboard")) return { type: "COPY" };
-
-        return null;
+    function dispatchVoice(cmd){
+      if(!cmd) return;
+      switch(cmd.group){
+        case "NAV":
+          if(cmd.key==="next") executeAction("NEXT");
+          if(cmd.key==="prev") executeAction("PREV");
+          if(cmd.key==="jump") jumpToCategory(cmd.raw);
+          break;
+        case "ACTION":
+          if(cmd.key==="select") executeAction("SELECT");
+          if(cmd.key==="skip") executeAction("SKIP");
+          if(cmd.key==="browse") executeAction("BROWSE");
+          break;
+        case "CART":
+          if(cmd.key==="add") handleGlobalAdd(cmd.raw);
+          if(cmd.key==="remove") handleGlobalRemove(cmd.raw);
+          if(cmd.key==="reset") resetCart();
+          if(cmd.key==="read") readCart();
+          break;
+        case "QUANTITY":
+          applyQuantity(cmd.key, cmd.raw);
+          break;
+        case "PLATFORM":
+          copyAndRedirect(cmd.key);
+          break;
+        case "SYSTEM":
+          if(cmd.key==="help") speakHelp();
+          if(cmd.key==="copy") autoCopy();
+          if(cmd.key==="save") saveToCloud();
+          break;
+      }
     }
 
     let rec;
@@ -485,38 +529,13 @@ Treat voice as a hardware input layer.
         rec.lang = "en-IN";
         rec.continuous = true;
 
-        /* =========================================
-           PATCH 2: rec.onresult (UNIFIED LOGIC)
-           ========================================= */
         rec.onresult = e => {
             const txt = e.results[e.results.length - 1][0].transcript;
             showToast(`Heard: "${txt}"`);
-
-            const intent = routeVoiceIntent(txt);
-            if (!intent) return;
-
-            switch(intent.type) {
-                case "NAV": executeAction(intent.val); break;
-                case "ACTION": executeAction(intent.val); break;
-                case "PLATFORM": copyAndRedirect(intent.val); break;
-                case "SAVE": saveToCloud(); break;
-                case "WHATSAPP": sendWhatsapp(); break;
-                case "COPY": 
-                    const data = buildCartText();
-                    navigator.clipboard.writeText(data);
-                    showToast("AUTO-COPIED TO CLIPBOARD");
-                    speak("Items copied to clipboard");
-                    break;
-                case "CART":
-                    if (intent.val === "ADD") handleGlobalAdd(intent.raw);
-                    if (intent.val === "REMOVE") handleGlobalRemove(intent.raw);
-                    break;
-            }
+            const intent = parseVoice(txt);
+            if (intent) dispatchVoice(intent);
         };
 
-        /* =========================================
-           PATCH V2: VOICE HEARTBEAT (GLOBAL)
-           ========================================= */
         rec.onend = () => {
             const mic = document.getElementById('mic-toggle');
             if (mic.classList.contains('listening')) {
@@ -534,6 +553,53 @@ Treat voice as a hardware input layer.
                 mic.classList.add('listening');
             }
         };
+    }
+
+    /* =========================================
+       PATCH V3: NEW MASTER FUNCTIONS
+       ========================================= */
+    function resetCart(){
+      USER_SIGNALS.selected = {};
+      showToast("ORDER RESET");
+      speak("Order cleared");
+      updateResult();
+    }
+
+    function readCart(){
+      const items = Object.values(USER_SIGNALS.selected);
+      if(!items.length){ speak("Your cart is empty"); return; }
+      speak("You have selected " + items.join(", "));
+    }
+
+    function jumpToCategory(txt){
+      DATA_SOURCE.categories.forEach((c, i)=>{
+        if(txt.includes(c.label.toLowerCase())){
+          goToSlide(i);
+          speak("Opening " + c.label);
+        }
+      });
+    }
+
+    function applyQuantity(type, txt){
+      for(const [cat,item] of Object.entries(USER_SIGNALS.selected)){
+        if(txt.includes(item.toLowerCase())){
+          USER_SIGNALS.selected[cat] = type==="double" ? item + " x2" : type==="half" ? item + " half" : item;
+          showToast("UPDATED " + item);
+          speak("Updated quantity");
+          updateResult();
+        }
+      }
+    }
+
+    function speakHelp(){
+      speak("You can say next, back, select, skip, add item, remove item, clear cart, or open Zomato.");
+    }
+
+    function autoCopy() {
+        const data = buildCartText();
+        navigator.clipboard.writeText(data);
+        showToast("AUTO-COPIED TO CLIPBOARD");
+        speak("I have copied your order to the clipboard");
     }
 
     function handleGlobalAdd(txt) {
@@ -562,9 +628,6 @@ Treat voice as a hardware input layer.
         window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
     }
 
-    /* =========================================
-       6. CONNECTIVITY (CLOUD & APP)
-       ========================================= */
     function buildCartText() {
         return Object.values(USER_SIGNALS.selected).join(", ") || "Punjabi Food";
     }
