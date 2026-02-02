@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>| food.decide |</title>
+    <title>Harvey's Decision Engine | SWIPE-OS v9.0 (Multi-Cuisine)</title>
     <style>
         /* =========================================
            CORE SYSTEM
@@ -123,6 +123,7 @@
             justify-content: space-between;
         }
 
+        /* VERDICT & ACTIONS */
         .verdict-container { display: flex; flex-direction: column; height: 100%; justify-content: center; }
         .choice-header { font-family: var(--font-tech); color: #666; font-size: 0.8rem; margin-bottom: 20px; text-transform: uppercase; text-align: center; }
         
@@ -152,6 +153,26 @@
         }
         .biz-tagline { font-family: var(--font-tech); color: var(--brand-orange); font-size: 0.7rem; margin-bottom: 10px; display: block; }
         .biz-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 20px; color: #fff; }
+
+        /* LOBBY STYLES */
+        .lobby-container {
+            display: flex; flex-direction: column; gap: 15px; padding: 30px;
+            height: 100%; justify-content: center;
+        }
+        .cuisine-btn {
+            background: #222; border: 1px solid #444; color: #888;
+            padding: 20px; font-size: 1.2rem; font-weight: bold;
+            text-transform: uppercase; border-radius: 12px;
+            transition: all 0.2s;
+        }
+        .cuisine-btn.selected {
+            background: var(--brand-orange); color: #000; border-color: var(--brand-orange);
+            box-shadow: 0 0 15px rgba(255, 103, 31, 0.4);
+        }
+        .hunt-btn {
+            background: #fff; color: #000; font-weight: 900; margin-top: 30px;
+            letter-spacing: 2px;
+        }
 
         #depth-fill { position: fixed; right: 0; top: 0; bottom: 0; width: 4px; background: #333; z-index: 900; height: 0%; transition: height 0.05s linear; }
         
@@ -202,23 +223,45 @@ Treat voice as a hardware input layer.
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyBMwKxq92U0dptKMdEHvUCXPS9AjExHtxHjcRmfh2JFjCSn9Zd82bzp34xLg6X0a7L9g/exec";
     const SHARE_LINK_TEXT = "food-decider | swipe OS";
 
-    const DATA_SOURCE = {
-      "cuisine": "Punjabi",
-      "currency": "INR",
-      "categories": [
-        { "id": "breads", "label": "Breads", "items": [{ "name": "Tandoori Roti" }, { "name": "Butter Naan" }, { "name": "Garlic Naan" }] },
-        { "id": "veg_mains", "label": "Veg Mains", "items": [{ "name": "Dal Makhani" }, { "name": "Paneer Butter Masala" }, { "name": "Chole Masala" }] },
-        { "id": "nonveg_mains", "label": "Non-Veg Mains", "items": [{ "name": "Butter Chicken" }, { "name": "Chicken Tikka Masala" }] },
-        { "id": "rice", "label": "Rice", "items": [{ "name": "Jeera Rice" }, { "name": "Chicken Biryani" }] },
-        { "id": "starters", "label": "Starters", "items": [{ "name": "Paneer Tikka" }, { "name": "Chicken Tikka" }] },
-        { "id": "beverages", "label": "Beverages", "items": [{ "name": "Sweet Lassi" }, { "name": "Salted Lassi" }] }
-      ]
+    // MASTER DATA SOURCE
+    const RAW_DATA = {
+        punjabi: {
+            label: "PUNJABI",
+            categories: [
+                { id: "p_breads", label: "Breads", items: [{name:"Butter Naan"}, {name:"Tandoori Roti"}, {name:"Garlic Naan"}] },
+                { id: "p_mains", label: "Mains", items: [{name:"Dal Makhani"}, {name:"Paneer Butter Masala"}, {name:"Butter Chicken"}] },
+                { id: "p_rice", label: "Rice", items: [{name:"Jeera Rice"}, {name:"Chicken Biryani"}] }
+            ]
+        },
+        chinese: {
+            label: "CHINESE",
+            categories: [
+                { id: "c_starters", label: "Dim Sum", items: [{name:"Pork Siu Mai"}, {name:"Har Gao"}, {name:"Veg Crystal Dumpling"}] },
+                { id: "c_noodles", label: "Noodles", items: [{name:"Dan Dan Noodles"}, {name:"Hakka Noodles"}, {name:"Lo Mein"}] },
+                { id: "c_main", label: "Wok", items: [{name:"Kung Pao Chicken"}, {name:"Mapo Tofu"}, {name:"Chilli Chicken"}] }
+            ]
+        },
+        pizza: {
+            label: "PIZZA",
+            categories: [
+                { id: "z_classic", label: "Classic", items: [{name:"Margherita"}, {name:"Pepperoni"}, {name:"Double Cheese"}] },
+                { id: "z_gourmet", label: "Gourmet", items: [{name:"Burrata Pizza"}, {name:"Truffle Mushroom"}, {name:"Wood Fired Chicken"}] }
+            ]
+        },
+        snacks: {
+            label: "NASTA PANI",
+            categories: [
+                { id: "s_pkg", label: "Packaged", items: [{name:"Coke"}, {name:"Chips"}, {name:"Kurkure"}] },
+                { id: "s_hot", label: "Hot Snacks", items: [{name:"Samosa"}, {name:"Puff"}, {name:"Burger"}] }
+            ]
+        }
     };
 
     /* =========================================
        1. GLOBAL STATE
        ========================================= */
     const USER_SIGNALS = { selected: {}, timestamps: [] };
+    let SELECTED_CUISINES = []; // Multi-select storage
 
     function logUserChoice(key, value, source="explicit") {
         if (value === "SKIPPED") delete USER_SIGNALS.selected[key];
@@ -227,23 +270,85 @@ Treat voice as a hardware input layer.
     }
 
     /* =========================================
-       2. UI BUILDER
+       2. UI BUILDER (DYNAMIC)
        ========================================= */
     const container = document.getElementById('master-container');
     let slideElements = [];
     let currentIdx = 0;
 
     function init() {
+        renderLobby(); // Start at Lobby
+        initVoice();   // Start Voice Engine
+    }
+
+    function renderLobby() {
+        container.innerHTML = ""; // Clear
+        const section = document.createElement('section');
+        section.className = "main-slide active";
+        section.id = "lobby";
+        
+        let html = `
+        <div class="slide-header"><span class="header-title">SWIPE-OS v9.0</span></div>
+        <div class="lobby-container">
+            <h1 style="text-align:center; margin-bottom:40px;">AAJ KYA MANGVAAYEGE!</h1>
+            <div id="cuisine-grid" style="display:grid; gap:15px;">
+                <button class="cuisine-btn" onclick="toggleCuisine('punjabi', this)">PUNJABI</button>
+                <button class="cuisine-btn" onclick="toggleCuisine('chinese', this)">CHINESE</button>
+                <button class="cuisine-btn" onclick="toggleCuisine('pizza', this)">PIZZA</button>
+                <button class="cuisine-btn" onclick="toggleCuisine('snacks', this)">NASTA PANI</button>
+            </div>
+            <button class="btn hunt-btn" onclick="startHunt()">HUNT &rarr;</button>
+        </div>`;
+        
+        section.innerHTML = html;
+        container.appendChild(section);
+        slideElements = [section];
+        currentIdx = 0;
+    }
+
+    window.toggleCuisine = (id, btn) => {
+        if(SELECTED_CUISINES.includes(id)) {
+            SELECTED_CUISINES = SELECTED_CUISINES.filter(x => x !== id);
+            btn.classList.remove('selected');
+        } else {
+            SELECTED_CUISINES.push(id);
+            btn.classList.add('selected');
+        }
+    };
+
+    window.startHunt = () => {
+        if(SELECTED_CUISINES.length === 0) {
+            showToast("SELECT AT LEAST ONE!");
+            speak("Please select a cuisine first");
+            return;
+        }
+        buildGameDeck();
+    };
+
+    function buildGameDeck() {
+        container.innerHTML = ""; 
         let slides = [];
-        DATA_SOURCE.categories.forEach((cat, idx) => {
-            slides.push({ id: cat.id, type: 'selector', title: `${cat.label.toUpperCase()}`, items: cat.items });
+
+        // 1. Merge Categories
+        SELECTED_CUISINES.forEach(cId => {
+            RAW_DATA[cId].categories.forEach(cat => {
+                slides.push({
+                    id: cat.id,
+                    type: 'selector',
+                    title: `${RAW_DATA[cId].label} · ${cat.label.toUpperCase()}`,
+                    items: cat.items
+                });
+            });
         });
+
+        // 2. Terminals
         slides.push({ id: "final", type: "final", title: "FINAL ORDER" });
         slides.push({ id: "business", type: "business", title: "KUTCH AUTOMATION" });
 
-        slides.forEach((cfg) => {
+        // 3. Render
+        slides.forEach((cfg, idx) => {
             const section = document.createElement('section');
-            section.className = `main-slide ${slides.indexOf(cfg)===0 ? 'active' : 'next'}`;
+            section.className = `main-slide ${idx === 0 ? 'active' : 'next'}`;
             section.id = cfg.id;
             section.dataset.mode = cfg.type === 'selector' ? 'options' : 'static';
 
@@ -253,11 +358,12 @@ Treat voice as a hardware input layer.
                 cfg.items.forEach((item, i) => {
                     html += `
                     <div class="sub-slide ${i===0 ? 'opt-active' : 'opt-hidden'}" data-opt-idx="${i}" data-val="${item.name}">
-                        <div class="role-label">PUNJABI</div>
+                        <div class="role-label">${cfg.title.split('·')[0].trim()}</div>
                         <h1>${item.name}</h1>
+                        <div class="primary-question">Swipe Right to Browse</div>
                         <div class="nav-hint">
-                            <span style="flex:1; color:var(--accent-skip);">&larr; SKIP</span>
-                            <span style="flex:2; text-align:center;">&darr; SELECT</span>
+                            <span style="flex:1; color:var(--accent-skip); font-weight:bold;">&larr; SKIP</span>
+                            <span style="flex:2; text-align:center; color:var(--accent-go); font-weight:bold;">&darr; SELECT</span>
                             <span style="flex:1; text-align:right;">BROWSE &rarr;</span>
                         </div>
                     </div>`;
@@ -271,8 +377,12 @@ Treat voice as a hardware input layer.
                         <div class="final-actions">
                             <button class="btn btn-zomato" onclick="copyAndRedirect('zomato')">ZOMATO</button>
                             <button class="btn btn-swiggy" onclick="copyAndRedirect('swiggy')">SWIGGY</button>
+                            <button class="btn btn-blinkit" onclick="copyAndRedirect('blinkit')">BLINKIT</button>
                             <button class="btn btn-cloud" onclick="saveToCloud()">SAVE TO CLOUD</button>
                             <button class="btn btn-wa" onclick="sendWhatsapp()">WHATSAPP</button>
+                        </div>
+                        <div class="nav-hint">
+                           <span style="width:100%; text-align:center; color:var(--brand-orange)">SWIPE DOWN FOR BUSINESS &darr;</span>
                         </div>
                     </div>
                 </div>`;
@@ -290,6 +400,7 @@ Treat voice as a hardware input layer.
                         </div>
                         <div class="final-actions">
                             <button class="btn btn-wa" onclick="window.open('https://wa.me/916351537770', '_blank')">CONSULT WHATSAPP</button>
+                            <button class="btn" style="border:1px solid #444;" onclick="location.reload()">START NEW HUNT</button>
                         </div>
                     </div>
                 </div>`;
@@ -301,12 +412,125 @@ Treat voice as a hardware input layer.
         });
 
         slideElements = Array.from(document.querySelectorAll('.main-slide'));
-        attachEvents();
-        initVoice();
+        currentIdx = 0;
+        attachEvents(); // Re-attach touch events to new slides
     }
 
     /* =========================================
-       3. MASTER PATCH — VOICE INTENTS
+       3. NAVIGATION & LOGIC
+       ========================================= */
+    let dragRatio = 0;
+    const MAX_DRAG = 250;
+    const TRIGGER_THRESHOLD = 0.9;
+
+    function goToSlide(idx) {
+        if (idx < 0 || idx >= slideElements.length) return;
+        const curr = slideElements[currentIdx];
+        curr.classList.remove('active');
+        if (idx > currentIdx) { curr.classList.add('prev'); curr.classList.remove('next'); }
+        else { curr.classList.add('next'); curr.classList.remove('prev'); }
+        currentIdx = idx;
+        const next = slideElements[currentIdx];
+        next.classList.remove('prev', 'next');
+        next.classList.add('active');
+        if(next.id === 'final') updateResult();
+        dragRatio = 0;
+        document.getElementById('depth-fill').style.height = '0%';
+    }
+
+    function updateResult() {
+        const list = document.getElementById('final-list');
+        const cart = USER_SIGNALS.selected;
+        let html = '';
+        if (Object.keys(cart).length === 0) {
+            html = '<div style="text-align:center;color:#666;margin-top:20px;">No items selected.</div>';
+        } else {
+            for (const [cat, item] of Object.entries(cart)) {
+                html += `<div class="input-row"><span class="input-key">${cat}</span><span class="input-val">${item}</span></div>`;
+            }
+        }
+        list.innerHTML = html;
+    }
+
+    function executeAction(action) {
+        const currSlide = slideElements[currentIdx];
+        const mode = currSlide.dataset.mode;
+        
+        switch(action) {
+            case 'NEXT': goToSlide(currentIdx + 1); break;
+            case 'PREV': if(currentIdx > 0) goToSlide(currentIdx - 1); break;
+            case 'SELECT': 
+                if(mode === 'options') {
+                    const key = currSlide.querySelector('.carousel-viewport').dataset.id;
+                    const deck = currSlide.querySelectorAll('.sub-slide');
+                    const curr = currSlide.querySelector('.carousel-viewport')._currOpt || 0;
+                    const val = deck[curr].dataset.val;
+                    logUserChoice(key, val, "explicit");
+                    showToast(`SELECTED: ${val}`);
+                    goToSlide(currentIdx + 1);
+                } else goToSlide(currentIdx + 1);
+                break;
+            case 'SKIP':
+                if(mode === 'options') {
+                    const key = currSlide.querySelector('.carousel-viewport').dataset.id;
+                    logUserChoice(key, "SKIPPED", "explicit");
+                    showToast("SKIPPED", "skip");
+                    goToSlide(currentIdx + 1);
+                }
+                break;
+            case 'BROWSE':
+                if(mode === 'options') {
+                    const view = currSlide.querySelector('.carousel-viewport');
+                    const slides = view.querySelectorAll('.sub-slide');
+                    let curr = view._currOpt || 0;
+                    curr = (curr + 1) % slides.length;
+                    view._currOpt = curr;
+                    slides.forEach((s, i) => {
+                        s.style.transform = '';
+                        if(i === curr) { s.classList.remove('opt-hidden'); s.classList.add('opt-active'); }
+                        else { s.classList.remove('opt-active'); s.classList.add('opt-hidden'); }
+                    });
+                }
+                break;
+        }
+    }
+
+    function attachEvents() {
+        let startX = 0, startY = 0;
+        document.querySelectorAll('.carousel-viewport').forEach(view => {
+            view._currOpt = 0;
+            let isDragging = false;
+            view.addEventListener('touchstart', e => { startX = e.touches[0].clientX; startY = e.touches[0].clientY; isDragging = true; }, {passive: true});
+            view.addEventListener('touchmove', e => {
+                if(!isDragging) return;
+                const dx = e.touches[0].clientX - startX;
+                const dy = e.touches[0].clientY - startY;
+                const axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+                if(axis === 'y' && dy > 0) {
+                    e.preventDefault();
+                    dragRatio = Math.min(dy/MAX_DRAG, 1);
+                    document.getElementById('depth-fill').style.height = (dragRatio*100)+'%';
+                }
+            }, {passive: false});
+            view.addEventListener('touchend', e => {
+                if(!isDragging) return; isDragging = false;
+                const dx = e.changedTouches[0].clientX - startX;
+                const dy = e.changedTouches[0].clientY - startY;
+                const axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+                if (axis === 'y') {
+                    if (dy < -50) executeAction('PREV');
+                    else if (dy > 50 && dragRatio > TRIGGER_THRESHOLD) executeAction('SELECT');
+                } else if (axis === 'x' && view.closest('.main-slide').dataset.mode === 'options') {
+                    if (dx < -50) executeAction('SKIP');
+                    else if (dx > 50) executeAction('BROWSE');
+                }
+                document.getElementById('depth-fill').style.height = '0%';
+            });
+        });
+    }
+
+    /* =========================================
+       PATCH V1: MASTER INTENT MAP
        ========================================= */
     const VOICE_INTENTS = {
       NAV: {
@@ -354,11 +578,21 @@ Treat voice as a hardware input layer.
 
     function dispatchVoice(cmd){
       if(!cmd) return;
+      // Lobby Voice Logic
+      if(document.getElementById('lobby')) {
+          if(cmd.group === 'CART' && cmd.key === 'add') {
+             // Basic naive mapping for lobby
+             const map = {'punjabi': 'punjabi', 'chinese': 'chinese', 'pizza': 'pizza', 'nasta': 'snacks', 'snacks': 'snacks'};
+             for(let k in map) if(cmd.raw.includes(k)) toggleCuisine(map[k], document.querySelector(`button[onclick*='${map[k]}']`));
+          }
+          if(cmd.key === 'next' || cmd.key === 'jump') startHunt();
+          return;
+      }
+
       switch(cmd.group){
         case "NAV":
           if(cmd.key==="next") executeAction("NEXT");
           if(cmd.key==="prev") executeAction("PREV");
-          if(cmd.key==="jump") jumpToCategory(cmd.raw);
           break;
         case "ACTION":
           if(cmd.key==="select") executeAction("SELECT");
@@ -381,144 +615,28 @@ Treat voice as a hardware input layer.
       }
     }
 
-    /* =========================================
-       4. NEW MASTER FUNCTIONS
-       ========================================= */
-    function resetCart(){
-      USER_SIGNALS.selected = {};
-      showToast("ORDER RESET");
-      speak("Order cleared");
-      updateResult();
-    }
-
-    function readCart(){
-      const items = Object.values(USER_SIGNALS.selected);
-      if(!items.length){ speak("Your cart is empty"); return; }
-      speak("You have selected " + items.join(", "));
-    }
-
-    function jumpToCategory(txt){
-      DATA_SOURCE.categories.forEach((c, i)=>{
-        if(txt.includes(c.label.toLowerCase())){
-          goToSlide(i);
-          speak("Opening " + c.label);
-        }
-      });
-    }
-
-    function applyQuantity(type, txt){
-      for(const [cat,item] of Object.entries(USER_SIGNALS.selected)){
-        if(txt.includes(item.toLowerCase())){
-          USER_SIGNALS.selected[cat] = type==="double" ? item + " x2" : type==="half" ? item + " half" : item;
-          showToast("UPDATED " + item);
-          speak("Updated quantity");
-          updateResult();
-        }
-      }
-    }
-
-    function speakHelp(){
-      speak("You can say next, back, select, skip, add item, remove item, clear cart, or open Zomato.");
-    }
-
-    function autoCopy() {
-        const data = buildCartText();
-        navigator.clipboard.writeText(data);
-        showToast("AUTO-COPIED TO CLIPBOARD");
-        speak("I have copied your order to the clipboard");
-    }
-
-    /* =========================================
-       5. CORE ENGINES
-       ========================================= */
-    function goToSlide(idx) {
-        if (idx < 0 || idx >= slideElements.length) return;
-        const curr = slideElements[currentIdx];
-        curr.classList.remove('active');
-        if (idx > currentIdx) { curr.classList.add('prev'); curr.classList.remove('next'); }
-        else { curr.classList.add('next'); curr.classList.remove('prev'); }
-        currentIdx = idx;
-        const next = slideElements[currentIdx];
-        next.classList.remove('prev', 'next');
-        next.classList.add('active');
-        if(next.id === 'final') updateResult();
-    }
-
-    function updateResult() {
-        const list = document.getElementById('final-list');
-        const cart = USER_SIGNALS.selected;
-        let html = '';
-        if (Object.keys(cart).length === 0) html = '<div style="text-align:center;color:#666;">No items selected.</div>';
-        else {
-            for (const [cat, item] of Object.entries(cart)) {
-                html += `<div class="input-row"><span class="input-key">${cat}</span><span class="input-val">${item}</span></div>`;
-            }
-        }
-        list.innerHTML = html;
-    }
-
-    function executeAction(action) {
-        const currSlide = slideElements[currentIdx];
-        const mode = currSlide.dataset.mode;
-        if (action === 'NEXT') goToSlide(currentIdx + 1);
-        if (action === 'PREV') goToSlide(currentIdx - 1);
-        if (action === 'BROWSE' && mode === 'options') {
-            const view = currSlide.querySelector('.carousel-viewport');
-            const slides = view.querySelectorAll('.sub-slide');
-            let curr = view._currOpt || 0;
-            curr = (curr + 1) % slides.length;
-            view._currOpt = curr;
-            slides.forEach((s, i) => {
-                if(i === curr) { s.classList.remove('opt-hidden'); s.classList.add('opt-active'); }
-                else { s.classList.remove('opt-active'); s.classList.add('opt-hidden'); }
-            });
-        }
-        if (action === 'SELECT' && mode === 'options') {
-            const view = currSlide.querySelector('.carousel-viewport');
-            const val = view.querySelectorAll('.sub-slide')[view._currOpt || 0].dataset.val;
-            logUserChoice(view.dataset.id, val);
-            showToast(`SELECTED: ${val}`);
-            goToSlide(currentIdx + 1);
-        }
-        if (action === 'SKIP' && mode === 'options') goToSlide(currentIdx + 1);
-    }
-
-    function attachEvents() {
-        let startX = 0, startY = 0;
-        document.querySelectorAll('.carousel-viewport').forEach(view => {
-            view._currOpt = 0;
-            view.addEventListener('touchstart', e => { startX = e.touches[0].clientX; startY = e.touches[0].clientY; }, {passive: true});
-            view.addEventListener('touchend', e => {
-                const dx = e.changedTouches[0].clientX - startX;
-                const dy = e.changedTouches[0].clientY - startY;
-                if (Math.abs(dy) > Math.abs(dx)) {
-                    if (dy < -50) executeAction('PREV');
-                    else if (dy > 50) executeAction('SELECT');
-                } else {
-                    if (dx < -50) executeAction('SKIP');
-                    else if (dx > 50) executeAction('BROWSE');
-                }
-            });
-        });
-    }
-
+    let rec;
     function initVoice() {
         const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SR) return;
         rec = new SR();
         rec.lang = "en-IN";
         rec.continuous = true;
+
         rec.onresult = e => {
             const txt = e.results[e.results.length - 1][0].transcript;
             showToast(`Heard: "${txt}"`);
             const intent = parseVoice(txt);
             if (intent) dispatchVoice(intent);
         };
+
         rec.onend = () => {
-            if (document.getElementById('mic-toggle').classList.contains('listening')) {
+            const mic = document.getElementById('mic-toggle');
+            if (mic && mic.classList.contains('listening')) {
                 setTimeout(() => { try { rec.start(); } catch(e) {} }, 120);
             }
         };
+
         window.toggleListenMode = () => {
             const mic = document.getElementById('mic-toggle');
             if(mic.classList.contains('listening')) {
@@ -529,16 +647,57 @@ Treat voice as a hardware input layer.
         };
     }
 
+    function resetCart(){
+      USER_SIGNALS.selected = {};
+      showToast("ORDER RESET");
+      speak("Order cleared");
+      if(slideElements[currentIdx].id === 'final') updateResult();
+    }
+
+    function readCart(){
+      const items = Object.values(USER_SIGNALS.selected);
+      if(!items.length){ speak("Your cart is empty"); return; }
+      speak("You have selected " + items.join(", "));
+    }
+
+    function applyQuantity(type, txt){
+      for(const [cat,item] of Object.entries(USER_SIGNALS.selected)){
+        if(txt.includes(item.toLowerCase())){
+          USER_SIGNALS.selected[cat] = type==="double" ? item + " x2" : type==="half" ? item + " half" : item;
+          showToast("UPDATED " + item);
+          speak("Updated quantity");
+          if(slideElements[currentIdx].id === 'final') updateResult();
+        }
+      }
+    }
+
+    function speakHelp(){
+      speak("You can say next, select, add item, clear cart, or hunt.");
+    }
+
+    function autoCopy() {
+        const data = buildCartText();
+        navigator.clipboard.writeText(data);
+        showToast("AUTO-COPIED TO CLIPBOARD");
+        speak("I have copied your order to the clipboard");
+    }
+
     function handleGlobalAdd(txt) {
-        DATA_SOURCE.categories.forEach(cat => {
-            cat.items.forEach(item => {
-                if (txt.includes(item.name.toLowerCase())) {
-                    logUserChoice(cat.id, item.name, "voice");
-                    showToast(`ADDED ${item.name}`);
-                    if (slideElements[currentIdx].id === 'final') updateResult();
-                }
+        // Search inside selected cuisines only
+        let found = false;
+        SELECTED_CUISINES.forEach(cId => {
+            RAW_DATA[cId].categories.forEach(cat => {
+                cat.items.forEach(item => {
+                    if (!found && txt.includes(item.name.toLowerCase())) {
+                        logUserChoice(cat.id, item.name, "voice");
+                        showToast(`ADDED ${item.name}`);
+                        found = true;
+                        if (slideElements[currentIdx].id === 'final') updateResult();
+                    }
+                });
             });
         });
+        if(!found) showToast("ITEM NOT FOUND IN SELECTION");
     }
 
     function handleGlobalRemove(txt) {
@@ -552,26 +711,35 @@ Treat voice as a hardware input layer.
     }
 
     function speak(text) { window.speechSynthesis.speak(new SpeechSynthesisUtterance(text)); }
-    function buildCartText() { return Object.values(USER_SIGNALS.selected).join(", ") || "Punjabi Food"; }
+    function buildCartText() { return Object.values(USER_SIGNALS.selected).join(", ") || "No items"; }
 
     function saveToCloud() {
         showToast("SAVING...");
-        const payload = { items: USER_SIGNALS.selected, session: Date.now() };
+        const payload = { items: USER_SIGNALS.selected, session: Date.now(), cuisines: SELECTED_CUISINES };
         fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(payload) })
         .then(() => { showToast("SAVED ✅"); speak("Order saved"); });
     }
 
     function copyAndRedirect(platform) {
         const text = buildCartText();
-        navigator.clipboard.writeText(text);
+        navigator.clipboard.writeText(text).then(() => showToast("COPIED! OPENING " + platform.toUpperCase()));
         const links = {
-            zomato: `zomato://search?q=${encodeURIComponent(text)}`,
-            swiggy: `swiggy://search?query=${encodeURIComponent(text)}`
+            zomato: { app: `zomato://search?q=${encodeURIComponent(text)}`, web: `https://www.zomato.com/search?q=${encodeURIComponent(text)}` },
+            swiggy: { app: `swiggy://search?query=${encodeURIComponent(text)}`, web: `https://www.swiggy.com/search?q=${encodeURIComponent(text)}` },
+            blinkit: { app: `blinkit://search?query=${encodeURIComponent(text)}`, web: `https://blinkit.com/s/?q=${encodeURIComponent(text)}` }
         };
-        if(links[platform]) window.location.href = links[platform];
+        const target = links[platform];
+        if (!target) return;
+        const start = Date.now();
+        window.location.href = target.app;
+        setTimeout(() => { if (Date.now() - start < 2000) window.location.href = target.web; }, 1500);
     }
 
-    function showToast(msg) {
+    function sendWhatsapp() {
+        window.open(`https://wa.me/916351537770?text=ORDER: ${encodeURIComponent(buildCartText())}`, '_blank');
+    }
+
+    function showToast(msg, type="normal") {
         const t = document.getElementById('toast');
         t.innerText = msg; t.classList.add('visible');
         setTimeout(() => t.classList.remove('visible'), 2000);
