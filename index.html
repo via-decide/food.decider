@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Harvey's Decision Engine | SWIPE-OS v7.5 (Full Voice + Cloud)</title>
+    <title>Harvey's Decision Engine | SWIPE-OS v7.6 (Full Voice Persistence)</title>
     <style>
         /* =========================================
            CORE SYSTEM
@@ -123,21 +123,26 @@
             justify-content: space-between;
         }
 
+        /* VERDICT & ACTIONS */
+        .verdict-container { display: flex; flex-direction: column; height: 100%; justify-content: center; }
+        .choice-header { font-family: var(--font-tech); color: #666; font-size: 0.8rem; margin-bottom: 20px; text-transform: uppercase; text-align: center; }
+        
         .input-group { 
             border: 1px solid #333; background: #111; padding: 20px; border-radius: 8px; 
             margin-bottom: 20px; min-height: 100px; max-height: 40vh; overflow-y: auto; 
         }
+        
         .input-row { display: flex; justify-content: space-between; border-bottom: 1px dashed #333; padding: 10px 0; font-family: var(--font-tech); font-size: 0.8rem; }
         .input-key { color: #888; text-transform: uppercase; }
         .input-val { color: var(--accent-go); font-weight: bold; text-align: right; }
         
         .final-actions { display: grid; gap: 10px; margin-top: 20px; }
-        .btn { background: #222; color: #fff; border: 1px solid #333; padding: 15px; border-radius: 8px; font-weight: 600; text-align: center; font-size: 0.9rem; cursor: pointer; }
+        .btn { background: #222; color: #fff; border: 1px solid #333; padding: 15px; border-radius: 8px; font-weight: 600; text-align: center; font-size: 0.9rem; cursor: pointer; display: block; width: 100%; box-sizing: border-box;}
         .btn-wa { background: #25D366; color: #000; border: none; }
-        .btn-zomato { background: var(--accent-zomato); border: none; }
-        .btn-swiggy { background: var(--accent-swiggy); border: none; }
+        .btn-zomato { background: var(--accent-zomato); border: none; color: white; }
+        .btn-swiggy { background: var(--accent-swiggy); border: none; color: white; }
         .btn-blinkit { background: var(--accent-blinkit); color: #000; border: none; }
-        .btn-cloud { background: #4285F4; border: none; } 
+        .btn-cloud { background: #4285F4; border: none; color: white; } 
 
         #depth-fill { position: fixed; right: 0; top: 0; bottom: 0; width: 4px; background: #333; z-index: 900; height: 0%; transition: height 0.05s linear; }
         
@@ -157,6 +162,7 @@
         #mic-toggle svg { width: 24px; height: 24px; fill: #666; }
         #mic-toggle.listening { border-color: var(--accent-go); box-shadow: 0 0 15px rgba(0,230,118,0.3); }
         #mic-toggle.listening svg { fill: var(--accent-go); }
+
     </style>
 </head>
 <body>
@@ -170,20 +176,27 @@
 </div>
 
 <script>
+    /* =========================================
+       0. CONFIGURATION
+       ========================================= */
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyBMwKxq92U0dptKMdEHvUCXPS9AjExHtxHjcRmfh2JFjCSn9Zd82bzp34xLg6X0a7L9g/exec";
     
     const DATA_SOURCE = {
       "cuisine": "Punjabi",
       "categories": [
-        { "id": "breads", "label": "Breads", "items": [{ "name": "Tandoori Roti" }, { "name": "Butter Naan" }, { "name": "Garlic Naan" }] },
-        { "id": "veg_mains", "label": "Veg Mains", "items": [{ "name": "Dal Makhani" }, { "name": "Paneer Butter Masala" }, { "name": "Chole Masala" }] },
-        { "id": "nonveg_mains", "label": "Non-Veg Mains", "items": [{ "name": "Butter Chicken" }, { "name": "Chicken Tikka Masala" }] },
-        { "id": "rice", "label": "Rice", "items": [{ "name": "Jeera Rice" }, { "name": "Chicken Biryani" }] },
-        { "id": "starters", "label": "Starters", "items": [{ "name": "Paneer Tikka" }, { "name": "Chicken Tikka" }] },
-        { "id": "drinks", "label": "Beverages", "items": [{ "name": "Sweet Lassi" }, { "name": "Salted Lassi" }] }
+        { "id": "breads", "label": "Breads", "items": [{ "name": "Tandoori Roti" }, { "name": "Butter Naan" }, { "name": "Garlic Naan" }, { "name": "Lachha Paratha" }, { "name": "Amritsari Kulcha" }] },
+        { "id": "veg_mains", "label": "Veg Mains", "items": [{ "name": "Dal Makhani" }, { "name": "Paneer Butter Masala" }, { "name": "Shahi Paneer" }, { "name": "Chole Masala" }, { "name": "Rajma" }] },
+        { "id": "nonveg_mains", "label": "Non-Veg Mains", "items": [{ "name": "Butter Chicken" }, { "name": "Chicken Tikka Masala" }, { "name": "Mutton Curry" }] },
+        { "id": "rice", "label": "Rice", "items": [{ "name": "Jeera Rice" }, { "name": "Veg Pulao" }, { "name": "Chicken Biryani" }] },
+        { "id": "starters", "label": "Starters", "items": [{ "name": "Paneer Tikka" }, { "name": "Chicken Tikka" }, { "name": "Fish Tikka" }] },
+        { "id": "desserts", "label": "Desserts", "items": [{ "name": "Gulab Jamun" }, { "name": "Rasmalai" }, { "name": "Kheer" }] },
+        { "id": "beverages", "label": "Beverages", "items": [{ "name": "Sweet Lassi" }, { "name": "Salted Lassi" }, { "name": "Masala Chaas" }] }
       ]
     };
 
+    /* =========================================
+       1. GLOBAL STATE
+       ========================================= */
     const USER_SIGNALS = { selected: {}, timestamps: [] };
 
     function logUserChoice(key, value, source="explicit") {
@@ -192,13 +205,16 @@
         USER_SIGNALS.timestamps.push({ key, value, source, time: Date.now() });
     }
 
+    /* =========================================
+       2. UI BUILDER
+       ========================================= */
     const container = document.getElementById('master-container');
     let slideElements = [];
     let currentIdx = 0;
 
     function init() {
         let slides = [];
-        DATA_SOURCE.categories.forEach((cat, idx) => {
+        DATA_SOURCE.categories.forEach((cat) => {
             slides.push({ id: cat.id, type: 'selector', title: `${cat.label.toUpperCase()}`, items: cat.items });
         });
         slides.push({ id: "final", type: "final", title: "FINAL ORDER" });
@@ -239,15 +255,20 @@
                     </div>
                 </div>`;
             }
+
             html += `</div>`;
             section.innerHTML = html;
             container.appendChild(section);
         });
+
         slideElements = Array.from(document.querySelectorAll('.main-slide'));
         attachEvents();
         initVoice();
     }
 
+    /* =========================================
+       3. NAVIGATION & LOGIC
+       ========================================= */
     function goToSlide(idx) {
         if (idx < 0 || idx >= slideElements.length) return;
         const curr = slideElements[currentIdx];
@@ -268,7 +289,7 @@
         if (Object.keys(cart).length === 0) html = '<div style="text-align:center;color:#666;">Empty Cart</div>';
         else {
             for (const [cat, item] of Object.entries(cart)) {
-                html += `<div class="input-row"><span class="input-key">${cat}</span><span class="input-val">${item}</span></div>`;
+                html += `<div class="input-row"><span class="input-key">${cat.replace('_',' ')}</span><span class="input-val">${item}</span></div>`;
             }
         }
         list.innerHTML = html;
@@ -319,49 +340,50 @@
         });
     }
 
-    function buildCartText() {
-        return Object.values(USER_SIGNALS.selected).join(", ") || "Punjabi Food";
-    }
-
-    function copyAndRedirect(platform) {
-        const text = buildCartText();
-        navigator.clipboard.writeText(text).then(() => showToast("COPIED: " + text));
-        const links = {
-            zomato: { app: `zomato://search?q=${encodeURIComponent(text)}`, web: `https://www.zomato.com/search?q=${encodeURIComponent(text)}` },
-            swiggy: { app: `swiggy://search?query=${encodeURIComponent(text)}`, web: `https://www.swiggy.com/search?q=${encodeURIComponent(text)}` }
-        };
-        const target = links[platform];
-        if (!target) return;
-        const start = Date.now();
-        window.location.href = target.app;
-        setTimeout(() => { if (Date.now() - start < 2000) window.location.href = target.web; }, 1500);
-    }
-
+    /* =========================================
+       4. PERSISTENT VOICE ENGINE
+       ========================================= */
+    let rec;
     function initVoice() {
         const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SR) return;
-        const rec = new SR();
+        rec = new SR();
         rec.lang = "en-IN";
         rec.continuous = true;
         rec.onresult = e => {
             const txt = e.results[e.results.length - 1][0].transcript.toLowerCase();
             showToast(`Heard: "${txt}"`);
+            
+            // Platform Logic
             if (txt.includes("zomato")) copyAndRedirect('zomato');
             if (txt.includes("swiggy")) copyAndRedirect('swiggy');
-            if (txt.includes("save")) saveToCloud();
-            if (txt.includes("next")) executeAction('NEXT');
+            if (txt.includes("save") || txt.includes("cloud")) saveToCloud();
+            
+            // Nav Logic
+            if (txt.includes("next") || txt.includes("continue")) executeAction('NEXT');
             if (txt.includes("back") || txt.includes("previous")) executeAction('PREV');
             if (txt.includes("select") || txt.includes("choose")) executeAction('SELECT');
+            
+            // Global Add/Remove
             if (txt.includes("add")) handleGlobalAdd(txt);
             if (txt.includes("remove")) handleGlobalRemove(txt);
         };
+        
         window.toggleListenMode = () => { 
-            if(document.getElementById('mic-toggle').classList.contains('listening')) {
+            const mic = document.getElementById('mic-toggle');
+            if(mic.classList.contains('listening')) {
                 rec.stop();
-                document.getElementById('mic-toggle').classList.remove('listening');
+                mic.classList.remove('listening');
             } else {
-                rec.start();
-                document.getElementById('mic-toggle').classList.add('listening');
+                try { rec.start(); } catch(e) {}
+                mic.classList.add('listening');
+            }
+        };
+        
+        rec.onend = () => {
+            // Heartbeat: Re-start if mic-toggle is still in 'listening' state
+            if(document.getElementById('mic-toggle').classList.contains('listening')) {
+                setTimeout(() => { try { rec.start(); } catch(e) {} }, 100);
             }
         };
     }
@@ -388,14 +410,52 @@
         }
     }
 
+    /* =========================================
+       5. CONNECTIVITY & DEEP LINKS
+       ========================================= */
+    function buildCartText() {
+        return Object.values(USER_SIGNALS.selected).join(", ") || "Punjabi Food";
+    }
+
     function saveToCloud() {
-        const payload = { session_id: Date.now(), items: USER_SIGNALS.selected, source: "WEB" };
+        const payload = { session_id: Date.now(), items: USER_SIGNALS.selected, source: "WEB_VOICE" };
         showToast("SAVING...");
-        fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(payload) })
+        
+        // Use standard POST without special headers to prevent CORS pre-flight hang
+        fetch(GOOGLE_SCRIPT_URL, { 
+            method: "POST", 
+            mode: "no-cors", 
+            body: JSON.stringify(payload) 
+        })
         .then(() => {
             showToast("SAVED ✅");
-            // Ensure next voice command will work by keeping recognition active if intended
+            speak("Order saved");
+            // Voice resilience heartbeat
+            if(!document.getElementById('mic-toggle').classList.contains('listening')) {
+                toggleListenMode();
+            }
+        })
+        .catch(() => showToast("SAVE ERROR"));
+    }
+
+    function copyAndRedirect(platform) {
+        const text = buildCartText();
+        navigator.clipboard.writeText(text).then(() => {
+            showToast("COPIED! OPENING " + platform.toUpperCase());
         });
+
+        const links = {
+            zomato: { app: `zomato://search?q=${encodeURIComponent(text)}`, web: `https://www.zomato.com/search?q=${encodeURIComponent(text)}` },
+            swiggy: { app: `swiggy://search?query=${encodeURIComponent(text)}`, web: `https://www.swiggy.com/search?q=${encodeURIComponent(text)}` }
+        };
+
+        const target = links[platform];
+        const start = Date.now();
+        window.location.href = target.app;
+
+        setTimeout(() => {
+            if (Date.now() - start < 2000) window.location.href = target.web;
+        }, 1500);
     }
 
     function sendWhatsapp() {
@@ -406,6 +466,10 @@
         const t = document.getElementById('toast');
         t.innerText = msg; t.classList.add('visible');
         setTimeout(() => t.classList.remove('visible'), 2000);
+    }
+
+    function speak(text) {
+        window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
     }
 
     init();
