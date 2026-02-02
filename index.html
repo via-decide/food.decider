@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Harvey's Decision Engine | SWIPE-OS v7.0 (Flow Edition)</title>
+    <title>Harvey's Decision Engine | SWIPE-OS v7.2 (Connected)</title>
     <style>
         /* =========================================
            CORE SYSTEM
@@ -142,6 +143,7 @@
         .btn-zomato { background: var(--accent-zomato); border: none; }
         .btn-swiggy { background: var(--accent-swiggy); border: none; }
         .btn-blinkit { background: var(--accent-blinkit); color: #000; border: none; }
+        .btn-cloud { background: #4285F4; border: none; } /* Google Blue */
 
         /* =========================================
            OVERLAYS
@@ -180,8 +182,12 @@
 
 <script>
     /* =========================================
-       1. DATA & STATE
+       0. CONFIGURATION
        ========================================= */
+    
+    // CONNECTED: Google Web App URL (Deployment ID injected)
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwOlCYgiAciswaVERwNiWMWe9ZLMeuOIhD-t5AA2CSO-lcRWyk3HXtfQa1xlOIgQTeLvg/exec"; 
+
     const DATA_SOURCE = {
       "cuisine": "Punjabi",
       "currency": "INR",
@@ -191,8 +197,7 @@
           "items": [
             { "name": "Tandoori Roti", "tags": ["light"] },
             { "name": "Butter Naan", "tags": ["popular"] },
-            { "name": "Garlic Naan", "tags": ["aromatic"] },
-            { "name": "Lachha Paratha", "tags": ["layered"] }
+            { "name": "Garlic Naan", "tags": ["aromatic"] }
           ]
         },
         {
@@ -200,7 +205,6 @@
           "items": [
             { "name": "Dal Makhani", "tags": ["creamy"] },
             { "name": "Paneer Butter Masala", "tags": ["rich"] },
-            { "name": "Kadhai Paneer", "tags": ["spicy"] },
             { "name": "Chole Masala", "tags": ["tangy"] }
           ]
         },
@@ -208,45 +212,44 @@
           "id": "nonveg_mains", "label": "Non-Veg Mains",
           "items": [
             { "name": "Butter Chicken", "tags": ["legendary"] },
-            { "name": "Chicken Tikka Masala", "tags": ["spicy"] },
-            { "name": "Chicken Curry", "tags": ["homestyle"] }
+            { "name": "Chicken Tikka Masala", "tags": ["spicy"] }
           ]
         },
         {
           "id": "rice", "label": "Rice",
           "items": [
             { "name": "Jeera Rice", "tags": ["light"] },
-            { "name": "Chicken Biryani", "tags": ["heavy"] },
-            { "name": "Veg Pulao", "tags": ["aromatic"] }
+            { "name": "Chicken Biryani", "tags": ["heavy"] }
           ]
         },
         {
           "id": "sides", "label": "Sides",
           "items": [
             { "name": "Boondi Raita", "tags": ["cooling"] },
-            { "name": "Green Salad", "tags": ["fresh"] },
-            { "name": "Masala Papad", "tags": ["crunchy"] }
+            { "name": "Green Salad", "tags": ["fresh"] }
           ]
         },
         {
           "id": "drinks", "label": "Beverages",
           "items": [
             { "name": "Sweet Lassi", "tags": ["thick"] },
-            { "name": "Salted Lassi", "tags": ["light"] },
             { "name": "Coke", "tags": ["fizz"] }
           ]
         }
       ]
     };
 
+    /* =========================================
+       1. GLOBAL STATE (OWNERSHIP)
+       ========================================= */
     const USER_SIGNALS = {
-      selected: {},
-      timestamps: []
+      selected: {},      // Explicit selections
+      timestamps: []     // History log for source tracking
     };
 
     function logUserChoice(key, value, source="explicit") {
         if (value === "SKIPPED") {
-            delete USER_SIGNALS.selected[key]; // Ensure cleanliness
+            delete USER_SIGNALS.selected[key];
         } else {
             USER_SIGNALS.selected[key] = value;
         }
@@ -254,17 +257,16 @@
     }
 
     /* =========================================
-       2. CORE UI BUILDER
+       2. UI BUILDER
        ========================================= */
     const container = document.getElementById('master-container');
     let slideElements = [];
     let currentIdx = 0;
 
     function init() {
-        console.log("BOOTING SWIPE-OS v7.0...");
+        console.log("BOOTING SWIPE-OS v7.2...");
         
         let slides = [];
-        // 1. Generate Slides from Data
         DATA_SOURCE.categories.forEach((cat, idx) => {
             slides.push({
                 id: cat.id,
@@ -273,10 +275,8 @@
                 items: cat.items
             });
         });
-        // 2. Add Verdict
         slides.push({ id: "final", type: "final", title: "FINAL ORDER" });
 
-        // 3. Render
         slides.forEach((cfg) => {
             const section = document.createElement('section');
             section.className = `main-slide ${slides.indexOf(cfg)===0 ? 'active' : 'next'}`;
@@ -308,7 +308,7 @@
                         <div class="final-actions">
                             <button class="btn btn-zomato" onclick="copyAndRedirect('zomato')">ZOMATO</button>
                             <button class="btn btn-swiggy" onclick="copyAndRedirect('swiggy')">SWIGGY</button>
-                            <button class="btn btn-blinkit" onclick="copyAndRedirect('blinkit')">BLINKIT</button>
+                            <button class="btn btn-cloud" onclick="saveToCloud()">SAVE TO CLOUD</button>
                             <button class="btn btn-wa" onclick="sendWhatsapp()">WHATSAPP</button>
                         </div>
                     </div>
@@ -326,10 +326,11 @@
     }
 
     /* =========================================
-       3. NAVIGATION & INTERACTION
+       3. NAVIGATION & LOGIC
        ========================================= */
     let dragRatio = 0;
     const MAX_DRAG = 250;
+    const TRIGGER_THRESHOLD = 0.9;
 
     function goToSlide(idx) {
         if (idx < 0 || idx >= slideElements.length) return;
@@ -345,8 +346,6 @@
         next.classList.add('active');
 
         if(next.id === 'final') updateResult();
-        
-        // Reset Physics
         dragRatio = 0;
         document.getElementById('depth-fill').style.height = '0%';
     }
@@ -355,12 +354,10 @@
         const list = document.getElementById('final-list');
         const cart = USER_SIGNALS.selected;
         let html = '';
-        
         if (Object.keys(cart).length === 0) {
-            html = '<div style="text-align:center;color:#666;margin-top:20px;">No items selected.<br>Swipe Right to browse options.<br>Swipe Down to select.<br>Swipe Left to skip.</div>';
+            html = '<div style="text-align:center;color:#666;margin-top:20px;">No items selected.<br>Swipe Right to browse.<br>Swipe Down to select.<br>Swipe Left to skip.</div>';
         } else {
             for (const [cat, item] of Object.entries(cart)) {
-                // Find label
                 const label = DATA_SOURCE.categories.find(c => c.id === cat)?.label || cat;
                 html += `<div class="input-row"><span class="input-key">${label}</span><span class="input-val">${item}</span></div>`;
             }
@@ -368,107 +365,86 @@
         list.innerHTML = html;
     }
 
-    function showToast(msg, type="normal") {
-        const t = document.getElementById('toast');
-        t.innerText = msg;
-        t.classList.remove('skip');
-        if(type==='skip') t.classList.add('skip');
-        t.classList.add('visible');
-        setTimeout(() => t.classList.remove('visible'), 1500);
+    /* =========================================
+       4. TOUCH ENGINE
+       ========================================= */
+    function executeAction(action) {
+        const currSlide = slideElements[currentIdx];
+        const mode = currSlide.dataset.mode;
+        
+        switch(action) {
+            case 'NEXT': goToSlide(currentIdx + 1); break;
+            case 'PREV': if(currentIdx > 0) goToSlide(currentIdx - 1); break;
+            case 'SELECT': 
+                if(mode === 'options') {
+                    const key = currSlide.querySelector('.carousel-viewport').dataset.id;
+                    const deck = currSlide.querySelectorAll('.sub-slide');
+                    const curr = currSlide.querySelector('.carousel-viewport')._currOpt || 0;
+                    const val = deck[curr].dataset.val;
+                    logUserChoice(key, val, "explicit");
+                    showToast(`SELECTED: ${val}`);
+                    goToSlide(currentIdx + 1);
+                } else goToSlide(currentIdx + 1);
+                break;
+            case 'SKIP':
+                if(mode === 'options') {
+                    const key = currSlide.querySelector('.carousel-viewport').dataset.id;
+                    logUserChoice(key, "SKIPPED", "explicit");
+                    showToast("SKIPPED", "skip");
+                    goToSlide(currentIdx + 1);
+                }
+                break;
+            case 'BROWSE':
+                if(mode === 'options') {
+                    const view = currSlide.querySelector('.carousel-viewport');
+                    const slides = view.querySelectorAll('.sub-slide');
+                    let curr = view._currOpt || 0;
+                    curr = (curr + 1) % slides.length;
+                    view._currOpt = curr;
+                    slides.forEach((s, i) => {
+                        s.style.transform = '';
+                        if(i === curr) { s.classList.remove('opt-hidden'); s.classList.add('opt-active'); }
+                        else { s.classList.remove('opt-active'); s.classList.add('opt-hidden'); }
+                    });
+                }
+                break;
+        }
     }
 
-    /* =========================================
-       4. TOUCH ENGINE (SWIPE LOGIC)
-       ========================================= */
     function attachEvents() {
         let startX = 0, startY = 0;
-
         document.querySelectorAll('.carousel-viewport').forEach(view => {
-            const slides = Array.from(view.querySelectorAll('.sub-slide'));
             view._currOpt = 0;
             let isDragging = false;
-            let axis = null;
-
-            view.addEventListener('touchstart', e => {
-                startX = e.touches[0].clientX;
-                startY = e.touches[0].clientY;
-                isDragging = true;
-                axis = null;
-            }, {passive: true});
-
+            
+            view.addEventListener('touchstart', e => { startX = e.touches[0].clientX; startY = e.touches[0].clientY; isDragging = true; }, {passive: true});
             view.addEventListener('touchmove', e => {
                 if(!isDragging) return;
                 const dx = e.touches[0].clientX - startX;
                 const dy = e.touches[0].clientY - startY;
-
-                if(!axis) axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+                const axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
 
                 if(axis === 'y' && dy > 0 && view.closest('.main-slide').dataset.mode === 'options') {
-                    e.preventDefault(); // Prevent scroll on pull down
+                    e.preventDefault();
                     dragRatio = Math.min(dy/MAX_DRAG, 1);
                     document.getElementById('depth-fill').style.height = (dragRatio*100)+'%';
                 }
             }, {passive: false});
 
             view.addEventListener('touchend', e => {
-                if(!isDragging) return;
-                isDragging = false;
+                if(!isDragging) return; isDragging = false;
                 const dx = e.changedTouches[0].clientX - startX;
                 const dy = e.changedTouches[0].clientY - startY;
-                const parentSlide = view.closest('.main-slide');
-                const isOptions = parentSlide.dataset.mode === 'options';
-
-                // SWIPE UP: BACK
-                if(axis === 'y' && dy < -50) {
-                    if(currentIdx > 0) goToSlide(currentIdx - 1);
-                    return;
+                const axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+                
+                if (axis === 'y') {
+                    if (dy < -50) executeAction('PREV');
+                    else if (dy > 0 && dragRatio > TRIGGER_THRESHOLD) executeAction('SELECT');
+                } else if (axis === 'x' && view.closest('.main-slide').dataset.mode === 'options') {
+                    if (dx < -50) executeAction('SKIP');
+                    else if (dx > 50) executeAction('BROWSE');
                 }
-
-                if(isOptions) {
-                    const key = view.dataset.id;
-                    const total = slides.length;
-                    let curr = view._currOpt;
-
-                    // HORIZONTAL AXIS
-                    if (axis === 'x' && Math.abs(dx) > 50) {
-                        
-                        // LEFT SWIPE = SKIP
-                        if (dx < 0) {
-                            logUserChoice(key, "SKIPPED", "explicit");
-                            showToast(`SKIPPED ${key.toUpperCase()}`, 'skip');
-                            goToSlide(currentIdx + 1);
-                            return;
-                        } 
-                        
-                        // RIGHT SWIPE = BROWSE (Cycle Forward)
-                        else if (dx > 0) {
-                            curr = (curr + 1) % total;
-                            view._currOpt = curr;
-                            slides.forEach((s, i) => {
-                                s.style.transform = '';
-                                if(i === curr) { s.classList.remove('opt-hidden'); s.classList.add('opt-active'); }
-                                else { s.classList.remove('opt-active'); s.classList.add('opt-hidden'); }
-                            });
-                        }
-                    }
-
-                    // VERTICAL AXIS (SELECT)
-                    if (axis === 'y' && dy > 0) {
-                        if (dragRatio > 0.9) {
-                            const val = slides[curr].dataset.val;
-                            logUserChoice(key, val, "explicit");
-                            showToast(`SELECTED: ${val}`);
-                            goToSlide(currentIdx + 1);
-                        }
-                        // Reset fill
-                        document.getElementById('depth-fill').style.height = '0%';
-                        dragRatio = 0;
-                    }
-                } 
-                // STATIC SLIDE (Just Next)
-                else if (axis === 'y' && dy > 50) {
-                    goToSlide(currentIdx + 1);
-                }
+                document.getElementById('depth-fill').style.height = '0%';
             });
         });
     }
@@ -476,11 +452,12 @@
     /* =========================================
        5. VOICE COMMANDER
        ========================================= */
-    const VOICE_INTENTS = {
-        ADD: ["add", "order", "chahiye", "select", "choose", "yes"],
-        SKIP: ["skip", "next", "pass", "nahi", "no", "hatao", "remove"],
-        FINALIZE: ["done", "final", "order place", "lock"],
-        BROWSE: ["browse", "show more", "next option", "aur dikhao"]
+    const VOICE_MAP = {
+        NEXT: ["next", "continue"], PREV: ["back", "previous"],
+        SELECT: ["select", "choose", "yes", "confirm"],
+        SKIP: ["skip", "pass", "no", "next item"],
+        BROWSE: ["browse", "show more", "next option"],
+        FINALIZE: ["done", "final", "finish"]
     };
 
     function initVoice() {
@@ -488,9 +465,13 @@
         if (!SR) return;
         const rec = new SR();
         rec.lang = "en-IN";
-        rec.continuous = false;
-        rec.onresult = e => handleVoice(e.results[0][0].transcript.toLowerCase());
-        
+        rec.onresult = e => {
+            const txt = e.results[0][0].transcript.toLowerCase();
+            showToast(`Heard: "${txt}"`);
+            for (const [action, words] of Object.entries(VOICE_MAP)) {
+                if (words.some(w => txt.includes(w))) { executeAction(action); return; }
+            }
+        };
         window.toggleListenMode = () => {
             rec.start();
             document.getElementById('mic-toggle').classList.add('listening');
@@ -498,61 +479,42 @@
         rec.onend = () => document.getElementById('mic-toggle').classList.remove('listening');
     }
 
-    function handleVoice(txt) {
-        showToast(`Heard: "${txt}"`);
-        
-        // Check Intents
-        if (VOICE_INTENTS.FINALIZE.some(t => txt.includes(t))) {
-            goToSlide(slideElements.length - 1);
-            return;
-        }
-
-        // Logic dependent on current slide
-        const currSlide = slideElements[currentIdx];
-        if (currSlide.dataset.mode === 'options') {
-            const key = currSlide.querySelector('.carousel-viewport').dataset.id;
-            
-            // SKIP Intent
-            if (VOICE_INTENTS.SKIP.some(t => txt.includes(t))) {
-                logUserChoice(key, "SKIPPED", "voice");
-                showToast("SKIPPED", "skip");
-                goToSlide(currentIdx + 1);
-                return;
-            }
-
-            // ADD Intent (Attempt to match item on screen or any item in category)
-            const deck = currSlide.querySelector('.carousel-viewport');
-            const currentItemName = deck.querySelectorAll('.sub-slide')[deck._currOpt].dataset.val.toLowerCase();
-            
-            if (VOICE_INTENTS.ADD.some(t => txt.includes(t)) || txt.includes(currentItemName)) {
-                const val = deck.querySelectorAll('.sub-slide')[deck._currOpt].dataset.val;
-                logUserChoice(key, val, "voice");
-                showToast(`SELECTED: ${val}`);
-                goToSlide(currentIdx + 1);
-                return;
-            }
-            
-            // BROWSE Intent
-            if (VOICE_INTENTS.BROWSE.some(t => txt.includes(t))) {
-                // Simulate swipe right logic here if needed
-                // For now, simple feedback
-                speak("Swiping right for you");
-            }
-        }
-    }
-
-    function speak(text) {
-        window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
-    }
-
     /* =========================================
-       6. UTILS (EXPORT & CLIPBOARD)
+       6. CONNECTIVITY (CLOUD & APP)
        ========================================= */
     function buildCartText() {
         const cart = USER_SIGNALS.selected;
         let items = [];
         for (const [key, val] of Object.entries(cart)) items.push(val);
         return items.length > 0 ? items.join(", ") : "Punjabi Food";
+    }
+
+    // PATCH: CLOUD SAVE
+    function saveToCloud() {
+        // Check History for Voice vs Touch
+        const hasVoice = USER_SIGNALS.timestamps.some(t => t.source === 'voice');
+        const hasTouch = USER_SIGNALS.timestamps.some(t => t.source === 'explicit'); 
+        
+        let inputMode = "WEB_TOUCH";
+        if (hasVoice && hasTouch) inputMode = "WEB_HYBRID";
+        else if (hasVoice) inputMode = "WEB_VOICE_ONLY";
+
+        const payload = {
+            session_id: "SESS-" + Date.now().toString().slice(-6),
+            items: USER_SIGNALS.selected,
+            source: inputMode
+        };
+
+        showToast("SAVING TO CLOUD...");
+
+        fetch(GOOGLE_SCRIPT_URL, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        })
+        .then(() => showToast("ORDER SAVED ✅"))
+        .catch(e => showToast("SAVE FAILED ❌"));
     }
 
     function copyAndRedirect(platform) {
@@ -565,7 +527,6 @@
             swiggy: `swiggy://search?query=${encodeURIComponent(text)}`,
             blinkit: `blinkit://search?query=${encodeURIComponent(text)}`
         };
-        
         setTimeout(() => window.location.href = links[platform], 800);
     }
 
@@ -576,8 +537,14 @@
         window.open(`https://wa.me/916351537770?text=${encodeURIComponent(msg)}`, '_blank');
     }
 
-    init(); // BOOT
+    function showToast(msg, type="normal") {
+        const t = document.getElementById('toast');
+        t.innerText = msg;
+        t.className = `toast-msg visible ${type}`;
+        setTimeout(() => t.className = "toast-msg", 2000);
+    }
 
+    init();
 </script>
 </body>
 </html>
