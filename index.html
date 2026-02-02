@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Harvey's Decision Engine | SWIPE-OS v6.7 (Ownership)</title>
+    <title>Harvey's Decision Engine | SWIPE-OS v6.8 (Punjabi Edition)</title>
     <style>
         /* =========================================
            CORE SYSTEM
@@ -99,8 +100,6 @@
         }
 
         .sub-slide.layer-1 { z-index: 30; opacity: 1; pointer-events: auto; }
-        .sub-slide.layer-2 { z-index: 20; }
-        .sub-slide.layer-3 { z-index: 10; }
         .sub-slide.opt-active { z-index: 30; opacity: 1; pointer-events: auto; transform: translateX(0); }
         .sub-slide.opt-hidden { z-index: 0; opacity: 0; pointer-events: none; }
         .sub-slide.static { z-index: 30; opacity: 1; pointer-events: auto; }
@@ -244,6 +243,41 @@
         }
         #voice-feedback.visible { opacity: 1; }
 
+        /* VERDICT UI */
+        .verdict-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            justify-content: center;
+        }
+        .choice-header {
+            font-family: var(--font-tech);
+            color: #666;
+            font-size: 0.8rem;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-align: center;
+        }
+        .input-group {
+            border: 1px solid #333;
+            background: #111;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 40px;
+            min-height: 100px;
+        }
+        .input-row {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px dashed #333;
+            padding: 10px 0;
+            font-family: var(--font-tech);
+            font-size: 0.8rem;
+        }
+        .input-key { color: #888; text-transform: uppercase; }
+        .input-val { color: var(--accent-go); font-weight: bold; text-align: right; }
+
     </style>
 </head>
 <body>
@@ -274,13 +308,10 @@
             USER_SIGNALS.inferred[key] = value;
         }
         USER_SIGNALS.timestamps.push({ key, value, source, time: Date.now() });
-        
-        // Also update legacy cart for compatibility with older functions
-        // But the truth is now in USER_SIGNALS.selected
     }
 
-    // PATCH 3: Remove Assumptions
-    // No more default USER_CART. It's empty.
+    // PATCH 3: Remove Assumptions - Cart starts empty.
+    const USER_CART = USER_SIGNALS.selected;
 
     /* =========================================
        2. UTILITIES (PATCH 4: DYNAMIC EXPORT)
@@ -332,25 +363,120 @@
     }
 
     /* =========================================
-       3. CONFIGURATION
+       3. CONFIGURATION (NEW JSON)
        ========================================= */
-    const CONFIG = {
-      "slides": [
-        { "id": "burger", "type": "selector", "title": "01 / 13 · BURGERS", "key": "burger", "options": { "ORIGINAL": { "items": ["Original Burger"], "tag": "NOSTALGIA" }, "ANGUS": { "items": ["Angus Burger"], "tag": "QUALITY" }, "VEGGIE": { "items": ["Veggie Burger"], "tag": "PLANT" } } },
-        { "id": "chicken", "type": "selector", "title": "02 / 13 · CHICKEN", "key": "chicken", "options": { "CRISPY": { "items": ["Crispy Sandwich"], "tag": "TEXTURE" }, "GRILLED": { "items": ["Grilled Sandwich"], "tag": "HEALTH" }, "BUFFALO": { "items": ["Buffalo Sandwich"], "tag": "SPICY" } } },
-        { "id": "sides", "type": "selector", "title": "03 / 13 · SIDES", "key": "side", "options": { "POUTINE": { "items": ["Classic Poutine"], "tag": "COMFORT" }, "SIDES": { "items": ["Frings"], "tag": "CLASSIC" } } },
-        { "id": "value", "type": "selector", "title": "04 / 13 · VALUE", "key": "value", "options": { "JR_BURGERS": { "items": ["Jr. Burger"], "tag": "BUDGET" }, "SNACKS": { "items": ["Nuggets"], "tag": "QUICK" }, "DESSERTS": { "items": ["Donuts"], "tag": "SWEET" } } },
-        { "id": "drinks", "type": "selector", "title": "05 / 13 · DRINKS", "key": "drink", "options": { "SHAKES": { "items": ["Chocolate Shake"], "tag": "DESSERT" }, "FROZEN": { "items": ["Slushie"], "tag": "ENERGY" }, "STANDARD": { "items": ["Pepsi"], "tag": "BASIC" } } },
-        { "id": "final", "type": "final", "title": "06 / 13 · ORDER TICKET" },
-        { "id": "hunger", "type": "standard", "title": "07 / 13 · HUNGER", "visual": { "h1": "HOW HUNGRY?", "q": "Calibrating protein.", "txt": "High hunger favors Angus." }, "logic": { "txt": "Angus is 100% beef." }, "proof": { "ascii": "[ SATIETY ]" } },
-        { "id": "timing", "type": "selector", "title": "08 / 13 · TIMING", "key": "timing", "options": { "OFF-PEAK": { "items": ["After 2PM"], "tag": "SMART" }, "PEAK": { "items": ["Lunch Rush"], "tag": "RISKY" } } },
-        { "id": "consistency", "type": "standard", "title": "09 / 13 · CONSISTENCY", "visual": { "h1": "EXECUTION RISK", "q": "Tolerate variance?", "txt": "Depends on staff." }, "logic": { "txt": "Human scooping has variance." }, "proof": { "ascii": "[ VARIANCE ]" } },
-        { "id": "patty-logic", "type": "standard", "title": "10 / 13 · PATTY ARCHITECTURE", "visual": { "h1": "TEXTURE PROFILE", "q": "Mouthfeel?", "txt": "Original is softer." }, "logic": { "txt": "Angus holds toppings better." }, "proof": { "ascii": "[ DENSITY ]" } },
-        { "id": "method", "type": "standard", "title": "11 / 13 · THE RITUAL", "visual": { "h1": "GARNISH CONTROL", "q": "Why Harvey’s?", "txt": "Live assembly." }, "logic": { "txt": "Open counters force accountability." }, "proof": { "ascii": "[ ERRORS ]" } },
-        { "id": "value-stack", "type": "standard", "title": "12 / 13 · VALUE STACKING", "visual": { "h1": "MINIMIZE SPEND", "q": "Don't pay menu price.", "txt": "Stack coupons." }, "logic": { "txt": "Coupon > CAA > Points." }, "proof": { "ascii": "[ SAVINGS ]" } },
-        { "id": "brand-end", "type": "brand", "title": "13 / 13 · NATIONAL CHAMPION" }
+    const DATA_SOURCE = {
+      "cuisine": "Punjabi",
+      "currency": "INR",
+      "categories": [
+        {
+          "id": "breads",
+          "label": "Breads",
+          "items": [
+            { "id": "roti", "name": "Tandoori Roti", "veg": true, "tags": ["light","daily"] },
+            { "id": "naan", "name": "Butter Naan", "veg": true, "tags": ["soft","buttery"] },
+            { "id": "garlic_naan", "name": "Garlic Naan", "veg": true, "tags": ["aromatic"] },
+            { "id": "lachha_paratha", "name": "Lachha Paratha", "veg": true, "tags": ["layered"] },
+            { "id": "kulcha", "name": "Amritsari Kulcha", "veg": true, "tags": ["stuffed","spicy"] }
+          ]
+        },
+        {
+          "id": "veg_mains",
+          "label": "Veg Main Course",
+          "items": [
+            { "id": "dal_makhani", "name": "Dal Makhani", "veg": true, "tags": ["creamy","slow-cooked"] },
+            { "id": "paneer_butter", "name": "Paneer Butter Masala", "veg": true, "tags": ["rich","popular"] },
+            { "id": "shahi_paneer", "name": "Shahi Paneer", "veg": true, "tags": ["sweet","royal"] },
+            { "id": "kadai_paneer", "name": "Kadai Paneer", "veg": true, "tags": ["spicy","dry"] },
+            { "id": "chole", "name": "Chole Masala", "veg": true, "tags": ["protein","street-style"] },
+            { "id": "rajma", "name": "Rajma", "veg": true, "tags": ["comfort","home-style"] },
+            { "id": "sarson_saag", "name": "Sarson da Saag", "veg": true, "tags": ["seasonal","traditional"] }
+          ]
+        },
+        {
+          "id": "nonveg_mains",
+          "label": "Non-Veg Main Course",
+          "items": [
+            { "id": "butter_chicken", "name": "Butter Chicken", "veg": false, "tags": ["signature","creamy"] },
+            { "id": "chicken_tikka_masala", "name": "Chicken Tikka Masala", "veg": false, "tags": ["grilled","spicy"] },
+            { "id": "kadai_chicken", "name": "Kadai Chicken", "veg": false, "tags": ["dry","bold"] },
+            { "id": "chicken_curry", "name": "Punjabi Chicken Curry", "veg": false, "tags": ["home-style"] },
+            { "id": "mutton_curry", "name": "Mutton Curry", "veg": false, "tags": ["slow-cooked","rich"] },
+            { "id": "mutton_rogan", "name": "Mutton Rogan Josh", "veg": false, "tags": ["royal","spiced"] }
+          ]
+        },
+        {
+          "id": "rice",
+          "label": "Rice",
+          "items": [
+            { "id": "jeera_rice", "name": "Jeera Rice", "veg": true, "tags": ["light"] },
+            { "id": "steam_rice", "name": "Plain Rice", "veg": true, "tags": ["basic"] },
+            { "id": "veg_pulao", "name": "Veg Pulao", "veg": true, "tags": ["aromatic"] },
+            { "id": "chicken_biryani", "name": "Chicken Biryani (Punjabi Style)", "veg": false, "tags": ["heavy","spiced"] }
+          ]
+        },
+        {
+          "id": "starters_veg",
+          "label": "Veg Starters",
+          "items": [
+            { "id": "paneer_tikka", "name": "Paneer Tikka", "veg": true, "tags": ["grilled"] },
+            { "id": "hara_bhara", "name": "Hara Bhara Kabab", "veg": true, "tags": ["fried"] },
+            { "id": "aloo_tikki", "name": "Aloo Tikki", "veg": true, "tags": ["street"] }
+          ]
+        },
+        {
+          "id": "starters_nonveg",
+          "label": "Non-Veg Starters",
+          "items": [
+            { "id": "chicken_tikka", "name": "Chicken Tikka", "veg": false, "tags": ["tandoor"] },
+            { "id": "malai_tikka", "name": "Chicken Malai Tikka", "veg": false, "tags": ["creamy"] },
+            { "id": "fish_tikka", "name": "Fish Tikka", "veg": false, "tags": ["grilled"] }
+          ]
+        },
+        {
+          "id": "sides",
+          "label": "Sides & Add-ons",
+          "items": [
+            { "id": "raita", "name": "Boondi Raita", "veg": true, "tags": ["cooling"] },
+            { "id": "butter", "name": "Extra Butter", "veg": true, "tags": ["addon"] },
+            { "id": "salad", "name": "Green Salad", "veg": true, "tags": ["fresh"] },
+            { "id": "papad", "name": "Papad", "veg": true, "tags": ["crispy"] }
+          ]
+        },
+        {
+          "id": "desserts",
+          "label": "Desserts",
+          "items": [
+            { "id": "gulab_jamun", "name": "Gulab Jamun", "veg": true, "tags": ["sweet"] },
+            { "id": "rasmalai", "name": "Rasmalai", "veg": true, "tags": ["milk-based"] },
+            { "id": "kheer", "name": "Kheer", "veg": true, "tags": ["classic"] }
+          ]
+        },
+        {
+          "id": "beverages",
+          "label": "Beverages",
+          "items": [
+            { "id": "lassi_sweet", "name": "Sweet Lassi", "veg": true, "tags": ["signature"] },
+            { "id": "lassi_salted", "name": "Salted Lassi", "veg": true, "tags": ["digestive"] },
+            { "id": "chaach", "name": "Chaach", "veg": true, "tags": ["light"] },
+            { "id": "masala_chaas", "name": "Masala Chaas", "veg": true, "tags": ["spiced"] }
+          ]
+        }
       ]
     };
+
+    // Helper: Build alias map from new JSON for Voice
+    const ITEM_ALIASES = {};
+    DATA_SOURCE.categories.forEach(cat => {
+        cat.items.forEach(item => {
+            const name = item.name.toLowerCase();
+            ITEM_ALIASES[name] = { id: item.name, cat: cat.id };
+            // Add tags as aliases too
+            item.tags.forEach(tag => {
+                if(!ITEM_ALIASES[tag]) ITEM_ALIASES[tag] = { id: item.name, cat: cat.id };
+            });
+        });
+    });
 
     /* =========================================
        4. STATE & BUILDER
@@ -360,44 +486,53 @@
     let currentIdx = 0;
     let dragRatio = 0;
     const MAX_DRAG = 300; 
+    const TRIGGER_THRESHOLD = 0.9;
 
     function init() {
-        console.log("BOOTING SWIPE-OS v6.7...");
-        CONFIG.slides.forEach((cfg, idx) => {
+        console.log("BOOTING SWIPE-OS v6.8...");
+        
+        // 1. Build Slides from DATA_SOURCE
+        let slides = [];
+        DATA_SOURCE.categories.forEach((cat, idx) => {
+            slides.push({
+                id: cat.id,
+                type: 'selector',
+                title: `${(idx+1).toString().padStart(2, '0')} / ${DATA_SOURCE.categories.length + 1} · ${cat.label.toUpperCase()}`,
+                items: cat.items
+            });
+        });
+        
+        // Add Final Slide
+        slides.push({ id: "final", type: "final", title: "VERDICT" });
+
+        // 2. Render
+        slides.forEach((cfg) => {
             const section = document.createElement('section');
-            section.className = `main-slide ${idx === 0 ? 'active' : 'next'}`;
+            section.className = `main-slide ${cfg.type==='selector' && slides.indexOf(cfg)===0 ? 'active' : 'next'}`;
             section.id = cfg.id;
-            let mode = 'static';
-            if(cfg.type === 'selector' || cfg.type === 'decision') mode = 'options';
+            let mode = cfg.type === 'selector' ? 'options' : 'static';
             section.dataset.mode = mode;
 
-            let innerHTML = `<div class="slide-header"><span class="header-title">${cfg.title}</span></div><div class="carousel-viewport" data-id="${cfg.id}" data-key="${cfg.key||''}">`;
+            let innerHTML = `<div class="slide-header"><span class="header-title">${cfg.title}</span></div><div class="carousel-viewport" data-id="${cfg.id}">`;
 
-            if (cfg.type === 'selector' || cfg.type === 'decision') {
-                Object.keys(cfg.options).forEach((k, i) => {
-                    const opt = cfg.options[k];
-                    innerHTML += `<div class="sub-slide ${i===0 ? 'opt-active' : 'opt-hidden'}" data-opt-idx="${i}" data-val="${opt.items[0]}">
-                        ${opt.tags ? `<div class="role-label">${opt.tags[0].toUpperCase()}</div>` : ''}
-                        <h1>${k}</h1><div class="primary-question">${opt.items[0]}</div>
-                        <div class="nav-hint"><span style="flex:1">&larr; PREV</span><span style="flex:2;text-align:center">&darr; SELECT</span><span style="flex:1;text-align:right">NEXT &rarr;</span></div>
+            if (cfg.type === 'selector') {
+                cfg.items.forEach((item, i) => {
+                    const prevText = i > 0 ? `&larr; PREV` : '';
+                    const nextText = i < cfg.items.length - 1 ? `NEXT &rarr;` : '';
+                    
+                    innerHTML += `<div class="sub-slide ${i===0 ? 'opt-active' : 'opt-hidden'}" data-opt-idx="${i}" data-val="${item.name}">
+                        ${item.tags ? `<div class="role-label">${item.tags[0].toUpperCase()}</div>` : ''}
+                        <h1>${item.name}</h1><div class="primary-question">${item.veg ? 'VEG' : 'NON-VEG'}</div>
+                        <div class="nav-hint"><span style="flex:1">${prevText}</span><span style="flex:2;text-align:center">&darr; SELECT</span><span style="flex:1;text-align:right">${nextText}</span></div>
                     </div>`;
                 });
-            } else if (cfg.type === 'llm_summary') {
-                innerHTML += `<div class="sub-slide static"><div class="role-label">AI RECOMMENDATION</div><h1>${cfg.cards[0].label}</h1><div class="content-text">${cfg.cards[0].sub}</div></div>`;
-            } else if (cfg.type === 'status') {
-                innerHTML += `<div class="sub-slide static"><div class="status-box"><span class="status-val">${cfg.display}</span><div class="content-text">Live Status</div></div></div>`;
             } else if (cfg.type === 'final') {
-                // PATCH 5: Transparent Verdict
                 innerHTML += `<div class="sub-slide static"><div class="verdict-container"><div class="choice-header">WHAT YOU CHOSE</div><div class="input-group" id="final-inputs"></div><div class="final-actions">
                     <button class="btn btn-zomato" onclick="copyAndRedirect('zomato')">ZOMATO</button>
                     <button class="btn btn-swiggy" onclick="copyAndRedirect('swiggy')">SWIGGY</button>
                     <button class="btn btn-blinkit" onclick="copyAndRedirect('blinkit')">BLINKIT</button>
                     <button class="btn btn-wa" onclick="sendWhatsappTicket()">WHATSAPP</button>
                 </div></div></div>`;
-            } else if (cfg.type === 'standard') {
-                innerHTML += `<div class="sub-slide layer-1"><h1>${cfg.visual.h1}</h1><div class="primary-question">${cfg.visual.q}</div><div class="content-text">${cfg.visual.txt}</div><small style="color:#666; margin-top:30px; font-size:0.7rem;">&darr; Pull Down</small></div>
-                <div class="sub-slide layer-2" style="opacity:0;"><div class="role-label">LOGIC</div><div class="content-text">${cfg.logic.txt}</div></div>
-                <div class="sub-slide layer-3" style="opacity:0;"><div class="role-label">PROOF</div><div class="ascii-box">${cfg.proof.ascii}</div></div>`;
             }
 
             innerHTML += `</div>`;
@@ -415,8 +550,6 @@
     function updateResult() {
         const container = document.getElementById('final-inputs');
         let html = '';
-        
-        // PATCH 5: Build list dynamically from USER_SIGNALS.selected
         const cart = USER_SIGNALS.selected;
         const keys = Object.keys(cart);
         
@@ -428,7 +561,6 @@
             });
         }
         
-        // Optional Patch 6: Show Inferred Items (System Suggestion)
         if (Object.keys(USER_SIGNALS.inferred).length > 0) {
              html += `<div style="margin-top:20px; border-top:1px dashed #333; padding-top:10px;"><div class="choice-header" style="font-size:0.6rem;">SYSTEM SUGGESTION</div>`;
              for(const [k, v] of Object.entries(USER_SIGNALS.inferred)) {
@@ -472,18 +604,7 @@
         next.classList.add('active');
         dragRatio = 0;
         document.getElementById('depth-fill').style.height = '0%';
-        if(next.id === 'final') updateResult();
-    }
-
-    function updateLayers(slides, ratio) {
-        if(!slides[0] || slides[0].closest('.main-slide').dataset.mode === 'options') return;
-        const vis = slides[0]; const log = slides[1]; const prf = slides[2];
-        if (ratio > 0.1) { vis.style.transform = `translateY(${ratio * -80}px) scale(${1 - ratio*0.1})`; vis.style.opacity = Math.max(0, 1 - ratio*3); } else { vis.style.transform = ''; vis.style.opacity = 1; }
-        if (log) { if (ratio > 0.25 && ratio < 0.65) { log.style.opacity = Math.min(1, (ratio - 0.25) * 4); log.style.transform = `translateY(${100 - (ratio-0.25)*300}px)`; } else if (ratio > 0.65) { log.style.opacity = Math.max(0, 1 - (ratio - 0.65) * 4); log.style.transform = `translateY(-50px)`; } else { log.style.opacity = 0; log.style.transform = `translateY(100px)`; } }
-        if (prf) { if (ratio > 0.55) { prf.style.opacity = Math.min(1, (ratio - 0.55) * 4); prf.style.transform = `translateY(${100 - (ratio-0.55)*300}px)`; } else { prf.style.opacity = 0; prf.style.transform = `translateY(100px)`; } }
-        const bar = document.getElementById('depth-fill');
-        bar.style.height = (ratio * 100) + '%';
-        if(ratio < 0.3) bar.style.background = '#333'; else if(ratio < 0.6) bar.style.background = '#ff671f'; else if(ratio < 0.9) bar.style.background = '#00e676'; else bar.style.background = '#fff';
+        if(next.id === 'final' || next.id === 'breads') updateResult(); // Force update
     }
 
     /* =========================================
@@ -495,34 +616,6 @@
         REPEAT: ["repeat", "ek aur", "one more", "double", "same", "hor"],
         SHOW: ["show", "cart", "order", "list", "kya order hai", "order dikhao"],
         FINALIZE: ["final", "done", "place", "lock", "bas", "theek hai"]
-    };
-
-    const ITEM_ALIASES = {
-        "paneer": { id: "Paneer Butter Masala", cat: "burger" },
-        "pbm": { id: "Paneer Butter Masala", cat: "burger" },
-        "butter paneer": { id: "Paneer Butter Masala", cat: "burger" },
-        "butter chicken": { id: "Butter Chicken", cat: "burger" },
-        "bc": { id: "Butter Chicken", cat: "burger" },
-        "chole": { id: "Chole Bhature", cat: "burger" },
-        "bhature": { id: "Chole Bhature", cat: "burger" },
-        "crispy": { id: "Crispy Sandwich", cat: "chicken" },
-        "grilled": { id: "Grilled Sandwich", cat: "chicken" },
-        "buffalo": { id: "Buffalo Sandwich", cat: "chicken" },
-        "poutine": { id: "Classic Poutine", cat: "side" },
-        "fries": { id: "Frings", cat: "side" },
-        "rings": { id: "Frings", cat: "side" },
-        "frings": { id: "Frings", cat: "side" },
-        "junior": { id: "Jr. Burger", cat: "value" },
-        "nuggets": { id: "Nuggets", cat: "value" },
-        "donuts": { id: "Donuts", cat: "value" },
-        "shake": { id: "Chocolate Shake", cat: "drink" },
-        "lassi": { id: "Chocolate Shake", cat: "drink" }, 
-        "slushie": { id: "Slushie", cat: "drink" },
-        "red bull": { id: "Slushie", cat: "drink" },
-        "pepsi": { id: "Pepsi", cat: "drink" },
-        "coke": { id: "Pepsi", cat: "drink" },
-        "angus": { id: "Angus Burger", cat: "burger" },
-        "original": { id: "Original Burger", cat: "burger" }
     };
 
     function speak(text) {
@@ -560,7 +653,7 @@
             const items = Object.values(USER_SIGNALS.selected);
             if (items.length > 0) speak("You have " + items.join(", "));
             else speak("Your cart is empty");
-            goToSlide(5); 
+            goToSlide(slideElements.length - 1); 
             return;
         }
 
@@ -576,14 +669,11 @@
         }
 
         if (intent === "ADD" || intent === "REPEAT") {
-            // PATCH 2: Log Choice
             logUserChoice(itemData.cat, itemData.id, "explicit");
-            
             if (intent === "REPEAT") speak(`Added another ${itemData.id}`);
             else speak(`Added ${itemData.id}`);
-            
             showToast(`VOICE: ${itemData.id}`);
-            if(slideElements[currentIdx].id === 'final') updateResult();
+            updateResult();
         }
 
         if (intent === "REMOVE") {
@@ -594,7 +684,7 @@
             } else {
                 speak(`${itemData.id} isn't in your cart.`);
             }
-            if(slideElements[currentIdx].id === 'final') updateResult();
+            updateResult();
         }
     }
 
@@ -639,7 +729,7 @@
     }
 
     /* =========================================
-       7. TOUCH ENGINE (PATCH 2)
+       7. TOUCH ENGINE
        ========================================= */
     function attachEvents() {
         let startX = 0, startY = 0;
@@ -668,8 +758,7 @@
                 if(axis === 'y' && dy > 0) {
                     e.preventDefault();
                     dragRatio = Math.min(dy / MAX_DRAG, 1);
-                    updateLayers(view._deck.slides, dragRatio);
-                    parentSlide.classList.add('deck-active');
+                    document.getElementById('depth-fill').style.height = (dragRatio * 100) + '%';
                 }
             }, {passive: false});
 
@@ -684,8 +773,8 @@
                 if (axis === 'y' && dy < -50) { if(currentIdx > 0) goToSlide(currentIdx - 1); return; }
 
                 if(isOptions) {
-                    const key = view.dataset.key;
-                    const total = parseInt(view.dataset.total);
+                    const key = view.dataset.id; // Corrected: use category id
+                    const total = slides.length;
                     let curr = view._currOpt;
                     if(axis === 'x' && Math.abs(dx) > 50) {
                         if(dx < 0 && curr < total - 1) curr++; else if(dx > 0 && curr > 0) curr--;   
@@ -696,9 +785,9 @@
                             else { s.classList.remove('opt-active'); s.classList.add('opt-hidden'); }
                         });
                     } else { slides.forEach(s => s.style.transform = ''); }
+                    
                     if(axis === 'y' && dy > 60) {
                         const val = slides[curr].dataset.val;
-                        // PATCH 2: Log Choice
                         logUserChoice(key, val, "explicit");
                         showToast(`SELECTED: ${val}`);
                         goToSlide(currentIdx + 1);
@@ -708,7 +797,7 @@
                 }
                 if(axis === 'y' && dy > 0) {
                     if(dragRatio > TRIGGER_THRESHOLD) goToSlide(currentIdx + 1);
-                    else { parentSlide.classList.remove('deck-active'); updateLayers(view._deck.slides, 0); document.getElementById('depth-fill').style.height = '0%'; }
+                    else { document.getElementById('depth-fill').style.height = '0%'; }
                     dragRatio = 0;
                 }
             });
