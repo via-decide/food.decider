@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>| food.decider |</title>
+    <title>Harvey's Decision Engine | SWIPE-OS v8.3</title>
     <style>
         /* =========================================
            CORE SYSTEM
@@ -200,21 +200,18 @@ Treat voice as a hardware input layer.
        0. CONFIGURATION
        ========================================= */
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyBMwKxq92U0dptKMdEHvUCXPS9AjExHtxHjcRmfh2JFjCSn9Zd82bzp34xLg6X0a7L9g/exec";
-    const SHARE_LINK = "food-decider | swipe OS";
+    const SHARE_LINK_TEXT = "food-decider | swipe OS";
 
     const DATA_SOURCE = {
       "cuisine": "Punjabi",
       "currency": "INR",
       "categories": [
-        { "id": "breads", "label": "Breads", "items": [{ "name": "Tandoori Roti", "tags": ["light"] }, { "name": "Butter Naan", "tags": ["popular"] }, { "name": "Garlic Naan", "tags": ["aromatic"] }, { "name": "Lachha Paratha", "tags": ["layered"] }, { "name": "Amritsari Kulcha", "tags": ["stuffed"] }] },
-        { "id": "veg_mains", "label": "Veg Mains", "items": [{ "name": "Dal Makhani", "tags": ["creamy"] }, { "name": "Paneer Butter Masala", "tags": ["rich"] }, { "name": "Shahi Paneer", "tags": ["royal"] }, { "name": "Kadai Paneer", "tags": ["spicy"] }, { "name": "Chole Masala", "tags": ["tangy"] }, { "name": "Rajma", "tags": ["homestyle"] }, { "name": "Sarson da Saag", "tags": ["seasonal"] }] },
-        { "id": "nonveg_mains", "label": "Non-Veg Mains", "items": [{ "name": "Butter Chicken", "tags": ["legendary"] }, { "name": "Chicken Tikka Masala", "tags": ["spicy"] }, { "name": "Kadai Chicken", "tags": ["bold"] }, { "name": "Chicken Curry", "tags": ["homestyle"] }, { "name": "Mutton Curry", "tags": ["slow-cooked"] }, { "name": "Mutton Rogan Josh", "tags": ["spiced"] }] },
-        { "id": "rice", "label": "Rice", "items": [{ "name": "Jeera Rice", "tags": ["light"] }, { "name": "Plain Rice", "tags": ["basic"] }, { "name": "Veg Pulao", "tags": ["aromatic"] }, { "name": "Chicken Biryani", "tags": ["heavy"] }] },
-        { "id": "starters_veg", "label": "Veg Starters", "items": [{ "name": "Paneer Tikka", "tags": ["grilled"] }, { "name": "Hara Bhara Kabab", "tags": ["fried"] }, { "name": "Aloo Tikki", "tags": ["street"] }] },
-        { "id": "starters_nonveg", "label": "Non-Veg Starters", "items": [{ "name": "Chicken Tikka", "tags": ["tandoor"] }, { "name": "Chicken Malai Tikka", "tags": ["creamy"] }, { "name": "Fish Tikka", "tags": ["grilled"] }] },
-        { "id": "sides", "label": "Sides", "items": [{ "name": "Boondi Raita", "tags": ["cooling"] }, { "name": "Extra Butter", "tags": ["addon"] }, { "name": "Green Salad", "tags": ["fresh"] }, { "name": "Papad", "tags": ["crispy"] }] },
-        { "id": "desserts", "label": "Desserts", "items": [{ "name": "Gulab Jamun", "tags": ["sweet"] }, { "name": "Rasmalai", "tags": ["milk-based"] }, { "name": "Kheer", "tags": ["classic"] }] },
-        { "id": "beverages", "label": "Beverages", "items": [{ "name": "Sweet Lassi", "tags": ["thick"] }, { "name": "Salted Lassi", "tags": ["digestive"] }, { "name": "Chaach", "tags": ["light"] }, { "name": "Masala Chaas", "tags": ["spiced"] }] }
+        { "id": "breads", "label": "Breads", "items": [{ "name": "Tandoori Roti" }, { "name": "Butter Naan" }, { "name": "Garlic Naan" }] },
+        { "id": "veg_mains", "label": "Veg Mains", "items": [{ "name": "Dal Makhani" }, { "name": "Paneer Butter Masala" }, { "name": "Chole Masala" }] },
+        { "id": "nonveg_mains", "label": "Non-Veg Mains", "items": [{ "name": "Butter Chicken" }, { "name": "Chicken Tikka Masala" }] },
+        { "id": "rice", "label": "Rice", "items": [{ "name": "Jeera Rice" }, { "name": "Chicken Biryani" }] },
+        { "id": "starters", "label": "Starters", "items": [{ "name": "Paneer Tikka" }, { "name": "Chicken Tikka" }] },
+        { "id": "beverages", "label": "Beverages", "items": [{ "name": "Sweet Lassi" }, { "name": "Salted Lassi" }] }
       ]
     };
 
@@ -224,11 +221,8 @@ Treat voice as a hardware input layer.
     const USER_SIGNALS = { selected: {}, timestamps: [] };
 
     function logUserChoice(key, value, source="explicit") {
-        if (value === "SKIPPED") {
-            delete USER_SIGNALS.selected[key];
-        } else {
-            USER_SIGNALS.selected[key] = value;
-        }
+        if (value === "SKIPPED") delete USER_SIGNALS.selected[key];
+        else USER_SIGNALS.selected[key] = value;
         USER_SIGNALS.timestamps.push({ key, value, source, time: Date.now() });
     }
 
@@ -240,18 +234,10 @@ Treat voice as a hardware input layer.
     let currentIdx = 0;
 
     function init() {
-        console.log("BOOTING SWIPE-OS v8.2...");
-        
         let slides = [];
         DATA_SOURCE.categories.forEach((cat, idx) => {
-            slides.push({
-                id: cat.id,
-                type: 'selector',
-                title: `${(idx+1).toString().padStart(2,'0')} / ${DATA_SOURCE.categories.length + 2} · ${cat.label.toUpperCase()}`,
-                items: cat.items
-            });
+            slides.push({ id: cat.id, type: 'selector', title: `${cat.label.toUpperCase()}`, items: cat.items });
         });
-
         slides.push({ id: "final", type: "final", title: "FINAL ORDER" });
         slides.push({ id: "business", type: "business", title: "KUTCH AUTOMATION" });
 
@@ -267,12 +253,11 @@ Treat voice as a hardware input layer.
                 cfg.items.forEach((item, i) => {
                     html += `
                     <div class="sub-slide ${i===0 ? 'opt-active' : 'opt-hidden'}" data-opt-idx="${i}" data-val="${item.name}">
-                        <div class="role-label">${item.name.toUpperCase().includes('VEG') ? 'VEG' : 'PUNJABI'}</div>
+                        <div class="role-label">PUNJABI</div>
                         <h1>${item.name}</h1>
-                        <div class="primary-question">Swipe Right to Browse</div>
                         <div class="nav-hint">
-                            <span style="flex:1; color:var(--accent-skip); font-weight:bold;">&larr; SKIP</span>
-                            <span style="flex:2; text-align:center; color:var(--accent-go); font-weight:bold;">&darr; SELECT</span>
+                            <span style="flex:1; color:var(--accent-skip);">&larr; SKIP</span>
+                            <span style="flex:2; text-align:center;">&darr; SELECT</span>
                             <span style="flex:1; text-align:right;">BROWSE &rarr;</span>
                         </div>
                     </div>`;
@@ -286,12 +271,8 @@ Treat voice as a hardware input layer.
                         <div class="final-actions">
                             <button class="btn btn-zomato" onclick="copyAndRedirect('zomato')">ZOMATO</button>
                             <button class="btn btn-swiggy" onclick="copyAndRedirect('swiggy')">SWIGGY</button>
-                            <button class="btn btn-blinkit" onclick="copyAndRedirect('blinkit')">BLINKIT</button>
                             <button class="btn btn-cloud" onclick="saveToCloud()">SAVE TO CLOUD</button>
                             <button class="btn btn-wa" onclick="sendWhatsapp()">WHATSAPP</button>
-                        </div>
-                        <div class="nav-hint">
-                           <span style="width:100%; text-align:center; color:var(--brand-orange)">SWIPE DOWN FOR BUSINESS &darr;</span>
                         </div>
                     </div>
                 </div>`;
@@ -301,15 +282,14 @@ Treat voice as a hardware input layer.
                     <div class="biz-card">
                         <span class="biz-tagline">POWERED BY KUTCH AUTOMATION</span>
                         <div class="biz-title">BUILD YOUR OWN ENGINE</div>
-                        <p style="color:#888; font-size:0.9rem; line-height:1.6; margin-bottom:15px;">
-                            Transform your business inventory into a high-speed Voice & Swipe experience. Custom AI automation for the modern era.
+                        <p style="color:#888; font-size:0.9rem; line-height:1.6; margin-bottom:20px;">
+                           Custom AI automation for the modern era.
                         </p>
                         <div style="font-family: var(--font-tech); font-size: 0.8rem; color: var(--accent-go); margin-bottom: 20px;">
-                           🔗 ${SHARE_LINK}
+                           🔗 ${SHARE_LINK_TEXT}
                         </div>
                         <div class="final-actions">
-                            <button class="btn btn-wa" onclick="window.open('https://wa.me/916351537770?text=Build%20Swipe-OS%20for%20me', '_blank')">CONSULT VIA WHATSAPP</button>
-                            <button class="btn" style="border:1px solid #444;" onclick="location.reload()">RESTART DEMO</button>
+                            <button class="btn btn-wa" onclick="window.open('https://wa.me/916351537770', '_blank')">CONSULT WHATSAPP</button>
                         </div>
                     </div>
                 </div>`;
@@ -326,121 +306,7 @@ Treat voice as a hardware input layer.
     }
 
     /* =========================================
-       3. NAVIGATION & LOGIC
-       ========================================= */
-    let dragRatio = 0;
-    const MAX_DRAG = 250;
-    const TRIGGER_THRESHOLD = 0.9;
-
-    function goToSlide(idx) {
-        if (idx < 0 || idx >= slideElements.length) return;
-        const curr = slideElements[currentIdx];
-        curr.classList.remove('active');
-        if (idx > currentIdx) { curr.classList.add('prev'); curr.classList.remove('next'); }
-        else { curr.classList.add('next'); curr.classList.remove('prev'); }
-        currentIdx = idx;
-        const next = slideElements[currentIdx];
-        next.classList.remove('prev', 'next');
-        next.classList.add('active');
-        if(next.id === 'final') updateResult();
-        dragRatio = 0;
-        document.getElementById('depth-fill').style.height = '0%';
-    }
-
-    function updateResult() {
-        const list = document.getElementById('final-list');
-        const cart = USER_SIGNALS.selected;
-        let html = '';
-        if (Object.keys(cart).length === 0) {
-            html = '<div style="text-align:center;color:#666;margin-top:20px;">No items selected.</div>';
-        } else {
-            for (const [cat, item] of Object.entries(cart)) {
-                const label = DATA_SOURCE.categories.find(c => c.id === cat)?.label || cat;
-                html += `<div class="input-row"><span class="input-key">${label}</span><span class="input-val">${item}</span></div>`;
-            }
-        }
-        list.innerHTML = html;
-    }
-
-    function executeAction(action) {
-        const currSlide = slideElements[currentIdx];
-        const mode = currSlide.dataset.mode;
-        
-        switch(action) {
-            case 'NEXT': goToSlide(currentIdx + 1); break;
-            case 'PREV': if(currentIdx > 0) goToSlide(currentIdx - 1); break;
-            case 'SELECT': 
-                if(mode === 'options') {
-                    const key = currSlide.querySelector('.carousel-viewport').dataset.id;
-                    const deck = currSlide.querySelectorAll('.sub-slide');
-                    const curr = currSlide.querySelector('.carousel-viewport')._currOpt || 0;
-                    const val = deck[curr].dataset.val;
-                    logUserChoice(key, val, "explicit");
-                    showToast(`SELECTED: ${val}`);
-                    goToSlide(currentIdx + 1);
-                } else goToSlide(currentIdx + 1);
-                break;
-            case 'SKIP':
-                if(mode === 'options') {
-                    const key = currSlide.querySelector('.carousel-viewport').dataset.id;
-                    logUserChoice(key, "SKIPPED", "explicit");
-                    showToast("SKIPPED", "skip");
-                    goToSlide(currentIdx + 1);
-                }
-                break;
-            case 'BROWSE':
-                if(mode === 'options') {
-                    const view = currSlide.querySelector('.carousel-viewport');
-                    const slides = view.querySelectorAll('.sub-slide');
-                    let curr = view._currOpt || 0;
-                    curr = (curr + 1) % slides.length;
-                    view._currOpt = curr;
-                    slides.forEach((s, i) => {
-                        s.style.transform = '';
-                        if(i === curr) { s.classList.remove('opt-hidden'); s.classList.add('opt-active'); }
-                        else { s.classList.remove('opt-active'); s.classList.add('opt-hidden'); }
-                    });
-                }
-                break;
-        }
-    }
-
-    function attachEvents() {
-        let startX = 0, startY = 0;
-        document.querySelectorAll('.carousel-viewport').forEach(view => {
-            view._currOpt = 0;
-            let isDragging = false;
-            view.addEventListener('touchstart', e => { startX = e.touches[0].clientX; startY = e.touches[0].clientY; isDragging = true; }, {passive: true});
-            view.addEventListener('touchmove', e => {
-                if(!isDragging) return;
-                const dx = e.touches[0].clientX - startX;
-                const dy = e.touches[0].clientY - startY;
-                const axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
-                if(axis === 'y' && dy > 0) {
-                    e.preventDefault();
-                    dragRatio = Math.min(dy/MAX_DRAG, 1);
-                    document.getElementById('depth-fill').style.height = (dragRatio*100)+'%';
-                }
-            }, {passive: false});
-            view.addEventListener('touchend', e => {
-                if(!isDragging) return; isDragging = false;
-                const dx = e.changedTouches[0].clientX - startX;
-                const dy = e.changedTouches[0].clientY - startY;
-                const axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
-                if (axis === 'y') {
-                    if (dy < -50) executeAction('PREV');
-                    else if (dy > 50 && dragRatio > TRIGGER_THRESHOLD) executeAction('SELECT');
-                } else if (axis === 'x' && view.closest('.main-slide').dataset.mode === 'options') {
-                    if (dx < -50) executeAction('SKIP');
-                    else if (dx > 50) executeAction('BROWSE');
-                }
-                document.getElementById('depth-fill').style.height = '0%';
-            });
-        });
-    }
-
-    /* =========================================
-       PATCH V1: MASTER INTENT MAP
+       3. MASTER PATCH — VOICE INTENTS
        ========================================= */
     const VOICE_INTENTS = {
       NAV: {
@@ -480,9 +346,7 @@ Treat voice as a hardware input layer.
       const t = text.toLowerCase();
       for (const [group, intents] of Object.entries(VOICE_INTENTS)) {
         for (const [key, words] of Object.entries(intents)) {
-          if (words.some(w => t.includes(w))) {
-            return { group, key, raw: t };
-          }
+          if (words.some(w => t.includes(w))) return { group, key, raw: t };
         }
       }
       return null;
@@ -507,12 +371,8 @@ Treat voice as a hardware input layer.
           if(cmd.key==="reset") resetCart();
           if(cmd.key==="read") readCart();
           break;
-        case "QUANTITY":
-          applyQuantity(cmd.key, cmd.raw);
-          break;
-        case "PLATFORM":
-          copyAndRedirect(cmd.key);
-          break;
+        case "QUANTITY": applyQuantity(cmd.key, cmd.raw); break;
+        case "PLATFORM": copyAndRedirect(cmd.key); break;
         case "SYSTEM":
           if(cmd.key==="help") speakHelp();
           if(cmd.key==="copy") autoCopy();
@@ -521,42 +381,8 @@ Treat voice as a hardware input layer.
       }
     }
 
-    let rec;
-    function initVoice() {
-        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SR) return;
-        rec = new SR();
-        rec.lang = "en-IN";
-        rec.continuous = true;
-
-        rec.onresult = e => {
-            const txt = e.results[e.results.length - 1][0].transcript;
-            showToast(`Heard: "${txt}"`);
-            const intent = parseVoice(txt);
-            if (intent) dispatchVoice(intent);
-        };
-
-        rec.onend = () => {
-            const mic = document.getElementById('mic-toggle');
-            if (mic.classList.contains('listening')) {
-                setTimeout(() => { try { rec.start(); } catch(e) {} }, 120);
-            }
-        };
-
-        window.toggleListenMode = () => {
-            const mic = document.getElementById('mic-toggle');
-            if(mic.classList.contains('listening')) {
-                rec.stop();
-                mic.classList.remove('listening');
-            } else {
-                try { rec.start(); } catch(e) {}
-                mic.classList.add('listening');
-            }
-        };
-    }
-
     /* =========================================
-       PATCH V3: NEW MASTER FUNCTIONS
+       4. NEW MASTER FUNCTIONS
        ========================================= */
     function resetCart(){
       USER_SIGNALS.selected = {};
@@ -602,6 +428,107 @@ Treat voice as a hardware input layer.
         speak("I have copied your order to the clipboard");
     }
 
+    /* =========================================
+       5. CORE ENGINES
+       ========================================= */
+    function goToSlide(idx) {
+        if (idx < 0 || idx >= slideElements.length) return;
+        const curr = slideElements[currentIdx];
+        curr.classList.remove('active');
+        if (idx > currentIdx) { curr.classList.add('prev'); curr.classList.remove('next'); }
+        else { curr.classList.add('next'); curr.classList.remove('prev'); }
+        currentIdx = idx;
+        const next = slideElements[currentIdx];
+        next.classList.remove('prev', 'next');
+        next.classList.add('active');
+        if(next.id === 'final') updateResult();
+    }
+
+    function updateResult() {
+        const list = document.getElementById('final-list');
+        const cart = USER_SIGNALS.selected;
+        let html = '';
+        if (Object.keys(cart).length === 0) html = '<div style="text-align:center;color:#666;">No items selected.</div>';
+        else {
+            for (const [cat, item] of Object.entries(cart)) {
+                html += `<div class="input-row"><span class="input-key">${cat}</span><span class="input-val">${item}</span></div>`;
+            }
+        }
+        list.innerHTML = html;
+    }
+
+    function executeAction(action) {
+        const currSlide = slideElements[currentIdx];
+        const mode = currSlide.dataset.mode;
+        if (action === 'NEXT') goToSlide(currentIdx + 1);
+        if (action === 'PREV') goToSlide(currentIdx - 1);
+        if (action === 'BROWSE' && mode === 'options') {
+            const view = currSlide.querySelector('.carousel-viewport');
+            const slides = view.querySelectorAll('.sub-slide');
+            let curr = view._currOpt || 0;
+            curr = (curr + 1) % slides.length;
+            view._currOpt = curr;
+            slides.forEach((s, i) => {
+                if(i === curr) { s.classList.remove('opt-hidden'); s.classList.add('opt-active'); }
+                else { s.classList.remove('opt-active'); s.classList.add('opt-hidden'); }
+            });
+        }
+        if (action === 'SELECT' && mode === 'options') {
+            const view = currSlide.querySelector('.carousel-viewport');
+            const val = view.querySelectorAll('.sub-slide')[view._currOpt || 0].dataset.val;
+            logUserChoice(view.dataset.id, val);
+            showToast(`SELECTED: ${val}`);
+            goToSlide(currentIdx + 1);
+        }
+        if (action === 'SKIP' && mode === 'options') goToSlide(currentIdx + 1);
+    }
+
+    function attachEvents() {
+        let startX = 0, startY = 0;
+        document.querySelectorAll('.carousel-viewport').forEach(view => {
+            view._currOpt = 0;
+            view.addEventListener('touchstart', e => { startX = e.touches[0].clientX; startY = e.touches[0].clientY; }, {passive: true});
+            view.addEventListener('touchend', e => {
+                const dx = e.changedTouches[0].clientX - startX;
+                const dy = e.changedTouches[0].clientY - startY;
+                if (Math.abs(dy) > Math.abs(dx)) {
+                    if (dy < -50) executeAction('PREV');
+                    else if (dy > 50) executeAction('SELECT');
+                } else {
+                    if (dx < -50) executeAction('SKIP');
+                    else if (dx > 50) executeAction('BROWSE');
+                }
+            });
+        });
+    }
+
+    function initVoice() {
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SR) return;
+        rec = new SR();
+        rec.lang = "en-IN";
+        rec.continuous = true;
+        rec.onresult = e => {
+            const txt = e.results[e.results.length - 1][0].transcript;
+            showToast(`Heard: "${txt}"`);
+            const intent = parseVoice(txt);
+            if (intent) dispatchVoice(intent);
+        };
+        rec.onend = () => {
+            if (document.getElementById('mic-toggle').classList.contains('listening')) {
+                setTimeout(() => { try { rec.start(); } catch(e) {} }, 120);
+            }
+        };
+        window.toggleListenMode = () => {
+            const mic = document.getElementById('mic-toggle');
+            if(mic.classList.contains('listening')) {
+                rec.stop(); mic.classList.remove('listening');
+            } else {
+                try { rec.start(); } catch(e) {} mic.classList.add('listening');
+            }
+        };
+    }
+
     function handleGlobalAdd(txt) {
         DATA_SOURCE.categories.forEach(cat => {
             cat.items.forEach(item => {
@@ -624,50 +551,30 @@ Treat voice as a hardware input layer.
         }
     }
 
-    function speak(text) {
-        window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
-    }
-
-    function buildCartText() {
-        return Object.values(USER_SIGNALS.selected).join(", ") || "Punjabi Food";
-    }
+    function speak(text) { window.speechSynthesis.speak(new SpeechSynthesisUtterance(text)); }
+    function buildCartText() { return Object.values(USER_SIGNALS.selected).join(", ") || "Punjabi Food"; }
 
     function saveToCloud() {
-        const payload = { session_id: "SESS-" + Date.now().toString().slice(-6), items: USER_SIGNALS.selected, source: "WEB_VOICE" };
-        showToast("SAVING TO CLOUD...");
+        showToast("SAVING...");
+        const payload = { items: USER_SIGNALS.selected, session: Date.now() };
         fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(payload) })
-        .then(() => {
-            showToast("ORDER SAVED ✅");
-            speak("Order saved to database");
-            if(document.getElementById('mic-toggle').classList.contains('listening')) {
-                try { rec.start(); } catch(e) {}
-            }
-        }).catch(e => showToast("SAVE FAILED ❌"));
+        .then(() => { showToast("SAVED ✅"); speak("Order saved"); });
     }
 
     function copyAndRedirect(platform) {
         const text = buildCartText();
-        navigator.clipboard.writeText(text).then(() => showToast("COPIED! OPENING " + platform.toUpperCase()));
+        navigator.clipboard.writeText(text);
         const links = {
-            zomato: { app: `zomato://search?q=${encodeURIComponent(text)}`, web: `https://www.zomato.com/search?q=${encodeURIComponent(text)}` },
-            swiggy: { app: `swiggy://search?query=${encodeURIComponent(text)}`, web: `https://www.swiggy.com/search?q=${encodeURIComponent(text)}` },
-            blinkit: { app: `blinkit://search?query=${encodeURIComponent(text)}`, web: `https://blinkit.com/s/?q=${encodeURIComponent(text)}` }
+            zomato: `zomato://search?q=${encodeURIComponent(text)}`,
+            swiggy: `swiggy://search?query=${encodeURIComponent(text)}`
         };
-        const target = links[platform];
-        if (!target) return;
-        const start = Date.now();
-        window.location.href = target.app;
-        setTimeout(() => { if (Date.now() - start < 2000) window.location.href = target.web; }, 1500);
+        if(links[platform]) window.location.href = links[platform];
     }
 
-    function sendWhatsapp() {
-        window.open(`https://wa.me/916351537770?text=ORDER: ${encodeURIComponent(buildCartText())}`, '_blank');
-    }
-
-    function showToast(msg, type="normal") {
+    function showToast(msg) {
         const t = document.getElementById('toast');
-        t.innerText = msg; t.className = `toast-msg visible ${type}`;
-        setTimeout(() => t.className = "toast-msg", 2000);
+        t.innerText = msg; t.classList.add('visible');
+        setTimeout(() => t.classList.remove('visible'), 2000);
     }
 
     init();
