@@ -27,7 +27,7 @@
             color: var(--text-main);
             font-family: var(--font-ui);
             overflow: hidden;
-            touch-action: none;
+            touch-action: none; /* Prevents browser defaults */
         }
 
         #master-container {
@@ -37,6 +37,7 @@
             overflow: hidden;
         }
 
+        /* Slide Transitions */
         .main-slide {
             height: 100vh;
             width: 100vw;
@@ -131,13 +132,35 @@
            ========================================= */
         .verdict-container { display: flex; flex-direction: column; height: 100%; justify-content: center; }
         .choice-header { font-family: var(--font-tech); color: #666; font-size: 0.8rem; margin-bottom: 20px; text-transform: uppercase; text-align: center; }
-        .input-group { border: 1px solid #333; background: #111; padding: 20px; border-radius: 8px; margin-bottom: 20px; min-height: 100px; max-height: 40vh; overflow-y: auto; }
+        
+        .input-group { 
+            border: 1px solid #333; 
+            background: #111; 
+            padding: 20px; 
+            border-radius: 8px; 
+            margin-bottom: 20px; 
+            min-height: 100px; 
+            max-height: 40vh; 
+            overflow-y: auto; 
+        }
+        
         .input-row { display: flex; justify-content: space-between; border-bottom: 1px dashed #333; padding: 10px 0; font-family: var(--font-tech); font-size: 0.8rem; }
         .input-key { color: #888; text-transform: uppercase; }
         .input-val { color: var(--accent-go); font-weight: bold; text-align: right; }
         
         .final-actions { display: grid; gap: 10px; margin-top: 20px; }
-        .btn { background: #222; color: #fff; border: 1px solid #333; padding: 15px; border-radius: 8px; font-weight: 600; text-align: center; font-size: 0.9rem; cursor: pointer; }
+        
+        .btn { 
+            background: #222; 
+            color: #fff; 
+            border: 1px solid #333; 
+            padding: 15px; 
+            border-radius: 8px; 
+            font-weight: 600; 
+            text-align: center; 
+            font-size: 0.9rem; 
+            cursor: pointer; 
+        }
         .btn-wa { background: #25D366; color: #000; border: none; }
         .btn-zomato { background: var(--accent-zomato); border: none; }
         .btn-swiggy { background: var(--accent-swiggy); border: none; }
@@ -145,9 +168,13 @@
         .btn-cloud { background: #4285F4; border: none; } /* Google Blue */
 
         /* =========================================
-           OVERLAYS
+           OVERLAYS (FEEDBACK & CONTROLS)
            ========================================= */
-        #depth-fill { position: fixed; right: 0; top: 0; bottom: 0; width: 4px; background: #333; z-index: 900; height: 0%; transition: height 0.05s linear; }
+        #depth-fill { 
+            position: fixed; right: 0; top: 0; bottom: 0; width: 4px; 
+            background: #333; z-index: 900; height: 0%; 
+            transition: height 0.05s linear; 
+        }
         
         .toast-msg {
             position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
@@ -184,12 +211,10 @@
        0. CONFIGURATION
        ========================================= */
     
-    // CONNECTED: Google Web App URL (Updated with your ID)
+    // CONNECTED: Google Web App URL (Updated with Deployment ID)
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyBMwKxq92U0dptKMdEHvUCXPS9AjExHtxHjcRmfh2JFjCSn9Zd82bzp34xLg6X0a7L9g/exec";
     
-    // REFERENCE: Sheet ID (Used in Backend Script)
-    // 1bjk5jTSTjaGWD80_bDHbAXD9JelYhbQhuneRVtEuya0
-
+    // DATA SOURCE: Full Punjabi Menu
     const DATA_SOURCE = {
       "cuisine": "Punjabi",
       "currency": "INR",
@@ -199,7 +224,9 @@
           "items": [
             { "name": "Tandoori Roti", "tags": ["light"] },
             { "name": "Butter Naan", "tags": ["popular"] },
-            { "name": "Garlic Naan", "tags": ["aromatic"] }
+            { "name": "Garlic Naan", "tags": ["aromatic"] },
+            { "name": "Lachha Paratha", "tags": ["layered"] },
+            { "name": "Amritsari Kulcha", "tags": ["stuffed"] }
           ]
         },
         {
@@ -207,35 +234,73 @@
           "items": [
             { "name": "Dal Makhani", "tags": ["creamy"] },
             { "name": "Paneer Butter Masala", "tags": ["rich"] },
-            { "name": "Chole Masala", "tags": ["tangy"] }
+            { "name": "Shahi Paneer", "tags": ["royal"] },
+            { "name": "Kadai Paneer", "tags": ["spicy"] },
+            { "name": "Chole Masala", "tags": ["tangy"] },
+            { "name": "Rajma", "tags": ["homestyle"] },
+            { "name": "Sarson da Saag", "tags": ["seasonal"] }
           ]
         },
         {
           "id": "nonveg_mains", "label": "Non-Veg Mains",
           "items": [
             { "name": "Butter Chicken", "tags": ["legendary"] },
-            { "name": "Chicken Tikka Masala", "tags": ["spicy"] }
+            { "name": "Chicken Tikka Masala", "tags": ["spicy"] },
+            { "name": "Kadai Chicken", "tags": ["bold"] },
+            { "name": "Chicken Curry", "tags": ["homestyle"] },
+            { "name": "Mutton Curry", "tags": ["slow-cooked"] },
+            { "name": "Mutton Rogan Josh", "tags": ["spiced"] }
           ]
         },
         {
           "id": "rice", "label": "Rice",
           "items": [
             { "name": "Jeera Rice", "tags": ["light"] },
+            { "name": "Plain Rice", "tags": ["basic"] },
+            { "name": "Veg Pulao", "tags": ["aromatic"] },
             { "name": "Chicken Biryani", "tags": ["heavy"] }
+          ]
+        },
+        {
+          "id": "starters_veg", "label": "Veg Starters",
+          "items": [
+            { "name": "Paneer Tikka", "tags": ["grilled"] },
+            { "name": "Hara Bhara Kabab", "tags": ["fried"] },
+            { "name": "Aloo Tikki", "tags": ["street"] }
+          ]
+        },
+        {
+          "id": "starters_nonveg", "label": "Non-Veg Starters",
+          "items": [
+            { "name": "Chicken Tikka", "tags": ["tandoor"] },
+            { "name": "Chicken Malai Tikka", "tags": ["creamy"] },
+            { "name": "Fish Tikka", "tags": ["grilled"] }
           ]
         },
         {
           "id": "sides", "label": "Sides",
           "items": [
             { "name": "Boondi Raita", "tags": ["cooling"] },
-            { "name": "Green Salad", "tags": ["fresh"] }
+            { "name": "Extra Butter", "tags": ["addon"] },
+            { "name": "Green Salad", "tags": ["fresh"] },
+            { "name": "Papad", "tags": ["crispy"] }
+          ]
+        },
+        {
+          "id": "desserts", "label": "Desserts",
+          "items": [
+            { "name": "Gulab Jamun", "tags": ["sweet"] },
+            { "name": "Rasmalai", "tags": ["milk-based"] },
+            { "name": "Kheer", "tags": ["classic"] }
           ]
         },
         {
           "id": "drinks", "label": "Beverages",
           "items": [
             { "name": "Sweet Lassi", "tags": ["thick"] },
-            { "name": "Coke", "tags": ["fizz"] }
+            { "name": "Salted Lassi", "tags": ["digestive"] },
+            { "name": "Chaach", "tags": ["light"] },
+            { "name": "Masala Chaas", "tags": ["spiced"] }
           ]
         }
       ]
@@ -269,6 +334,8 @@
         console.log("BOOTING SWIPE-OS v7.2...");
         
         let slides = [];
+        
+        // 1. Build Item Slides
         DATA_SOURCE.categories.forEach((cat, idx) => {
             slides.push({
                 id: cat.id,
@@ -277,8 +344,11 @@
                 items: cat.items
             });
         });
+        
+        // 2. Add Final Verdict Slide
         slides.push({ id: "final", type: "final", title: "FINAL ORDER" });
 
+        // 3. Render Loop
         slides.forEach((cfg) => {
             const section = document.createElement('section');
             section.className = `main-slide ${slides.indexOf(cfg)===0 ? 'active' : 'next'}`;
@@ -377,6 +447,7 @@
         switch(action) {
             case 'NEXT': goToSlide(currentIdx + 1); break;
             case 'PREV': if(currentIdx > 0) goToSlide(currentIdx - 1); break;
+            
             case 'SELECT': 
                 if(mode === 'options') {
                     const key = currSlide.querySelector('.carousel-viewport').dataset.id;
@@ -388,6 +459,7 @@
                     goToSlide(currentIdx + 1);
                 } else goToSlide(currentIdx + 1);
                 break;
+                
             case 'SKIP':
                 if(mode === 'options') {
                     const key = currSlide.querySelector('.carousel-viewport').dataset.id;
@@ -396,6 +468,7 @@
                     goToSlide(currentIdx + 1);
                 }
                 break;
+                
             case 'BROWSE':
                 if(mode === 'options') {
                     const view = currSlide.querySelector('.carousel-viewport');
@@ -409,6 +482,17 @@
                         else { s.classList.remove('opt-active'); s.classList.add('opt-hidden'); }
                     });
                 }
+                break;
+                
+            case 'FINALIZE':
+                // Jump to end
+                if(currentIdx !== slideElements.length - 1) {
+                    goToSlide(slideElements.length - 1);
+                }
+                break;
+                
+            case 'RESET':
+                location.reload();
                 break;
         }
     }
@@ -439,10 +523,13 @@
                 const dy = e.changedTouches[0].clientY - startY;
                 const axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
                 
+                // Vertical Logic
                 if (axis === 'y') {
                     if (dy < -50) executeAction('PREV');
                     else if (dy > 0 && dragRatio > TRIGGER_THRESHOLD) executeAction('SELECT');
-                } else if (axis === 'x' && view.closest('.main-slide').dataset.mode === 'options') {
+                } 
+                // Horizontal Logic
+                else if (axis === 'x' && view.closest('.main-slide').dataset.mode === 'options') {
                     if (dx < -50) executeAction('SKIP');
                     else if (dx > 50) executeAction('BROWSE');
                 }
@@ -455,11 +542,13 @@
        5. VOICE COMMANDER
        ========================================= */
     const VOICE_MAP = {
-        NEXT: ["next", "continue"], PREV: ["back", "previous"],
-        SELECT: ["select", "choose", "yes", "confirm"],
-        SKIP: ["skip", "pass", "no", "next item"],
-        BROWSE: ["browse", "show more", "next option"],
-        FINALIZE: ["done", "final", "finish"]
+        NEXT: ["next", "continue", "go ahead"],
+        PREV: ["back", "previous", "go back"],
+        SELECT: ["select", "choose", "yes", "confirm", "this one"],
+        SKIP: ["skip", "pass", "no", "next item", "hatao"],
+        BROWSE: ["browse", "show more", "next option", "aur dikhao"],
+        FINALIZE: ["done", "final", "finish", "order place"],
+        RESET: ["reset", "start over", "clear"]
     };
 
     function initVoice() {
@@ -467,18 +556,25 @@
         if (!SR) return;
         const rec = new SR();
         rec.lang = "en-IN";
+        rec.continuous = true;
+        
         rec.onresult = e => {
-            const txt = e.results[0][0].transcript.toLowerCase();
+            const txt = e.results[e.results.length - 1][0].transcript.toLowerCase();
             showToast(`Heard: "${txt}"`);
             for (const [action, words] of Object.entries(VOICE_MAP)) {
                 if (words.some(w => txt.includes(w))) { executeAction(action); return; }
             }
         };
+        
         window.toggleListenMode = () => {
-            rec.start();
-            document.getElementById('mic-toggle').classList.add('listening');
+            if (document.getElementById('mic-toggle').classList.contains('listening')) {
+                rec.stop();
+                document.getElementById('mic-toggle').classList.remove('listening');
+            } else {
+                rec.start();
+                document.getElementById('mic-toggle').classList.add('listening');
+            }
         };
-        rec.onend = () => document.getElementById('mic-toggle').classList.remove('listening');
     }
 
     /* =========================================
@@ -491,9 +587,9 @@
         return items.length > 0 ? items.join(", ") : "Punjabi Food";
     }
 
-    // PATCH: CLOUD SAVE
+    // PATCH: CLOUD SAVE (Simple Request Mode)
     function saveToCloud() {
-        // Check History for Voice vs Touch
+        // Source Analysis
         const hasVoice = USER_SIGNALS.timestamps.some(t => t.source === 'voice');
         const hasTouch = USER_SIGNALS.timestamps.some(t => t.source === 'explicit'); 
         
@@ -509,14 +605,18 @@
 
         showToast("SAVING TO CLOUD...");
 
+        // CORS Bypass: Use 'no-cors' + 'text/plain'
         fetch(GOOGLE_SCRIPT_URL, {
             method: "POST",
             mode: "no-cors",
-            headers: { "Content-Type": "text/plain" }, // CORS Fix
+            headers: { "Content-Type": "text/plain" },
             body: JSON.stringify(payload)
         })
         .then(() => showToast("ORDER SAVED ✅"))
-        .catch(e => showToast("SAVE FAILED ❌"));
+        .catch(e => {
+            console.error(e);
+            showToast("SAVE FAILED ❌");
+        });
     }
 
     function copyAndRedirect(platform) {
