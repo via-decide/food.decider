@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>| food.decide | </title>
+    <title>Harvey's Decision Engine | SWIPE-OS v9.2 (Intent Engine v1.2)</title>
     <style>
         /* =========================================
            CORE SYSTEM
@@ -139,10 +139,13 @@
         .final-actions { display: grid; gap: 10px; margin-top: 20px; }
         .btn { background: #222; color: #fff; border: 1px solid #333; padding: 15px; border-radius: 8px; font-weight: 600; text-align: center; font-size: 0.9rem; cursor: pointer; display: block; width: 100%; box-sizing: border-box;}
         .btn-wa { background: #25D366; color: #000; border: none; }
-        .btn-zomato { background: var(--accent-zomato); border: none; }
-        .btn-swiggy { background: var(--accent-swiggy); border: none; }
-        .btn-blinkit { background: var(--accent-blinkit); color: #000; border: none; }
-        .btn-cloud { background: #4285F4; border: none; } 
+        .btn-zomato { background: var(--accent-zomato); border: none; opacity: 0.5; }
+        .btn-swiggy { background: var(--accent-swiggy); border: none; opacity: 0.5; }
+        .btn-blinkit { background: var(--accent-blinkit); color: #000; border: none; opacity: 0.5; }
+        .btn-cloud { background: #4285F4; border: none; opacity: 1; }
+        
+        /* Platform Visibility State */
+        .btn-zomato.active, .btn-swiggy.active, .btn-blinkit.active { opacity: 1; box-shadow: 0 0 10px rgba(255,255,255,0.2); }
 
         /* BUSINESS CTA STYLING */
         .biz-card {
@@ -208,14 +211,8 @@
 
 <script>
 /* ⚠️ GEMINI / LLM WARNING ⚠️
-This file uses GLOBAL VOICE INPUT.
-Voice handlers MUST NOT be:
-- Scoped to slides
-- Removed as unused
-- Converted to per-component logic
-- Simplified or refactored
-
-Treat voice as a hardware input layer.
+   This file implements UNIFIED INTENT SCHEMA v1.2
+   Voice patches must merge into ENGINE_STATE, not replace it.
 */
 
     /* =========================================
@@ -224,62 +221,113 @@ Treat voice as a hardware input layer.
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyBMwKxq92U0dptKMdEHvUCXPS9AjExHtxHjcRmfh2JFjCSn9Zd82bzp34xLg6X0a7L9g/exec";
     const SHARE_LINK_TEXT = "food-decider | swipe OS";
 
-    // MASTER DATA SOURCE (FULLY POPULATED)
     const RAW_DATA = {
         punjabi: {
             label: "PUNJABI",
             categories: [
-                { id: "p_breads", label: "Breads", items: [{name:"Butter Naan"}, {name:"Tandoori Roti"}, {name:"Garlic Naan"}, {name:"Lachha Paratha"}, {name:"Amritsari Kulcha"}] },
-                { id: "p_mains", label: "Mains", items: [{name:"Dal Makhani"}, {name:"Paneer Butter Masala"}, {name:"Butter Chicken"}, {name:"Shahi Paneer"}, {name:"Kadai Paneer"}, {name:"Chole Masala"}, {name:"Rajma"}, {name:"Sarson da Saag"}] },
-                { id: "p_rice", label: "Rice", items: [{name:"Jeera Rice"}, {name:"Chicken Biryani"}, {name:"Plain Rice"}, {name:"Veg Pulao"}] },
-                { id: "p_starters", label: "Starters", items: [{name:"Paneer Tikka"}, {name:"Chicken Tikka"}, {name:"Fish Tikka"}, {name:"Hara Bhara Kabab"}] },
+                { id: "p_breads", label: "Breads", items: [{name:"Butter Naan"}, {name:"Tandoori Roti"}, {name:"Garlic Naan"}, {name:"Lachha Paratha"}] },
+                { id: "p_mains", label: "Mains", items: [{name:"Dal Makhani"}, {name:"Paneer Butter Masala"}, {name:"Butter Chicken"}, {name:"Shahi Paneer"}, {name:"Kadai Paneer"}] },
+                { id: "p_rice", label: "Rice", items: [{name:"Jeera Rice"}, {name:"Chicken Biryani"}, {name:"Veg Pulao"}] },
+                { id: "p_starters", label: "Starters", items: [{name:"Paneer Tikka"}, {name:"Chicken Tikka"}, {name:"Hara Bhara Kabab"}] },
                 { id: "p_bev", label: "Beverages", items: [{name:"Sweet Lassi"}, {name:"Salted Lassi"}, {name:"Masala Chaas"}] }
             ]
         },
         chinese: {
             label: "CHINESE",
             categories: [
-                { id: "c_dimsum", label: "Dim Sum", items: [{name:"Pork Siu Mai"}, {name:"Har Gao"}, {name:"Char Siu Bao"}, {name:"Veg Crystal Dumpling"}, {name:"Cheung Fun"}] },
-                { id: "c_soup", label: "Soups", items: [{name:"Hot and Sour Soup"}, {name:"Wonton Soup"}, {name:"Egg Drop Soup"}] },
-                { id: "c_noodles", label: "Noodles", items: [{name:"Dan Dan Noodles"}, {name:"Beef Hand Pulled Noodles"}, {name:"Lo Mein"}] },
-                { id: "c_rice", label: "Rice", items: [{name:"Yangzhou Fried Rice"}, {name:"Braised Pork Rice"}, {name:"Clay Pot Rice"}] },
-                { id: "c_wok", label: "Wok Specials", items: [{name:"Kung Pao Chicken"}, {name:"Mapo Tofu"}, {name:"Twice Cooked Pork"}, {name:"Dry Chilli Chicken"}] },
-                { id: "c_hotpot", label: "Hot Pot", items: [{name:"Sichuan Mala Hot Pot"}, {name:"Clear Broth Hot Pot"}] },
-                { id: "c_dessert", label: "Desserts", items: [{name:"Sesame Balls"}, {name:"Mango Pudding"}, {name:"Red Bean Buns"}] },
-                { id: "c_bev", label: "Beverages", items: [{name:"Jasmine Tea"}, {name:"Oolong Tea"}, {name:"Plum Juice"}] }
+                { id: "c_dimsum", label: "Dim Sum", items: [{name:"Pork Siu Mai"}, {name:"Har Gao"}, {name:"Veg Crystal Dumpling"}] },
+                { id: "c_noodles", label: "Noodles", items: [{name:"Dan Dan Noodles"}, {name:"Hakka Noodles"}, {name:"Lo Mein"}] },
+                { id: "c_wok", label: "Wok Specials", items: [{name:"Kung Pao Chicken"}, {name:"Mapo Tofu"}, {name:"Chilli Chicken"}] }
             ]
         },
         pizza: {
             label: "PIZZA",
             categories: [
-                { id: "z_classic", label: "Classic", items: [{name:"Margherita"}, {name:"Marinara"}] },
-                { id: "z_gourmet_v", label: "Gourmet Veg", items: [{name:"Burrata Pizza"}, {name:"Mushroom Truffle Pizza"}, {name:"Roasted Veg Sourdough"}] },
-                { id: "z_gourmet_nv", label: "Gourmet Non-Veg", items: [{name:"Pepperoni Pizza"}, {name:"Prosciutto Pizza"}, {name:"Chicken Wood Fired Pizza"}] },
-                { id: "z_styles", label: "Styles", items: [{name:"Neapolitan Pizza"}, {name:"Roman Style Pizza"}, {name:"Detroit Style Pizza"}] }
+                { id: "z_classic", label: "Classic", items: [{name:"Margherita"}, {name:"Pepperoni"}, {name:"Marinara"}] },
+                { id: "z_gourmet", label: "Gourmet", items: [{name:"Burrata Pizza"}, {name:"Truffle Mushroom"}, {name:"Wood Fired Chicken"}] }
             ]
         },
         snacks: {
             label: "NASTA PANI",
             categories: [
-                { id: "s_cold", label: "Cold Drinks", items: [{name:"Coca-Cola"}, {name:"Thums Up"}, {name:"Pepsi"}, {name:"Sprite"}, {name:"Fanta"}, {name:"Mountain Dew"}, {name:"7UP"}] },
-                { id: "s_pkg", label: "Chips & Munchies", items: [{name:"Lays Classic"}, {name:"Lays Magic Masala"}, {name:"Kurkure"}, {name:"Bingo Mad Angles"}, {name:"Haldirams Bhujia"}, {name:"Pringles"}, {name:"Oreo"}, {name:"Good Day"}] },
-                { id: "s_fresh", label: "Fresh Snacks", items: [{name:"Samosa"}, {name:"Veg Puff"}, {name:"Chicken Puff"}, {name:"Grilled Sandwich"}, {name:"Veg Burger"}, {name:"Chicken Burger"}] },
-                { id: "s_bev", label: "Fresh Drinks", items: [{name:"Cold Coffee"}, {name:"Chocolate Milkshake"}, {name:"Strawberry Milkshake"}, {name:"Fresh Lime Soda"}, {name:"Orange Juice"}] },
-                { id: "s_combo", label: "Combos", items: [{name:"Chips + Coke"}, {name:"Burger + Fries + Drink"}, {name:"Samosa + Tea"}] }
+                { id: "s_pkg", label: "Packaged", items: [{name:"Coke"}, {name:"Chips"}, {name:"Kurkure"}, {name:"Thums Up"}] },
+                { id: "s_hot", label: "Hot Snacks", items: [{name:"Samosa"}, {name:"Puff"}, {name:"Burger"}] }
             ]
         }
     };
 
     /* =========================================
-       1. GLOBAL STATE
+       1. UNIFIED INTENT ENGINE v1.2 (STATE)
        ========================================= */
-    const USER_SIGNALS = { selected: {}, timestamps: [] };
-    let SELECTED_CUISINES = []; // Multi-select storage
+    
+    let ENGINE_STATE = {
+        session_id: "auto-" + Date.now(),
+        cuisines_detected: [],
+        items_detected: {}, // { "Pizza": { qty: 2, cat: "main" } }
+        constraints: {
+            exclusions: []
+        },
+        platform_strategy: {
+            discover: ["zomato", "swiggy"], // Default
+            fulfillment: ["zomato", "swiggy"] 
+        },
+        cart_state: {
+            items: [],
+            total: 0
+        }
+    };
 
-    function logUserChoice(key, value, source="explicit") {
-        if (value === "SKIPPED") delete USER_SIGNALS.selected[key];
-        else USER_SIGNALS.selected[key] = value;
-        USER_SIGNALS.timestamps.push({ key, value, source, time: Date.now() });
+    /* LOGIC MERGER: Update State */
+    function engineUpdate(patchType, payload) {
+        if (patchType === "ADD_CUISINE") {
+            if(!ENGINE_STATE.cuisines_detected.includes(payload)) ENGINE_STATE.cuisines_detected.push(payload);
+        }
+        if (patchType === "REMOVE_CUISINE") {
+            ENGINE_STATE.cuisines_detected = ENGINE_STATE.cuisines_detected.filter(c => c !== payload);
+        }
+        if (patchType === "ADD_ITEM") {
+            const qty = ENGINE_STATE.items_detected[payload] ? ENGINE_STATE.items_detected[payload].qty + 1 : 1;
+            ENGINE_STATE.items_detected[payload] = { qty: qty, added_at: Date.now() };
+            recalcStrategy();
+        }
+        if (patchType === "REMOVE_ITEM") {
+            delete ENGINE_STATE.items_detected[payload];
+            recalcStrategy();
+        }
+        if (patchType === "RESET") {
+            ENGINE_STATE.items_detected = {};
+            ENGINE_STATE.cuisines_detected = [];
+            recalcStrategy();
+        }
+        if (patchType === "QUANTITY") {
+            // Apply modifiers (double/half)
+            for(let key in ENGINE_STATE.items_detected) {
+                if(key.toLowerCase().includes(payload.target.toLowerCase())) {
+                    let q = ENGINE_STATE.items_detected[key].qty;
+                    if(payload.mod === "double") q *= 2;
+                    if(payload.mod === "half") q = Math.max(1, Math.ceil(q/2));
+                    ENGINE_STATE.items_detected[key].qty = q;
+                }
+            }
+        }
+    }
+
+    /* STRATEGY RESOLVER: Deterministic Add-ons & Platforms */
+    function recalcStrategy() {
+        const items = Object.keys(ENGINE_STATE.items_detected);
+        const cuisines = ENGINE_STATE.cuisines_detected;
+        
+        let platforms = new Set(["zomato", "swiggy"]); // Baseline
+        
+        // Rule: Snacks/Drinks favor Blinkit
+        if(cuisines.includes('snacks') || items.some(i => i.match(/coke|chips|thumbs|water/i))) {
+            platforms.add("blinkit");
+        }
+        
+        ENGINE_STATE.platform_strategy.fulfillment = Array.from(platforms);
+        
+        // Sync to legacy UI structure for compatibility
+        updateResult();
     }
 
     /* =========================================
@@ -290,18 +338,18 @@ Treat voice as a hardware input layer.
     let currentIdx = 0;
 
     function init() {
-        renderLobby(); // Start at Lobby
-        initVoice();   // Start Voice Engine
+        renderLobby();
+        initVoice();
     }
 
     function renderLobby() {
-        container.innerHTML = ""; // Clear
+        container.innerHTML = "";
         const section = document.createElement('section');
         section.className = "main-slide active";
         section.id = "lobby";
         
         let html = `
-        <div class="slide-header"><span class="header-title">SWIPE-OS v9.1</span></div>
+        <div class="slide-header"><span class="header-title">SWIPE-OS v9.2</span></div>
         <div class="lobby-container">
             <h1 style="text-align:center; margin-bottom:40px;">AAJ KYA MANGVAAYEGE!</h1>
             <div id="cuisine-grid" style="display:grid; gap:15px;">
@@ -320,17 +368,17 @@ Treat voice as a hardware input layer.
     }
 
     window.toggleCuisine = (id, btn) => {
-        if(SELECTED_CUISINES.includes(id)) {
-            SELECTED_CUISINES = SELECTED_CUISINES.filter(x => x !== id);
+        if(ENGINE_STATE.cuisines_detected.includes(id)) {
+            engineUpdate("REMOVE_CUISINE", id);
             btn.classList.remove('selected');
         } else {
-            SELECTED_CUISINES.push(id);
+            engineUpdate("ADD_CUISINE", id);
             btn.classList.add('selected');
         }
     };
 
     window.startHunt = () => {
-        if(SELECTED_CUISINES.length === 0) {
+        if(ENGINE_STATE.cuisines_detected.length === 0) {
             showToast("SELECT AT LEAST ONE!");
             speak("Please select a cuisine first");
             return;
@@ -342,8 +390,8 @@ Treat voice as a hardware input layer.
         container.innerHTML = ""; 
         let slides = [];
 
-        // 1. Merge Categories
-        SELECTED_CUISINES.forEach(cId => {
+        // 1. Merge Categories based on Intent Engine
+        ENGINE_STATE.cuisines_detected.forEach(cId => {
             RAW_DATA[cId].categories.forEach(cat => {
                 slides.push({
                     id: cat.id,
@@ -358,7 +406,7 @@ Treat voice as a hardware input layer.
         slides.push({ id: "final", type: "final", title: "FINAL ORDER" });
         slides.push({ id: "business", type: "business", title: "KUTCH AUTOMATION" });
 
-        // 3. Render
+        // 3. Render Loop
         slides.forEach((cfg, idx) => {
             const section = document.createElement('section');
             section.className = `main-slide ${idx === 0 ? 'active' : 'next'}`;
@@ -388,9 +436,9 @@ Treat voice as a hardware input layer.
                         <div class="choice-header">WHAT YOU CHOSE</div>
                         <div class="input-group" id="final-list"></div>
                         <div class="final-actions">
-                            <button class="btn btn-zomato" onclick="copyAndRedirect('zomato')">ZOMATO</button>
-                            <button class="btn btn-swiggy" onclick="copyAndRedirect('swiggy')">SWIGGY</button>
-                            <button class="btn btn-blinkit" onclick="copyAndRedirect('blinkit')">BLINKIT</button>
+                            <button class="btn btn-zomato" id="btn-zomato" onclick="copyAndRedirect('zomato')">ZOMATO</button>
+                            <button class="btn btn-swiggy" id="btn-swiggy" onclick="copyAndRedirect('swiggy')">SWIGGY</button>
+                            <button class="btn btn-blinkit" id="btn-blinkit" onclick="copyAndRedirect('blinkit')">BLINKIT</button>
                             <button class="btn btn-cloud" onclick="saveToCloud()">SAVE TO CLOUD</button>
                             <button class="btn btn-wa" onclick="sendWhatsapp()">WHATSAPP</button>
                         </div>
@@ -426,7 +474,8 @@ Treat voice as a hardware input layer.
 
         slideElements = Array.from(document.querySelectorAll('.main-slide'));
         currentIdx = 0;
-        attachEvents(); // Re-attach touch events
+        attachEvents(); 
+        updateResult(); // Initial state check
     }
 
     /* =========================================
@@ -451,16 +500,30 @@ Treat voice as a hardware input layer.
         document.getElementById('depth-fill').style.height = '0%';
     }
 
+    // Engine to UI Sync
     function updateResult() {
         const list = document.getElementById('final-list');
-        const cart = USER_SIGNALS.selected;
+        if(!list) return;
+
+        const cart = ENGINE_STATE.items_detected;
+        const strategies = ENGINE_STATE.platform_strategy.fulfillment;
+
+        // 1. Update Platform Buttons Logic (Platform Strategy)
+        ['zomato','swiggy','blinkit'].forEach(p => {
+            const btn = document.getElementById(`btn-${p}`);
+            if(btn) {
+                if(strategies.includes(p)) btn.classList.add('active');
+                else btn.classList.remove('active');
+            }
+        });
+
+        // 2. Render List
         let html = '';
         if (Object.keys(cart).length === 0) {
             html = '<div style="text-align:center;color:#666;margin-top:20px;">No items selected.</div>';
         } else {
-            for (const [cat, item] of Object.entries(cart)) {
-                const label = cat.includes('_') ? cat.split('_')[1].toUpperCase() : cat; 
-                html += `<div class="input-row"><span class="input-key">${label}</span><span class="input-val">${item}</span></div>`;
+            for (const [name, data] of Object.entries(cart)) {
+                html += `<div class="input-row"><span class="input-key">${name}</span><span class="input-val">x${data.qty}</span></div>`;
             }
         }
         list.innerHTML = html;
@@ -475,19 +538,15 @@ Treat voice as a hardware input layer.
             case 'PREV': if(currentIdx > 0) goToSlide(currentIdx - 1); break;
             case 'SELECT': 
                 if(mode === 'options') {
-                    const key = currSlide.querySelector('.carousel-viewport').dataset.id;
-                    const deck = currSlide.querySelectorAll('.sub-slide');
-                    const curr = currSlide.querySelector('.carousel-viewport')._currOpt || 0;
-                    const val = deck[curr].dataset.val;
-                    logUserChoice(key, val, "explicit");
+                    const view = currSlide.querySelector('.carousel-viewport');
+                    const val = view.querySelectorAll('.sub-slide')[view._currOpt || 0].dataset.val;
+                    engineUpdate("ADD_ITEM", val);
                     showToast(`SELECTED: ${val}`);
                     goToSlide(currentIdx + 1);
                 } else goToSlide(currentIdx + 1);
                 break;
             case 'SKIP':
                 if(mode === 'options') {
-                    const key = currSlide.querySelector('.carousel-viewport').dataset.id;
-                    logUserChoice(key, "SKIPPED", "explicit");
                     showToast("SKIPPED", "skip");
                     goToSlide(currentIdx + 1);
                 }
@@ -544,7 +603,7 @@ Treat voice as a hardware input layer.
     }
 
     /* =========================================
-       PATCH V1: MASTER INTENT MAP
+       4. MASTER VOICE ROUTER (PATCH V1)
        ========================================= */
     const VOICE_INTENTS = {
       NAV: {
@@ -592,7 +651,8 @@ Treat voice as a hardware input layer.
 
     function dispatchVoice(cmd){
       if(!cmd) return;
-      // Lobby Voice Logic
+      
+      // Lobby Logic Overrides
       if(document.getElementById('lobby')) {
           if(cmd.group === 'CART' && cmd.key === 'add') {
              const map = {'punjabi': 'punjabi', 'chinese': 'chinese', 'pizza': 'pizza', 'nasta': 'snacks', 'snacks': 'snacks'};
@@ -606,7 +666,6 @@ Treat voice as a hardware input layer.
         case "NAV":
           if(cmd.key==="next") executeAction("NEXT");
           if(cmd.key==="prev") executeAction("PREV");
-          if(cmd.key==="jump") jumpToCategory(cmd.raw);
           break;
         case "ACTION":
           if(cmd.key==="select") executeAction("SELECT");
@@ -616,19 +675,30 @@ Treat voice as a hardware input layer.
         case "CART":
           if(cmd.key==="add") handleGlobalAdd(cmd.raw);
           if(cmd.key==="remove") handleGlobalRemove(cmd.raw);
-          if(cmd.key==="reset") resetCart();
+          if(cmd.key==="reset") engineUpdate("RESET");
           if(cmd.key==="read") readCart();
           break;
-        case "QUANTITY": applyQuantity(cmd.key, cmd.raw); break;
+        case "QUANTITY": 
+          // Extract target from raw text if possible, else default to last added
+          // Simplified: Search all items for matches in voice string
+          for(let item in ENGINE_STATE.items_detected) {
+              if(cmd.raw.includes(item.toLowerCase())) engineUpdate("QUANTITY", { target: item, mod: cmd.key });
+          }
+          speak("Updated quantity");
+          updateResult();
+          break;
         case "PLATFORM": copyAndRedirect(cmd.key); break;
         case "SYSTEM":
-          if(cmd.key==="help") speakHelp();
+          if(cmd.key==="help") speak("You can say next, select, add item, clear cart, or hunt.");
           if(cmd.key==="copy") autoCopy();
           if(cmd.key==="save") saveToCloud();
           break;
       }
     }
 
+    /* =========================================
+       5. VOICE & CONNECTIVITY
+       ========================================= */
     let rec;
     function initVoice() {
         const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -661,96 +731,60 @@ Treat voice as a hardware input layer.
         };
     }
 
-    /* =========================================
-       4. NEW MASTER FUNCTIONS
-       ========================================= */
-    function resetCart(){
-      USER_SIGNALS.selected = {};
-      showToast("ORDER RESET");
-      speak("Order cleared");
-      if(slideElements[currentIdx].id === 'final') updateResult();
-    }
-
-    function readCart(){
-      const items = Object.values(USER_SIGNALS.selected);
-      if(!items.length){ speak("Your cart is empty"); return; }
-      speak("You have selected " + items.join(", "));
-    }
-
-    function jumpToCategory(txt){
-      DATA_SOURCE.categories.forEach((c, i)=>{
-        if(txt.includes(c.label.toLowerCase())){
-          goToSlide(i);
-          speak("Opening " + c.label);
-        }
-      });
-    }
-
-    function applyQuantity(type, txt){
-      for(const [cat,item] of Object.entries(USER_SIGNALS.selected)){
-        if(txt.includes(item.toLowerCase())){
-          USER_SIGNALS.selected[cat] = type==="double" ? item + " x2" : type==="half" ? item + " half" : item;
-          showToast("UPDATED " + item);
-          speak("Updated quantity");
-          if(slideElements[currentIdx].id === 'final') updateResult();
-        }
-      }
-    }
-
-    function speakHelp(){
-      speak("You can say next, select, add item, clear cart, or hunt.");
-    }
-
-    function autoCopy() {
-        const data = buildCartText();
-        navigator.clipboard.writeText(data);
-        showToast("AUTO-COPIED TO CLIPBOARD");
-        speak("I have copied your order to the clipboard");
-    }
-
-    // PATCH: Universal Search for Voice Adds
     function handleGlobalAdd(txt) {
-        // If on final slide, search ALL cuisines. Otherwise, search active selection.
-        const isFinal = slideElements[currentIdx] && slideElements[currentIdx].id === 'final';
-        const searchScope = isFinal ? Object.keys(RAW_DATA) : SELECTED_CUISINES;
-        
+        // Universal Search (Patch: Check all raw data)
         let found = false;
-        searchScope.forEach(cId => {
-            if(RAW_DATA[cId]) {
-                RAW_DATA[cId].categories.forEach(cat => {
-                    cat.items.forEach(item => {
-                        if (!found && txt.includes(item.name.toLowerCase())) {
-                            logUserChoice(cat.id, item.name, "voice");
-                            showToast(`ADDED ${item.name}`);
-                            found = true;
-                            if (isFinal) updateResult();
-                        }
-                    });
+        Object.keys(RAW_DATA).forEach(cId => {
+            RAW_DATA[cId].categories.forEach(cat => {
+                cat.items.forEach(item => {
+                    if (!found && txt.includes(item.name.toLowerCase())) {
+                        engineUpdate("ADD_ITEM", item.name);
+                        showToast(`ADDED ${item.name}`);
+                        found = true;
+                        if (slideElements[currentIdx].id === 'final') updateResult();
+                    }
                 });
-            }
+            });
         });
-        if(!found && !isFinal) showToast("ITEM NOT IN SELECTION");
-        if(!found && isFinal) showToast("ITEM NOT FOUND IN DATABASE");
+        if(!found) showToast("ITEM NOT FOUND");
     }
 
     function handleGlobalRemove(txt) {
-        for (const [key, val] of Object.entries(USER_SIGNALS.selected)) {
-            if (txt.includes(val.toLowerCase())) {
-                delete USER_SIGNALS.selected[key];
-                showToast(`REMOVED ${val}`);
+        for (const item in ENGINE_STATE.items_detected) {
+            if (txt.includes(item.toLowerCase())) {
+                engineUpdate("REMOVE_ITEM", item);
+                showToast(`REMOVED ${item}`);
                 if (slideElements[currentIdx].id === 'final') updateResult();
             }
         }
     }
 
+    function readCart(){
+        const items = Object.keys(ENGINE_STATE.items_detected);
+        if(!items.length){ speak("Cart is empty"); return; }
+        speak("You have " + items.join(", "));
+    }
+
     function speak(text) { window.speechSynthesis.speak(new SpeechSynthesisUtterance(text)); }
-    function buildCartText() { return Object.values(USER_SIGNALS.selected).join(", ") || "Punjabi Food"; }
+    
+    function buildCartText() { 
+        let str = "";
+        for(let [k,v] of Object.entries(ENGINE_STATE.items_detected)) str += `${k} (x${v.qty}), `;
+        return str.slice(0, -2) || "No items"; 
+    }
 
     function saveToCloud() {
         showToast("SAVING...");
-        const payload = { items: USER_SIGNALS.selected, session: Date.now(), cuisines: SELECTED_CUISINES };
-        fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(payload) })
+        // Send Full Intent Schema
+        fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(ENGINE_STATE) })
         .then(() => { showToast("SAVED ✅"); speak("Order saved"); });
+    }
+
+    function autoCopy() {
+        const data = buildCartText();
+        navigator.clipboard.writeText(data);
+        showToast("COPIED TO CLIPBOARD");
+        speak("Order copied");
     }
 
     function copyAndRedirect(platform) {
