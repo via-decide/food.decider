@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Harvey's Decision Engine | SWIPE-OS v7.2 (Connected)</title>
+    <title>Harvey's Decision Engine | SWIPE-OS v7.2 (Cloud Connected)</title>
     <style>
         /* =========================================
            CORE SYSTEM
@@ -185,8 +184,11 @@
        0. CONFIGURATION
        ========================================= */
     
-    // CONNECTED: Google Web App URL (Deployment ID injected)
-    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwOlCYgiAciswaVERwNiWMWe9ZLMeuOIhD-t5AA2CSO-lcRWyk3HXtfQa1xlOIgQTeLvg/exec"; 
+    // CONNECTED: Google Web App URL (Updated with your ID)
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyBMwKxq92U0dptKMdEHvUCXPS9AjExHtxHjcRmfh2JFjCSn9Zd82bzp34xLg6X0a7L9g/exec";
+    
+    // REFERENCE: Sheet ID (Used in Backend Script)
+    // 1bjk5jTSTjaGWD80_bDHbAXD9JelYhbQhuneRVtEuya0
 
     const DATA_SOURCE = {
       "cuisine": "Punjabi",
@@ -355,7 +357,7 @@
         const cart = USER_SIGNALS.selected;
         let html = '';
         if (Object.keys(cart).length === 0) {
-            html = '<div style="text-align:center;color:#666;margin-top:20px;">No items selected.<br>Swipe Right to browse.<br>Swipe Down to select.<br>Swipe Left to skip.</div>';
+            html = '<div style="text-align:center;color:#666;margin-top:20px;">No items selected.</div>';
         } else {
             for (const [cat, item] of Object.entries(cart)) {
                 const label = DATA_SOURCE.categories.find(c => c.id === cat)?.label || cat;
@@ -510,7 +512,7 @@
         fetch(GOOGLE_SCRIPT_URL, {
             method: "POST",
             mode: "no-cors",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "text/plain" }, // CORS Fix
             body: JSON.stringify(payload)
         })
         .then(() => showToast("ORDER SAVED ✅"))
