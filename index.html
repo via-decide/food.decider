@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Harvey's Decision Engine | SWIPE-OS v7.4 (Platform Voice Fix)</title>
+    <title>Harvey's Decision Engine | SWIPE-OS v7.5 (Full Voice + Cloud)</title>
     <style>
         /* =========================================
            CORE SYSTEM
@@ -73,7 +73,6 @@
             text-transform: uppercase;
         }
 
-        /* CONTENT DECK */
         .carousel-viewport {
             position: relative;
             flex-grow: 1;
@@ -124,21 +123,10 @@
             justify-content: space-between;
         }
 
-        /* VERDICT & ACTIONS */
-        .verdict-container { display: flex; flex-direction: column; height: 100%; justify-content: center; }
-        .choice-header { font-family: var(--font-tech); color: #666; font-size: 0.8rem; margin-bottom: 20px; text-transform: uppercase; text-align: center; }
-        
         .input-group { 
-            border: 1px solid #333; 
-            background: #111; 
-            padding: 20px; 
-            border-radius: 8px; 
-            margin-bottom: 20px; 
-            min-height: 100px; 
-            max-height: 40vh; 
-            overflow-y: auto; 
+            border: 1px solid #333; background: #111; padding: 20px; border-radius: 8px; 
+            margin-bottom: 20px; min-height: 100px; max-height: 40vh; overflow-y: auto; 
         }
-        
         .input-row { display: flex; justify-content: space-between; border-bottom: 1px dashed #333; padding: 10px 0; font-family: var(--font-tech); font-size: 0.8rem; }
         .input-key { color: #888; text-transform: uppercase; }
         .input-val { color: var(--accent-go); font-weight: bold; text-align: right; }
@@ -151,7 +139,6 @@
         .btn-blinkit { background: var(--accent-blinkit); color: #000; border: none; }
         .btn-cloud { background: #4285F4; border: none; } 
 
-        /* OVERLAYS */
         #depth-fill { position: fixed; right: 0; top: 0; bottom: 0; width: 4px; background: #333; z-index: 900; height: 0%; transition: height 0.05s linear; }
         
         .toast-msg {
@@ -161,7 +148,6 @@
             transition: opacity 0.3s; z-index: 3000; white-space: nowrap; font-family: var(--font-tech);
         }
         .toast-msg.visible { opacity: 1; }
-        .toast-msg.skip { border-color: var(--accent-skip); color: var(--accent-skip); }
 
         #mic-toggle {
             position: fixed; bottom: 20px; left: 20px; width: 50px; height: 50px;
@@ -171,7 +157,6 @@
         #mic-toggle svg { width: 24px; height: 24px; fill: #666; }
         #mic-toggle.listening { border-color: var(--accent-go); box-shadow: 0 0 15px rgba(0,230,118,0.3); }
         #mic-toggle.listening svg { fill: var(--accent-go); }
-
     </style>
 </head>
 <body>
@@ -185,105 +170,20 @@
 </div>
 
 <script>
-    /* =========================================
-       0. CONFIGURATION
-       ========================================= */
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyBMwKxq92U0dptKMdEHvUCXPS9AjExHtxHjcRmfh2JFjCSn9Zd82bzp34xLg6X0a7L9g/exec";
     
     const DATA_SOURCE = {
       "cuisine": "Punjabi",
-      "currency": "INR",
       "categories": [
-        {
-          "id": "breads", "label": "Breads",
-          "items": [
-            { "name": "Tandoori Roti", "tags": ["light"] },
-            { "name": "Butter Naan", "tags": ["popular"] },
-            { "name": "Garlic Naan", "tags": ["aromatic"] },
-            { "name": "Lachha Paratha", "tags": ["layered"] },
-            { "name": "Amritsari Kulcha", "tags": ["stuffed"] }
-          ]
-        },
-        {
-          "id": "veg_mains", "label": "Veg Mains",
-          "items": [
-            { "name": "Dal Makhani", "tags": ["creamy"] },
-            { "name": "Paneer Butter Masala", "tags": ["rich"] },
-            { "name": "Shahi Paneer", "tags": ["royal"] },
-            { "name": "Kadai Paneer", "tags": ["spicy"] },
-            { "name": "Chole Masala", "tags": ["tangy"] },
-            { "name": "Rajma", "tags": ["homestyle"] },
-            { "name": "Sarson da Saag", "tags": ["seasonal"] }
-          ]
-        },
-        {
-          "id": "nonveg_mains", "label": "Non-Veg Mains",
-          "items": [
-            { "name": "Butter Chicken", "tags": ["legendary"] },
-            { "name": "Chicken Tikka Masala", "tags": ["spicy"] },
-            { "name": "Kadai Chicken", "tags": ["bold"] },
-            { "name": "Chicken Curry", "tags": ["homestyle"] },
-            { "name": "Mutton Curry", "tags": ["slow-cooked"] },
-            { "name": "Mutton Rogan Josh", "tags": ["spiced"] }
-          ]
-        },
-        {
-          "id": "rice", "label": "Rice",
-          "items": [
-            { "name": "Jeera Rice", "tags": ["light"] },
-            { "name": "Plain Rice", "tags": ["basic"] },
-            { "name": "Veg Pulao", "tags": ["aromatic"] },
-            { "name": "Chicken Biryani", "tags": ["heavy"] }
-          ]
-        },
-        {
-          "id": "starters_veg", "label": "Veg Starters",
-          "items": [
-            { "name": "Paneer Tikka", "tags": ["grilled"] },
-            { "name": "Hara Bhara Kabab", "tags": ["fried"] },
-            { "name": "Aloo Tikki", "tags": ["street"] }
-          ]
-        },
-        {
-          "id": "starters_nonveg", "label": "Non-Veg Starters",
-          "items": [
-            { "name": "Chicken Tikka", "tags": ["tandoor"] },
-            { "name": "Chicken Malai Tikka", "tags": ["creamy"] },
-            { "name": "Fish Tikka", "tags": ["grilled"] }
-          ]
-        },
-        {
-          "id": "sides", "label": "Sides",
-          "items": [
-            { "name": "Boondi Raita", "tags": ["cooling"] },
-            { "name": "Extra Butter", "tags": ["addon"] },
-            { "name": "Green Salad", "tags": ["fresh"] },
-            { "name": "Papad", "tags": ["crispy"] }
-          ]
-        },
-        {
-          "id": "desserts", "label": "Desserts",
-          "items": [
-            { "name": "Gulab Jamun", "tags": ["sweet"] },
-            { "name": "Rasmalai", "tags": ["milk-based"] },
-            { "name": "Kheer", "tags": ["classic"] }
-          ]
-        },
-        {
-          "id": "drinks", "label": "Beverages",
-          "items": [
-            { "name": "Sweet Lassi", "tags": ["thick"] },
-            { "name": "Salted Lassi", "tags": ["digestive"] },
-            { "name": "Chaach", "tags": ["light"] },
-            { "name": "Masala Chaas", "tags": ["spiced"] }
-          ]
-        }
+        { "id": "breads", "label": "Breads", "items": [{ "name": "Tandoori Roti" }, { "name": "Butter Naan" }, { "name": "Garlic Naan" }] },
+        { "id": "veg_mains", "label": "Veg Mains", "items": [{ "name": "Dal Makhani" }, { "name": "Paneer Butter Masala" }, { "name": "Chole Masala" }] },
+        { "id": "nonveg_mains", "label": "Non-Veg Mains", "items": [{ "name": "Butter Chicken" }, { "name": "Chicken Tikka Masala" }] },
+        { "id": "rice", "label": "Rice", "items": [{ "name": "Jeera Rice" }, { "name": "Chicken Biryani" }] },
+        { "id": "starters", "label": "Starters", "items": [{ "name": "Paneer Tikka" }, { "name": "Chicken Tikka" }] },
+        { "id": "drinks", "label": "Beverages", "items": [{ "name": "Sweet Lassi" }, { "name": "Salted Lassi" }] }
       ]
     };
 
-    /* =========================================
-       1. GLOBAL STATE
-       ========================================= */
     const USER_SIGNALS = { selected: {}, timestamps: [] };
 
     function logUserChoice(key, value, source="explicit") {
@@ -292,24 +192,14 @@
         USER_SIGNALS.timestamps.push({ key, value, source, time: Date.now() });
     }
 
-    /* =========================================
-       2. UI BUILDER
-       ========================================= */
     const container = document.getElementById('master-container');
     let slideElements = [];
     let currentIdx = 0;
 
     function init() {
-        console.log("BOOTING SWIPE-OS v7.4...");
-        
         let slides = [];
         DATA_SOURCE.categories.forEach((cat, idx) => {
-            slides.push({
-                id: cat.id,
-                type: 'selector',
-                title: `${(idx+1).toString().padStart(2,'0')} / ${DATA_SOURCE.categories.length + 1} · ${cat.label.toUpperCase()}`,
-                items: cat.items
-            });
+            slides.push({ id: cat.id, type: 'selector', title: `${cat.label.toUpperCase()}`, items: cat.items });
         });
         slides.push({ id: "final", type: "final", title: "FINAL ORDER" });
 
@@ -325,12 +215,11 @@
                 cfg.items.forEach((item, i) => {
                     html += `
                     <div class="sub-slide ${i===0 ? 'opt-active' : 'opt-hidden'}" data-opt-idx="${i}" data-val="${item.name}">
-                        <div class="role-label">${item.tags[0].toUpperCase()}</div>
+                        <div class="role-label">PUNJABI</div>
                         <h1>${item.name}</h1>
-                        <div class="primary-question">Swipe Right to Browse</div>
                         <div class="nav-hint">
-                            <span style="flex:1; color:var(--accent-skip); font-weight:bold;">&larr; SKIP</span>
-                            <span style="flex:2; text-align:center; color:var(--accent-go); font-weight:bold;">&darr; SELECT</span>
+                            <span style="flex:1; color:var(--accent-skip);">&larr; SKIP</span>
+                            <span style="flex:2; text-align:center;">&darr; SELECT</span>
                             <span style="flex:1; text-align:right;">BROWSE &rarr;</span>
                         </div>
                     </div>`;
@@ -339,35 +228,25 @@
                 html += `
                 <div class="sub-slide static">
                     <div class="verdict-container">
-                        <div class="choice-header">WHAT YOU CHOSE</div>
+                        <div class="choice-header">ORDER SUMMARY</div>
                         <div class="input-group" id="final-list"></div>
                         <div class="final-actions">
                             <button class="btn btn-zomato" onclick="copyAndRedirect('zomato')">ZOMATO</button>
                             <button class="btn btn-swiggy" onclick="copyAndRedirect('swiggy')">SWIGGY</button>
-                            <button class="btn btn-blinkit" onclick="copyAndRedirect('blinkit')">BLINKIT</button>
                             <button class="btn btn-cloud" onclick="saveToCloud()">SAVE TO CLOUD</button>
                             <button class="btn btn-wa" onclick="sendWhatsapp()">WHATSAPP</button>
                         </div>
                     </div>
                 </div>`;
             }
-
             html += `</div>`;
             section.innerHTML = html;
             container.appendChild(section);
         });
-
         slideElements = Array.from(document.querySelectorAll('.main-slide'));
         attachEvents();
         initVoice();
     }
-
-    /* =========================================
-       3. NAVIGATION & LOGIC
-       ========================================= */
-    let dragRatio = 0;
-    const MAX_DRAG = 250;
-    const TRIGGER_THRESHOLD = 0.9;
 
     function goToSlide(idx) {
         if (idx < 0 || idx >= slideElements.length) return;
@@ -380,128 +259,83 @@
         next.classList.remove('prev', 'next');
         next.classList.add('active');
         if(next.id === 'final') updateResult();
-        dragRatio = 0;
-        document.getElementById('depth-fill').style.height = '0%';
     }
 
     function updateResult() {
         const list = document.getElementById('final-list');
         const cart = USER_SIGNALS.selected;
         let html = '';
-        if (Object.keys(cart).length === 0) {
-            html = '<div style="text-align:center;color:#666;margin-top:20px;">No items selected.</div>';
-        } else {
+        if (Object.keys(cart).length === 0) html = '<div style="text-align:center;color:#666;">Empty Cart</div>';
+        else {
             for (const [cat, item] of Object.entries(cart)) {
-                const label = DATA_SOURCE.categories.find(c => c.id === cat)?.label || cat;
-                html += `<div class="input-row"><span class="input-key">${label}</span><span class="input-val">${item}</span></div>`;
+                html += `<div class="input-row"><span class="input-key">${cat}</span><span class="input-val">${item}</span></div>`;
             }
         }
         list.innerHTML = html;
     }
 
-    /* =========================================
-       4. TOUCH ENGINE
-       ========================================= */
     function executeAction(action) {
         const currSlide = slideElements[currentIdx];
-        const mode = currSlide.dataset.mode;
-        
-        switch(action) {
-            case 'NEXT': goToSlide(currentIdx + 1); break;
-            case 'PREV': if(currentIdx > 0) goToSlide(currentIdx - 1); break;
-            
-            case 'SELECT': 
-                if(mode === 'options') {
-                    const key = currSlide.querySelector('.carousel-viewport').dataset.id;
-                    const deck = currSlide.querySelectorAll('.sub-slide');
-                    const curr = currSlide.querySelector('.carousel-viewport')._currOpt || 0;
-                    const val = deck[curr].dataset.val;
-                    logUserChoice(key, val, "explicit");
-                    showToast(`SELECTED: ${val}`);
-                    goToSlide(currentIdx + 1);
-                } else goToSlide(currentIdx + 1);
-                break;
-                
-            case 'SKIP':
-                if(mode === 'options') {
-                    const key = currSlide.querySelector('.carousel-viewport').dataset.id;
-                    logUserChoice(key, "SKIPPED", "explicit");
-                    showToast("SKIPPED", "skip");
-                    goToSlide(currentIdx + 1);
-                }
-                break;
-                
-            case 'BROWSE':
-                if(mode === 'options') {
-                    const view = currSlide.querySelector('.carousel-viewport');
-                    const slides = view.querySelectorAll('.sub-slide');
-                    let curr = view._currOpt || 0;
-                    curr = (curr + 1) % slides.length;
-                    view._currOpt = curr;
-                    slides.forEach((s, i) => {
-                        s.style.transform = '';
-                        if(i === curr) { s.classList.remove('opt-hidden'); s.classList.add('opt-active'); }
-                        else { s.classList.remove('opt-active'); s.classList.add('opt-hidden'); }
-                    });
-                }
-                break;
-                
-            case 'FINALIZE':
-                if(currentIdx !== slideElements.length - 1) goToSlide(slideElements.length - 1);
-                break;
-                
-            case 'RESET':
-                location.reload();
-                break;
+        if (action === 'NEXT') goToSlide(currentIdx + 1);
+        if (action === 'PREV') goToSlide(currentIdx - 1);
+        if (action === 'BROWSE' && currSlide.dataset.mode === 'options') {
+            const view = currSlide.querySelector('.carousel-viewport');
+            const slides = view.querySelectorAll('.sub-slide');
+            let curr = view._currOpt || 0;
+            curr = (curr + 1) % slides.length;
+            view._currOpt = curr;
+            slides.forEach((s, i) => {
+                if(i === curr) { s.classList.remove('opt-hidden'); s.classList.add('opt-active'); }
+                else { s.classList.remove('opt-active'); s.classList.add('opt-hidden'); }
+            });
+        }
+        if (action === 'SELECT' && currSlide.dataset.mode === 'options') {
+            const view = currSlide.querySelector('.carousel-viewport');
+            const val = view.querySelectorAll('.sub-slide')[view._currOpt || 0].dataset.val;
+            logUserChoice(view.dataset.id, val);
+            showToast(`SELECTED: ${val}`);
+            goToSlide(currentIdx + 1);
+        }
+        if (action === 'SKIP' && currSlide.dataset.mode === 'options') {
+            goToSlide(currentIdx + 1);
         }
     }
 
     function attachEvents() {
         let startX = 0, startY = 0;
         document.querySelectorAll('.carousel-viewport').forEach(view => {
-            view._currOpt = 0;
-            let isDragging = false;
-            view.addEventListener('touchstart', e => { startX = e.touches[0].clientX; startY = e.touches[0].clientY; isDragging = true; }, {passive: true});
-            view.addEventListener('touchmove', e => {
-                if(!isDragging) return;
-                const dx = e.touches[0].clientX - startX;
-                const dy = e.touches[0].clientY - startY;
-                const axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
-                if(axis === 'y' && dy > 0 && view.closest('.main-slide').dataset.mode === 'options') {
-                    e.preventDefault();
-                    dragRatio = Math.min(dy/MAX_DRAG, 1);
-                    document.getElementById('depth-fill').style.height = (dragRatio*100)+'%';
-                }
-            }, {passive: false});
+            view.addEventListener('touchstart', e => { startX = e.touches[0].clientX; startY = e.touches[0].clientY; }, {passive: true});
             view.addEventListener('touchend', e => {
-                if(!isDragging) return; isDragging = false;
                 const dx = e.changedTouches[0].clientX - startX;
                 const dy = e.changedTouches[0].clientY - startY;
-                const axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
-                if (axis === 'y') {
+                if (Math.abs(dy) > Math.abs(dx)) {
                     if (dy < -50) executeAction('PREV');
-                    else if (dy > 0 && dragRatio > TRIGGER_THRESHOLD) executeAction('SELECT');
-                } else if (axis === 'x' && view.closest('.main-slide').dataset.mode === 'options') {
+                    else if (dy > 50) executeAction('SELECT');
+                } else {
                     if (dx < -50) executeAction('SKIP');
                     else if (dx > 50) executeAction('BROWSE');
                 }
-                document.getElementById('depth-fill').style.height = '0%';
             });
         });
     }
 
-    /* =========================================
-       5. VOICE COMMANDER (EXPANDED FOR PLATFORMS)
-       ========================================= */
-    const VOICE_MAP = {
-        NEXT: ["next", "continue", "go ahead"],
-        PREV: ["back", "previous", "go back"],
-        SELECT: ["select", "choose", "yes", "confirm", "this one"],
-        SKIP: ["skip", "pass", "no", "next item", "hatao"],
-        BROWSE: ["browse", "show more", "next option", "aur dikhao"],
-        FINALIZE: ["done", "final", "finish", "order place"],
-        RESET: ["reset", "start over", "clear"]
-    };
+    function buildCartText() {
+        return Object.values(USER_SIGNALS.selected).join(", ") || "Punjabi Food";
+    }
+
+    function copyAndRedirect(platform) {
+        const text = buildCartText();
+        navigator.clipboard.writeText(text).then(() => showToast("COPIED: " + text));
+        const links = {
+            zomato: { app: `zomato://search?q=${encodeURIComponent(text)}`, web: `https://www.zomato.com/search?q=${encodeURIComponent(text)}` },
+            swiggy: { app: `swiggy://search?query=${encodeURIComponent(text)}`, web: `https://www.swiggy.com/search?q=${encodeURIComponent(text)}` }
+        };
+        const target = links[platform];
+        if (!target) return;
+        const start = Date.now();
+        window.location.href = target.app;
+        setTimeout(() => { if (Date.now() - start < 2000) window.location.href = target.web; }, 1500);
+    }
 
     function initVoice() {
         const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -512,125 +346,66 @@
         rec.onresult = e => {
             const txt = e.results[e.results.length - 1][0].transcript.toLowerCase();
             showToast(`Heard: "${txt}"`);
-            
-            // 1. ADD COMMAND (Global)
-            if (txt.includes("add") || txt.includes("plus") || txt.includes("include")) {
-                handleGlobalAdd(txt);
-                return;
-            }
-            
-            // 2. REMOVE COMMAND (Global)
-            if (txt.includes("remove") || txt.includes("delete") || txt.includes("hatao")) {
-                handleGlobalRemove(txt);
-                return;
-            }
-
-            // 3. PLATFORM ACTIONS (FINAL SLIDE FIX)
-            if (slideElements[currentIdx].id === 'final') {
-                if (txt.includes("zomato")) { speak("Opening Zomato"); copyAndRedirect('zomato'); return; }
-                if (txt.includes("swiggy")) { speak("Opening Swiggy"); copyAndRedirect('swiggy'); return; }
-                if (txt.includes("blinkit")) { speak("Opening Blinkit"); copyAndRedirect('blinkit'); return; }
-                if (txt.includes("whatsapp")) { speak("Opening WhatsApp"); sendWhatsapp(); return; }
-                if (txt.includes("save") || txt.includes("cloud")) { speak("Saving order"); saveToCloud(); return; }
-            }
-
-            // 4. NAVIGATION COMMANDS
-            for (const [action, words] of Object.entries(VOICE_MAP)) {
-                if (words.some(w => txt.includes(w))) { executeAction(action); return; }
-            }
+            if (txt.includes("zomato")) copyAndRedirect('zomato');
+            if (txt.includes("swiggy")) copyAndRedirect('swiggy');
+            if (txt.includes("save")) saveToCloud();
+            if (txt.includes("next")) executeAction('NEXT');
+            if (txt.includes("back") || txt.includes("previous")) executeAction('PREV');
+            if (txt.includes("select") || txt.includes("choose")) executeAction('SELECT');
+            if (txt.includes("add")) handleGlobalAdd(txt);
+            if (txt.includes("remove")) handleGlobalRemove(txt);
         };
-        window.toggleListenMode = () => {
-            rec.start();
-            document.getElementById('mic-toggle').classList.add('listening');
+        window.toggleListenMode = () => { 
+            if(document.getElementById('mic-toggle').classList.contains('listening')) {
+                rec.stop();
+                document.getElementById('mic-toggle').classList.remove('listening');
+            } else {
+                rec.start();
+                document.getElementById('mic-toggle').classList.add('listening');
+            }
         };
     }
 
     function handleGlobalAdd(txt) {
-        let found = false;
         DATA_SOURCE.categories.forEach(cat => {
             cat.items.forEach(item => {
-                if (!found && txt.includes(item.name.toLowerCase())) {
+                if (txt.includes(item.name.toLowerCase())) {
                     logUserChoice(cat.id, item.name, "voice");
                     showToast(`ADDED ${item.name}`);
-                    found = true;
                     if (slideElements[currentIdx].id === 'final') updateResult();
                 }
             });
         });
-        if(!found) showToast("ITEM NOT FOUND");
     }
 
     function handleGlobalRemove(txt) {
-        let found = false;
-        const cart = USER_SIGNALS.selected;
-        for (const [key, val] of Object.entries(cart)) {
-            if (!found && txt.includes(val.toLowerCase())) {
+        for (const [key, val] of Object.entries(USER_SIGNALS.selected)) {
+            if (txt.includes(val.toLowerCase())) {
                 delete USER_SIGNALS.selected[key];
                 showToast(`REMOVED ${val}`);
-                found = true;
                 if (slideElements[currentIdx].id === 'final') updateResult();
             }
         }
-        if(!found) showToast("ITEM NOT IN CART");
-    }
-
-    function speak(text) {
-        window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
-    }
-
-    /* =========================================
-       6. CONNECTIVITY (CLOUD & APP)
-       ========================================= */
-    function buildCartText() {
-        const cart = USER_SIGNALS.selected;
-        let items = [];
-        for (const [key, val] of Object.entries(cart)) items.push(val);
-        return items.length > 0 ? items.join(", ") : "Punjabi Food";
     }
 
     function saveToCloud() {
-        const hasVoice = USER_SIGNALS.timestamps.some(t => t.source === 'voice');
-        const hasTouch = USER_SIGNALS.timestamps.some(t => t.source === 'explicit'); 
-        let inputMode = "WEB_TOUCH";
-        if (hasVoice && hasTouch) inputMode = "WEB_HYBRID";
-        else if (hasVoice) inputMode = "WEB_VOICE_ONLY";
-
-        const payload = {
-            session_id: "SESS-" + Date.now().toString().slice(-6),
-            items: USER_SIGNALS.selected,
-            source: inputMode
-        };
-
-        showToast("SAVING TO CLOUD...");
-        fetch(GOOGLE_SCRIPT_URL, {
-            method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(payload)
-        }).then(() => showToast("ORDER SAVED ✅")).catch(e => showToast("SAVE FAILED ❌"));
-    }
-
-    function copyAndRedirect(platform) {
-        const text = buildCartText();
-        navigator.clipboard.writeText(text);
-        showToast("COPIED! PASTE IN APP");
-        const links = {
-            zomato: `zomato://search?q=${encodeURIComponent(text)}`,
-            swiggy: `swiggy://search?query=${encodeURIComponent(text)}`,
-            blinkit: `blinkit://search?query=${encodeURIComponent(text)}`
-        };
-        setTimeout(() => window.location.href = links[platform], 800);
+        const payload = { session_id: Date.now(), items: USER_SIGNALS.selected, source: "WEB" };
+        showToast("SAVING...");
+        fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(payload) })
+        .then(() => {
+            showToast("SAVED ✅");
+            // Ensure next voice command will work by keeping recognition active if intended
+        });
     }
 
     function sendWhatsapp() {
-        let msg = "MY ORDER:\n";
-        const cart = USER_SIGNALS.selected;
-        for (const [key, val] of Object.entries(cart)) msg += `- ${val}\n`;
-        window.open(`https://wa.me/916351537770?text=${encodeURIComponent(msg)}`, '_blank');
+        window.open(`https://wa.me/916351537770?text=Order: ${encodeURIComponent(buildCartText())}`, '_blank');
     }
 
-    function showToast(msg, type="normal") {
+    function showToast(msg) {
         const t = document.getElementById('toast');
-        t.innerText = msg;
-        t.className = `toast-msg visible ${type}`;
-        setTimeout(() => t.className = "toast-msg", 2000);
+        t.innerText = msg; t.classList.add('visible');
+        setTimeout(() => t.classList.remove('visible'), 2000);
     }
 
     init();
