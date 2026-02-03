@@ -100,7 +100,6 @@
         h1 { font-size: 1.8rem; margin: 0 0 15px 0; line-height: 1; letter-spacing: -1px; color: var(--brand-orange); }
         .primary-question { font-size: 1.1rem; color: #fff; margin-bottom: 25px; line-height: 1.4; font-weight: 600; }
         
-        /* PATCH 4: Price UI Styling */
         .price {
             font-size: 0.9rem;
             color: #aaa;
@@ -134,7 +133,6 @@
             justify-content: space-between;
         }
 
-        /* VERDICT & ACTIONS */
         .verdict-container { display: flex; flex-direction: column; height: 100%; justify-content: center; }
         .choice-header { font-family: var(--font-tech); color: #666; font-size: 0.8rem; margin-bottom: 20px; text-transform: uppercase; text-align: center; }
         
@@ -155,10 +153,8 @@
         .btn-blinkit { background: var(--accent-blinkit); color: #000; border: none; opacity: 0.5; }
         .btn-cloud { background: #4285F4; border: none; opacity: 1; }
         
-        /* Platform Visibility State */
         .btn-zomato.active, .btn-swiggy.active, .btn-blinkit.active { opacity: 1; box-shadow: 0 0 10px rgba(255,255,255,0.2); }
 
-        /* BUSINESS CTA STYLING */
         .biz-card {
             background: linear-gradient(145deg, #111, #050505);
             border: 1px solid var(--brand-orange);
@@ -169,7 +165,6 @@
         .biz-tagline { font-family: var(--font-tech); color: var(--brand-orange); font-size: 0.7rem; margin-bottom: 10px; display: block; }
         .biz-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 20px; color: #fff; }
 
-        /* LOBBY STYLES */
         .lobby-container {
             display: flex; flex-direction: column; gap: 15px; padding: 30px;
             height: 100%; justify-content: center;
@@ -221,87 +216,81 @@
 </div>
 
 <script>
-/* ⚠️ GEMINI / LLM WARNING ⚠️
-   SWIPE-OS v10.0: Intelligent Edition
-   - Dynamic Menu Fetching
-   - Price Awareness
-   - Offline Fallbacks
-*/
-
     /* =========================================
        0. CONFIGURATION
        ========================================= */
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyBMwKxq92U0dptKMdEHvUCXPS9AjExHtxHjcRmfh2JFjCSn9Zd82bzp34xLg6X0a7L9g/exec";
     const SHARE_LINK_TEXT = "food-decider | swipe OS";
 
-    /* PATCH 1: OFFLINE NETWORK DETECTION */
     const NET_STATE = { online: navigator.onLine };
     window.addEventListener("online", () => { NET_STATE.online = true; showToast("ONLINE MODE"); fetchVoiceConfig(); });
     window.addEventListener("offline", () => { NET_STATE.online = false; showToast("OFFLINE MODE"); });
 
-    /* PATCH 1: DYNAMIC RAW DATA + FALLBACK */
-    let RAW_DATA = null;
-
+    // FALLBACK MENU (This loads instantly)
     const FALLBACK_MENU = {
         version: "offline-v1",
         data: {
             punjabi: {
                 label: "PUNJABI",
                 categories: [
-                    { id: "p_breads", label: "Breads", items: [{name:"Butter Naan", price:40}, {name:"Tandoori Roti", price:25}, {name:"Garlic Naan", price:50}] },
-                    { id: "p_mains", label: "Mains", items: [{name:"Dal Makhani", price:220}, {name:"Paneer Butter Masala", price:240}, {name:"Butter Chicken", price:280}] },
-                    { id: "p_rice", label: "Rice", items: [{name:"Jeera Rice", price:150}, {name:"Chicken Biryani", price:290}] }
+                    { id: "p_breads", label: "Breads", items: [{name:"Butter Naan", price:40}, {name:"Tandoori Roti", price:25}, {name:"Garlic Naan", price:50}, {name:"Lachha Paratha", price:45}] },
+                    { id: "p_mains", label: "Mains", items: [{name:"Dal Makhani", price:220}, {name:"Paneer Butter Masala", price:240}, {name:"Butter Chicken", price:280}, {name:"Shahi Paneer", price:250}, {name:"Kadai Paneer", price:240}] },
+                    { id: "p_rice", label: "Rice", items: [{name:"Jeera Rice", price:150}, {name:"Chicken Biryani", price:290}, {name:"Veg Pulao", price:180}] },
+                    { id: "p_starters", label: "Starters", items: [{name:"Paneer Tikka", price:220}, {name:"Chicken Tikka", price:260}, {name:"Hara Bhara Kabab", price:200}] },
+                    { id: "p_bev", label: "Beverages", items: [{name:"Sweet Lassi", price:80}, {name:"Salted Lassi", price:80}, {name:"Masala Chaas", price:50}] }
                 ]
             },
             chinese: {
                 label: "CHINESE",
                 categories: [
-                    { id: "c_dimsum", label: "Dim Sum", items: [{name:"Pork Siu Mai", price:250}, {name:"Veg Crystal Dumpling", price:220}] },
-                    { id: "c_noodles", label: "Noodles", items: [{name:"Hakka Noodles", price:180}, {name:"Lo Mein", price:220}] }
+                    { id: "c_dimsum", label: "Dim Sum", items: [{name:"Pork Siu Mai", price:250}, {name:"Har Gao", price:280}, {name:"Veg Crystal Dumpling", price:220}] },
+                    { id: "c_noodles", label: "Noodles", items: [{name:"Dan Dan Noodles", price:200}, {name:"Hakka Noodles", price:180}, {name:"Lo Mein", price:220}] },
+                    { id: "c_wok", label: "Wok Specials", items: [{name:"Kung Pao Chicken", price:300}, {name:"Mapo Tofu", price:250}, {name:"Chilli Chicken", price:280}] }
                 ]
             },
             pizza: {
                 label: "PIZZA",
                 categories: [
-                    { id: "z_classic", label: "Classic", items: [{name:"Margherita", price:350}, {name:"Pepperoni", price:450}] },
-                    { id: "z_gourmet", label: "Gourmet", items: [{name:"Burrata Pizza", price:550}, {name:"Wood Fired Chicken", price:480}] }
+                    { id: "z_classic", label: "Classic", items: [{name:"Margherita", price:350}, {name:"Pepperoni", price:450}, {name:"Marinara", price:300}] },
+                    { id: "z_gourmet", label: "Gourmet", items: [{name:"Burrata Pizza", price:550}, {name:"Truffle Mushroom", price:500}, {name:"Wood Fired Chicken", price:480}] }
                 ]
             },
             snacks: {
                 label: "NASTA PANI",
                 categories: [
-                    { id: "s_pkg", label: "Packaged", items: [{name:"Coke", price:40}, {name:"Chips", price:20}, {name:"Kurkure", price:20}] },
-                    { id: "s_hot", label: "Hot Snacks", items: [{name:"Samosa", price:20}, {name:"Burger", price:60}] }
+                    { id: "s_pkg", label: "Packaged", items: [{name:"Coke", price:40}, {name:"Chips", price:20}, {name:"Kurkure", price:20}, {name:"Thums Up", price:40}] },
+                    { id: "s_hot", label: "Hot Snacks", items: [{name:"Samosa", price:20}, {name:"Puff", price:25}, {name:"Burger", price:60}] }
                 ]
             }
         }
     };
 
-    /* PATCH 2: UNIFIED MENU FETCHER (Online -> Cache -> Fallback) */
+    // Initialize RAW_DATA with Fallback instantly
+    let RAW_DATA = FALLBACK_MENU.data; 
+
+    /* PATCH 2: UNIFIED MENU FETCHER (With Timeout) */
     async function fetchMenuData() {
+        const timeout = new Promise((_, reject) => setTimeout(() => reject("Timeout"), 2000));
+        
         try {
-            const res = await fetch(GOOGLE_SCRIPT_URL + "?type=menu", { cache: "no-store" });
+            const fetcher = fetch(GOOGLE_SCRIPT_URL + "?type=menu", { cache: "no-store" });
+            const res = await Promise.race([fetcher, timeout]);
             const json = await res.json();
 
             RAW_DATA = json.data;
             localStorage.setItem("MENU_CACHE", JSON.stringify(json));
             localStorage.setItem("MENU_CACHE_TS", Date.now());
-
-            console.log("MENU: LIVE");
-            return true;
+            console.log("MENU: LIVE UPDATED");
         } catch (e) {
-            console.warn("MENU: OFFLINE, loading cache");
+            console.warn("MENU: USING OFFLINE/CACHE", e);
             const cached = localStorage.getItem("MENU_CACHE");
             if (cached) {
                 RAW_DATA = JSON.parse(cached).data;
-                return true;
             }
-            RAW_DATA = FALLBACK_MENU.data;
-            return false;
+            // fallback already active
         }
     }
 
-    /* PATCH 7: PUSH UPDATE AWARENESS */
     const SERVER_VERSION_KEY = "MENU_VERSION";
     async function checkMenuVersion() {
       try {
@@ -310,7 +299,7 @@
         const local = localStorage.getItem(SERVER_VERSION_KEY);
         if (version !== local) {
           localStorage.setItem(SERVER_VERSION_KEY, version);
-          await fetchMenuData(); // Auto-update
+          await fetchMenuData();
         }
       } catch(e){}
     }
@@ -328,7 +317,6 @@
         cart_state: { items: [], total: 0 }
     };
 
-    /* PATCH 6: HELPER TO FIND PRICE */
     function findItemPrice(name) {
         if (!RAW_DATA) return 0;
         for (let c in RAW_DATA) {
@@ -348,7 +336,6 @@
         if (patchType === "REMOVE_CUISINE") {
             ENGINE_STATE.cuisines_detected = ENGINE_STATE.cuisines_detected.filter(c => c !== payload);
         }
-        /* PATCH 6: ENGINE STORES PRICE */
         if (patchType === "ADD_ITEM") {
             const qty = ENGINE_STATE.items_detected[payload] ? ENGINE_STATE.items_detected[payload].qty + 1 : 1;
             ENGINE_STATE.items_detected[payload] = { 
@@ -391,11 +378,10 @@
         updateResult();
     }
 
-    /* PATCH 3: LOCAL STATE MGR */
     function saveLocalState(){ localStorage.setItem("ENGINE_STATE_CACHE", JSON.stringify(ENGINE_STATE)); }
     function loadLocalState(){
         const cached = localStorage.getItem("ENGINE_STATE_CACHE");
-        if(cached) { ENGINE_STATE = JSON.parse(cached); updateResult(); }
+        if(cached) { ENGINE_STATE = JSON.parse(cached); }
     }
 
     /* =========================================
@@ -405,18 +391,15 @@
     let slideElements = [];
     let currentIdx = 0;
 
-    /* PATCH 3: ASYNC BOOT SEQUENCE */
     async function boot() {
-        await fetchMenuData(); // Wait for menu before rendering
-        loadLocalState(); 
-        renderLobby();
+        renderLobby(); // Render immediately using Fallback
+        loadLocalState();
         initVoice();
+        
+        // Background Ops
+        await fetchMenuData(); 
         fetchVoiceConfig();
-        setTimeout(checkMenuVersion, 3000); // PATCH 7: Pull-once version check
-    }
-
-    function init() {
-        // Init is now handled by boot
+        setTimeout(checkMenuVersion, 3000);
     }
 
     function renderLobby() {
@@ -426,7 +409,7 @@
         section.id = "lobby";
         
         let html = `
-        <div class="slide-header"><span class="header-title">SWIPE-OS v10.0</span></div>
+        <div class="slide-header"><span class="header-title">SWIPE-OS v10.1</span></div>
         <div class="lobby-container">
             <h1 style="text-align:center; margin-bottom:40px;">AAJ KYA MANGVAAYEGE!</h1>
             <div id="cuisine-grid" style="display:grid; gap:15px;">
@@ -443,11 +426,12 @@
         slideElements = [section];
         currentIdx = 0;
         
-        // Restore active buttons
-        ENGINE_STATE.cuisines_detected.forEach(c => {
-            const btn = document.querySelector(`button[onclick*='${c}']`);
-            if(btn) btn.classList.add('selected');
-        });
+        if(ENGINE_STATE.cuisines_detected) {
+            ENGINE_STATE.cuisines_detected.forEach(c => {
+                const btn = document.querySelector(`button[onclick*='${c}']`);
+                if(btn) btn.classList.add('selected');
+            });
+        }
     }
 
     window.toggleCuisine = (id, btn) => {
@@ -499,7 +483,6 @@
 
             if (cfg.type === 'selector') {
                 cfg.items.forEach((item, i) => {
-                    /* PATCH 4: PRICE AWARE UI */
                     html += `
                     <div class="sub-slide ${i===0 ? 'opt-active' : 'opt-hidden'}" data-opt-idx="${i}" data-val="${item.name}">
                         <div class="role-label">${cfg.title.split('·')[0].trim()}</div>
@@ -593,7 +576,6 @@
         const cart = ENGINE_STATE.items_detected;
         const strategies = ENGINE_STATE.platform_strategy.fulfillment;
 
-        // 1. Update Platform Buttons Logic
         ['zomato','swiggy','blinkit'].forEach(p => {
             const btn = document.getElementById(`btn-${p}`);
             if(btn) {
@@ -602,7 +584,6 @@
             }
         });
 
-        /* PATCH 5: TOTAL BILL CALCULATION */
         let html = '';
         let total = 0;
         if (Object.keys(cart).length === 0) {
@@ -697,7 +678,7 @@
     }
 
     /* =========================================
-       4. MASTER VOICE ROUTER (PATCH V1)
+       4. MASTER VOICE ROUTER
        ========================================= */
     const VOICE_INTENTS = {
       NAV: { next: ["next","continue","go ahead"], prev: ["back","previous","go back"], jump: ["go to","open","show me"] },
@@ -708,7 +689,6 @@
       SYSTEM: { help: ["help","what can i say","commands"], copy: ["copy","clipboard","phone"], save: ["save","cloud"] }
     };
 
-    /* PATCH 2: OFFLINE-SAFE FETCH */
     function fetchVoiceConfig() {
         if(!NET_STATE.online){
             const cached = localStorage.getItem("VOICE_INTENTS_CACHE");
@@ -793,7 +773,6 @@
       }
     }
 
-    /* PATCH 4: OFFLINE-SAFE VOICE ENGINE */
     let rec;
     function initVoice() {
         const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -840,7 +819,7 @@
 
     function handleGlobalAdd(txt) {
         let found = false;
-        // Search in ALL loaded RAW_DATA
+        // Universal Search
         if(RAW_DATA) {
             Object.keys(RAW_DATA).forEach(cId => {
                 RAW_DATA[cId].categories.forEach(cat => {
@@ -849,7 +828,7 @@
                             engineUpdate("ADD_ITEM", item.name);
                             showToast(`ADDED ${item.name}`);
                             found = true;
-                            if (slideElements[currentIdx] && slideElements[currentIdx].id === 'final') updateResult();
+                            if (slideElements[currentIdx].id === 'final') updateResult();
                         }
                     });
                 });
@@ -895,7 +874,6 @@
         speak("Order copied");
     }
 
-    /* PATCH 5: OFFLINE PLATFORM GUARD */
     function copyAndRedirect(platform) {
         if(!NET_STATE.online){
             showToast("COPIED — OPEN APP MANUALLY");
