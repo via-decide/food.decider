@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -21,7 +20,6 @@
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
           navigator.serviceWorker.register('./service-worker.js')
-            .then(reg => console.log('SW registered:', reg))
             .catch(err => console.log('SW failed:', err));
         });
       }
@@ -156,7 +154,6 @@
             justify-content: space-between;
         }
 
-        /* VERDICT & ACTIONS */
         .verdict-container { display: flex; flex-direction: column; height: 100%; justify-content: center; }
         .choice-header { font-family: var(--font-tech); color: #666; font-size: 0.8rem; margin-bottom: 20px; text-transform: uppercase; text-align: center; }
         
@@ -177,10 +174,8 @@
         .btn-blinkit { background: var(--accent-blinkit); color: #000; border: none; opacity: 0.5; }
         .btn-cloud { background: #4285F4; border: none; opacity: 1; }
         
-        /* Platform Visibility State */
         .btn-zomato.active, .btn-swiggy.active, .btn-blinkit.active { opacity: 1; box-shadow: 0 0 10px rgba(255,255,255,0.2); }
 
-        /* BUSINESS CTA STYLING */
         .biz-card {
             background: linear-gradient(145deg, #111, #050505);
             border: 1px solid var(--brand-orange);
@@ -191,7 +186,6 @@
         .biz-tagline { font-family: var(--font-tech); color: var(--brand-orange); font-size: 0.7rem; margin-bottom: 10px; display: block; }
         .biz-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 20px; color: #fff; }
 
-        /* LOBBY STYLES */
         .lobby-container {
             display: flex; flex-direction: column; gap: 15px; padding: 30px;
             height: 100%; justify-content: center;
@@ -249,64 +243,51 @@
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyBMwKxq92U0dptKMdEHvUCXPS9AjExHtxHjcRmfh2JFjCSn9Zd82bzp34xLg6X0a7L9g/exec";
     const SHARE_LINK_TEXT = "food-decider | swipe OS";
 
-    /* OFFLINE BANNER HOOK */
     const NET_STATE = { online: navigator.onLine };
-    window.addEventListener("online", () => { 
-        NET_STATE.online = true; 
-        showToast("ONLINE · SYNC ENABLED"); 
-        fetchVoiceConfig(); 
-    });
-    window.addEventListener("offline", () => { 
-        NET_STATE.online = false; 
-        showToast("OFFLINE · USING SAVED DATA"); 
-    });
+    window.addEventListener("online", () => { NET_STATE.online = true; showToast("ONLINE · SYNC ENABLED"); fetchVoiceConfig(); });
+    window.addEventListener("offline", () => { NET_STATE.online = false; showToast("OFFLINE · USING SAVED DATA"); });
 
-    // FALLBACK MENU (This loads instantly)
+    // FALLBACK MENU
     const FALLBACK_MENU = {
         version: "offline-v1",
         data: {
             punjabi: {
                 label: "PUNJABI",
                 categories: [
-                    { id: "p_breads", label: "Breads", items: [{name:"Butter Naan", price:40}, {name:"Tandoori Roti", price:25}, {name:"Garlic Naan", price:50}, {name:"Lachha Paratha", price:45}] },
-                    { id: "p_mains", label: "Mains", items: [{name:"Dal Makhani", price:220}, {name:"Paneer Butter Masala", price:240}, {name:"Butter Chicken", price:280}, {name:"Shahi Paneer", price:250}, {name:"Kadai Paneer", price:240}] },
-                    { id: "p_rice", label: "Rice", items: [{name:"Jeera Rice", price:150}, {name:"Chicken Biryani", price:290}, {name:"Veg Pulao", price:180}] },
-                    { id: "p_starters", label: "Starters", items: [{name:"Paneer Tikka", price:220}, {name:"Chicken Tikka", price:260}, {name:"Hara Bhara Kabab", price:200}] },
-                    { id: "p_bev", label: "Beverages", items: [{name:"Sweet Lassi", price:80}, {name:"Salted Lassi", price:80}, {name:"Masala Chaas", price:50}] }
+                    { id: "p_breads", label: "Breads", items: [{name:"Butter Naan", price:40}, {name:"Tandoori Roti", price:25}, {name:"Garlic Naan", price:50}] },
+                    { id: "p_mains", label: "Mains", items: [{name:"Dal Makhani", price:220}, {name:"Paneer Butter Masala", price:240}, {name:"Butter Chicken", price:280}] },
+                    { id: "p_rice", label: "Rice", items: [{name:"Jeera Rice", price:150}, {name:"Chicken Biryani", price:290}] }
                 ]
             },
             chinese: {
                 label: "CHINESE",
                 categories: [
-                    { id: "c_dimsum", label: "Dim Sum", items: [{name:"Pork Siu Mai", price:250}, {name:"Har Gao", price:280}, {name:"Veg Crystal Dumpling", price:220}] },
-                    { id: "c_noodles", label: "Noodles", items: [{name:"Dan Dan Noodles", price:200}, {name:"Hakka Noodles", price:180}, {name:"Lo Mein", price:220}] },
-                    { id: "c_wok", label: "Wok Specials", items: [{name:"Kung Pao Chicken", price:300}, {name:"Mapo Tofu", price:250}, {name:"Chilli Chicken", price:280}] }
+                    { id: "c_dimsum", label: "Dim Sum", items: [{name:"Pork Siu Mai", price:250}, {name:"Veg Crystal Dumpling", price:220}] },
+                    { id: "c_noodles", label: "Noodles", items: [{name:"Hakka Noodles", price:200}, {name:"Lo Mein", price:220}] }
                 ]
             },
             pizza: {
                 label: "PIZZA",
                 categories: [
-                    { id: "z_classic", label: "Classic", items: [{name:"Margherita", price:350}, {name:"Pepperoni", price:450}, {name:"Marinara", price:300}] },
-                    { id: "z_gourmet", label: "Gourmet", items: [{name:"Burrata Pizza", price:550}, {name:"Truffle Mushroom", price:500}, {name:"Wood Fired Chicken", price:480}] }
+                    { id: "z_classic", label: "Classic", items: [{name:"Margherita", price:350}, {name:"Pepperoni", price:450}] },
+                    { id: "z_gourmet", label: "Gourmet", items: [{name:"Burrata Pizza", price:550}, {name:"Wood Fired Chicken", price:480}] }
                 ]
             },
             snacks: {
                 label: "NASTA PANI",
                 categories: [
-                    { id: "s_pkg", label: "Packaged", items: [{name:"Coke", price:40}, {name:"Chips", price:20}, {name:"Kurkure", price:20}, {name:"Thums Up", price:40}] },
-                    { id: "s_hot", label: "Hot Snacks", items: [{name:"Samosa", price:20}, {name:"Puff", price:25}, {name:"Burger", price:60}] }
+                    { id: "s_pkg", label: "Packaged", items: [{name:"Coke", price:40}, {name:"Chips", price:20}, {name:"Thums Up", price:40}] },
+                    { id: "s_hot", label: "Hot Snacks", items: [{name:"Samosa", price:20}, {name:"Burger", price:60}] }
                 ]
             }
         }
     };
 
-    // Initialize RAW_DATA with Fallback instantly
     let RAW_DATA = FALLBACK_MENU.data; 
 
     /* SAFER MENU FETCHER */
     async function fetchMenuData() {
         const timeout = new Promise((_, reject) => setTimeout(() => reject("Timeout"), 3000));
-        
         try {
             const fetcher = fetch(GOOGLE_SCRIPT_URL + "?type=menu", { cache: "no-store" });
             const res = await Promise.race([fetcher, timeout]);
@@ -316,8 +297,7 @@
             if (json.data) {
                 for (let k in json.data) {
                     if (json.data[k].categories && json.data[k].categories.length > 0) {
-                        hasItems = true; 
-                        break;
+                        hasItems = true; break;
                     }
                 }
             }
@@ -328,19 +308,13 @@
                 localStorage.setItem("MENU_CACHE_TS", Date.now());
                 console.log("MENU: LIVE UPDATED");
                 return true;
-            } else {
-                throw new Error("Fetched menu was empty");
-            }
-
+            } else { throw new Error("Empty Menu"); }
         } catch (e) {
-            console.warn("MENU: USING BACKUP (Reason: " + e + ")");
+            console.warn("MENU: USING BACKUP", e);
             const cached = localStorage.getItem("MENU_CACHE");
             if (cached) {
                 const cachedJson = JSON.parse(cached);
-                if(cachedJson.data && Object.keys(cachedJson.data).length > 0) {
-                    RAW_DATA = cachedJson.data;
-                    return true;
-                }
+                if(cachedJson.data) RAW_DATA = cachedJson.data;
             }
             return false;
         }
@@ -362,12 +336,10 @@
     /* =========================================
        1. UNIFIED INTENT ENGINE v1.2 (STATE)
        ========================================= */
-    
     let ENGINE_STATE = {
         session_id: "auto-" + Date.now(),
         cuisines_detected: [],
         items_detected: {}, 
-        constraints: { exclusions: [] },
         platform_strategy: { discover: ["zomato", "swiggy"], fulfillment: ["zomato", "swiggy"] },
         cart_state: { items: [], total: 0 }
     };
@@ -393,11 +365,7 @@
         }
         if (patchType === "ADD_ITEM") {
             const qty = ENGINE_STATE.items_detected[payload] ? ENGINE_STATE.items_detected[payload].qty + 1 : 1;
-            ENGINE_STATE.items_detected[payload] = { 
-                qty: qty, 
-                price: findItemPrice(payload),
-                added_at: Date.now() 
-            };
+            ENGINE_STATE.items_detected[payload] = { qty: qty, price: findItemPrice(payload), added_at: Date.now() };
             recalcStrategy();
         }
         if (patchType === "REMOVE_ITEM") {
@@ -450,8 +418,6 @@
         renderLobby(); 
         loadLocalState();
         initVoice();
-        
-        // Background Ops
         await fetchMenuData(); 
         fetchVoiceConfig();
         setTimeout(checkMenuVersion, 3000);
@@ -464,7 +430,7 @@
         section.id = "lobby";
         
         let html = `
-        <div class="slide-header"><span class="header-title">SWIPE-OS v10.4</span></div>
+        <div class="slide-header"><span class="header-title">SWIPE-OS v11.0</span></div>
         <div class="lobby-container">
             <h1 style="text-align:center; margin-bottom:40px;">AAJ KYA MANGVAAYEGE!</h1>
             <div id="cuisine-grid" style="display:grid; gap:15px;">
@@ -475,7 +441,6 @@
             </div>
             <button class="btn hunt-btn" onclick="startHunt()">HUNT &rarr;</button>
         </div>`;
-        
         section.innerHTML = html;
         container.appendChild(section);
         slideElements = [section];
@@ -541,10 +506,7 @@
                     html += `
                     <div class="sub-slide ${i===0 ? 'opt-active' : 'opt-hidden'}" data-opt-idx="${i}" data-val="${item.name}">
                         <div class="role-label">${cfg.title.split('·')[0].trim()}</div>
-                        <h1>
-                            ${item.name}
-                            ${item.price ? `<span class="price">₹${item.price}</span>` : ""}
-                        </h1>
+                        <h1>${item.name}${item.price ? `<span class="price">₹${item.price}</span>` : ""}</h1>
                         <div class="primary-question">Swipe Right to Browse</div>
                         <div class="nav-hint">
                             <span style="flex:1; color:var(--accent-skip); font-weight:bold;">&larr; SKIP</span>
@@ -566,9 +528,7 @@
                             <button class="btn btn-cloud" onclick="saveToCloud()">SAVE TO CLOUD</button>
                             <button class="btn btn-wa" onclick="sendWhatsapp()">WHATSAPP</button>
                         </div>
-                        <div class="nav-hint">
-                           <span style="width:100%; text-align:center; color:var(--brand-orange)">SWIPE DOWN FOR BUSINESS &darr;</span>
-                        </div>
+                        <div class="nav-hint"><span style="width:100%; text-align:center; color:var(--brand-orange)">SWIPE DOWN FOR BUSINESS &darr;</span></div>
                     </div>
                 </div>`;
             } else if (cfg.type === 'business') {
@@ -577,12 +537,8 @@
                     <div class="biz-card">
                         <span class="biz-tagline">POWERED BY KUTCH AUTOMATION</span>
                         <div class="biz-title">BUILD YOUR OWN ENGINE</div>
-                        <p style="color:#888; font-size:0.9rem; line-height:1.6; margin-bottom:20px;">
-                           Custom AI automation for the modern era.
-                        </p>
-                        <div style="font-family: var(--font-tech); font-size: 0.8rem; color: var(--accent-go); margin-bottom: 20px;">
-                           🔗 ${SHARE_LINK_TEXT}
-                        </div>
+                        <p style="color:#888; font-size:0.9rem; line-height:1.6; margin-bottom:20px;">Custom AI automation for the modern era.</p>
+                        <div style="font-family: var(--font-tech); font-size: 0.8rem; color: var(--accent-go); margin-bottom: 20px;">🔗 ${SHARE_LINK_TEXT}</div>
                         <div class="final-actions">
                             <button class="btn btn-wa" onclick="window.open('https://wa.me/916351537770', '_blank')">CONSULT WHATSAPP</button>
                             <button class="btn" style="border:1px solid #444;" onclick="location.reload()">START NEW HUNT</button>
@@ -590,7 +546,6 @@
                     </div>
                 </div>`;
             }
-
             html += `</div>`;
             section.innerHTML = html;
             container.appendChild(section);
@@ -647,17 +602,9 @@
             for (const [name, data] of Object.entries(cart)) {
                 const price = data.price || 0;
                 total += price * data.qty;
-                html += `
-                <div class="input-row">
-                  <span class="input-key">${name}</span>
-                  <span class="input-val">x${data.qty} · ₹${price * data.qty}</span>
-                </div>`;
+                html += `<div class="input-row"><span class="input-key">${name}</span><span class="input-val">x${data.qty} · ₹${price * data.qty}</span></div>`;
             }
-            html += `
-              <div class="input-row" style="border-top:1px solid #444; margin-top:10px;">
-                <span class="input-key">TOTAL</span>
-                <span class="input-val">₹${total}</span>
-              </div>`;
+            html += `<div class="input-row" style="border-top:1px solid #444; margin-top:10px;"><span class="input-key">TOTAL</span><span class="input-val">₹${total}</span></div>`;
         }
         list.innerHTML = html;
     }
@@ -744,24 +691,12 @@
       SYSTEM: { help: ["help","what can i say","commands"], copy: ["copy","clipboard","phone"], save: ["save","cloud"] }
     };
 
-    /* PATCH 1: NUMBER MAP */
     const NUMBER_MAP = {
-      "zero": 0, "one": 1, "won": 1,
-      "two": 2, "to": 2, "too": 2,
-      "three": 3,
-      "four": 4, "for": 4,
-      "five": 5,
-      "six": 6,
-      "seven": 7,
-      "eight": 8, "ate": 8,
-      "nine": 9,
-      "ten": 10,
-      "eleven": 11,
-      "twelve": 12,
-      "half": 0.5
+      "zero": 0, "one": 1, "won": 1, "two": 2, "to": 2, "too": 2, "three": 3, "four": 4, "for": 4,
+      "five": 5, "six": 6, "seven": 7, "eight": 8, "ate": 8, "nine": 9, "ten": 10,
+      "eleven": 11, "twelve": 12, "half": 0.5
     };
 
-    /* PATCH 2: NUMBER EXTRACTOR */
     function extractNumber(text) {
       text = text.toLowerCase();
       const digit = text.match(/\b\d+\b/);
@@ -781,11 +716,9 @@
                     if(!VOICE_INTENTS[grp]) VOICE_INTENTS[grp] = {};
                     Object.assign(VOICE_INTENTS[grp], data[grp]);
                 }
-                console.log("Voice Config Loaded (Offline Cache)");
             }
             return;
         }
-
         fetch(GOOGLE_SCRIPT_URL + "?type=voice_config")
         .then(res => res.json())
         .then(data => {
@@ -795,10 +728,8 @@
                     Object.assign(VOICE_INTENTS[grp], data[grp]);
                 }
                 localStorage.setItem("VOICE_INTENTS_CACHE", JSON.stringify(VOICE_INTENTS));
-                console.log("Voice Config Synced + Cached");
             }
-        })
-        .catch(e => console.log("Voice Config Fetch Failed — Using Cache"));
+        }).catch(e => console.log("Voice Config Fetch Failed"));
     }
 
     function parseVoice(text){
@@ -813,8 +744,6 @@
 
     function dispatchVoice(cmd){
       if(!cmd) return;
-      
-      // Lobby Logic
       if(document.getElementById('lobby')) {
           if(cmd.group === 'CART' && cmd.key === 'add') {
              const map = {'punjabi': 'punjabi', 'chinese': 'chinese', 'pizza': 'pizza', 'nasta': 'snacks', 'snacks': 'snacks'};
@@ -824,7 +753,7 @@
           return;
       }
 
-      /* PATCH 5: JUMP */
+      /* JUMP */
       if (cmd.group === "NAV" && cmd.key === "jump") {
         const n = extractNumber(cmd.raw);
         if (n !== null && slideElements[n - 1]) {
@@ -858,7 +787,7 @@
           updateResult();
           break;
         case "PLATFORM": 
-             // FIXED: Explicit Whatsapp handling
+             // 🆕 FIXED: Explicit Whatsapp handling
              if(cmd.key === "whatsapp") sendWhatsapp();
              else copyAndRedirect(cmd.key); 
              break;
@@ -886,54 +815,37 @@
             if (intent) {
                 dispatchVoice(intent);
             } else {
-                // FIXED: Implicit "Two Naan" command support
+                // 🆕 FIXED: Implicit "Two Naan" command support
                 const num = extractNumber(txt);
                 if (num !== null) handleGlobalAdd(txt); 
             }
         };
-
         rec.onerror = e => { showToast("VOICE TEMP UNAVAILABLE"); };
-
         rec.onend = () => {
             const mic = document.getElementById('mic-toggle');
-            if (mic && mic.classList.contains('listening')) {
-                setTimeout(() => { try { rec.start(); } catch(e) {} }, 300);
-            }
+            if (mic && mic.classList.contains('listening')) setTimeout(() => { try { rec.start(); } catch(e) {} }, 300);
         };
-
         window.toggleListenMode = () => {
             const mic = document.getElementById('mic-toggle');
-            if(mic.classList.contains('listening')) {
-                rec.stop(); mic.classList.remove('listening');
-            } else {
-                try { rec.start(); } catch(e) {} mic.classList.add('listening');
-            }
+            if(mic.classList.contains('listening')) { rec.stop(); mic.classList.remove('listening'); }
+            else { try { rec.start(); } catch(e) {} mic.classList.add('listening'); }
         };
     }
 
     /* =========================================
-       5. VOICE & CONNECTIVITY
+       5. HELPERS (Search, Deep Links, WhatsApp)
        ========================================= */
-    /* PATCH 6: DETAILED READ CART */
     function readCart(){
       const items = ENGINE_STATE.items_detected;
-      if(!Object.keys(items).length){
-        speak("Cart is empty");
-        return;
-      }
+      if(!Object.keys(items).length){ speak("Cart is empty"); return; }
       let sentence = "You have ";
-      Object.entries(items).forEach(([k,v]) => {
-        sentence += `${v.qty} ${k}, `;
-      });
+      Object.entries(items).forEach(([k,v]) => { sentence += `${v.qty} ${k}, `; });
       speak(sentence.slice(0, -2));
     }
 
-    /* PATCH 3: QUANTITY AWARE ADD */
     function handleGlobalAdd(txt) {
       let qty = extractNumber(txt) || 1;
       let found = false;
-
-      // Universal Search
       if(RAW_DATA) {
           Object.keys(RAW_DATA).forEach(cId => {
               RAW_DATA[cId].categories.forEach(cat => {
@@ -957,20 +869,17 @@
       if(!found) showToast("ITEM NOT FOUND");
     }
 
-    /* PATCH 4: REMOVE WITH NUMBER */
     function handleGlobalRemove(txt) {
       const qty = extractNumber(txt) || 1;
       for (const item in ENGINE_STATE.items_detected) {
         if (txt.includes(item.toLowerCase())) {
           ENGINE_STATE.items_detected[item].qty -= qty;
-          
           if (ENGINE_STATE.items_detected[item].qty <= 0) {
             delete ENGINE_STATE.items_detected[item];
             showToast(`REMOVED ${item}`);
           } else {
             showToast(`REDUCED ${item} ×${qty}`);
           }
-          
           recalcStrategy();
           if (slideElements[currentIdx] && slideElements[currentIdx].id === 'final') updateResult();
           return;
@@ -1005,6 +914,34 @@
         speak("Order copied");
     }
 
+    /* 🆕 v11.0 DEEP LINK & SEARCH INJECTION ENGINE */
+    function buildCartSearchQuery() {
+        const cart = ENGINE_STATE.items_detected;
+        if(Object.keys(cart).length === 0) return "";
+        let query = [];
+        for(let [k, v] of Object.entries(cart)) {
+            query.push(`${k} x${v.qty}`);
+        }
+        return encodeURIComponent(query.join(", "));
+    }
+
+    function buildWhatsappMessage() {
+        const cart = ENGINE_STATE.items_detected;
+        let msg = "📋 *NEW ORDER*\n----------------\n";
+        let total = 0;
+        let i = 1;
+        for(let [k, v] of Object.entries(cart)) {
+            let lineTotal = v.price * v.qty;
+            total += lineTotal;
+            msg += `${i}. ${k} (x${v.qty}) - ₹${lineTotal}\n`;
+            i++;
+        }
+        msg += "----------------\n";
+        msg += `💰 *Est. Total: ₹${total}*\n`;
+        msg += `📍 Location: Gandhidham`;
+        return encodeURIComponent(msg);
+    }
+
     function copyAndRedirect(platform) {
         if(!NET_STATE.online){
             showToast("COPIED — OPEN APP MANUALLY");
@@ -1012,22 +949,45 @@
             autoCopy();
             return;
         }
-        const text = buildCartText();
-        navigator.clipboard.writeText(text).then(() => showToast("COPIED! OPENING " + platform.toUpperCase()));
+
+        const query = buildCartSearchQuery();
+        if(!query) { showToast("CART IS EMPTY"); return; }
+
+        showToast("OPENING " + platform.toUpperCase());
+        
+        // Smart Fallback Schema
         const links = {
-            zomato: { app: `zomato://search?q=${encodeURIComponent(text)}`, web: `https://www.zomato.com/search?q=${encodeURIComponent(text)}` },
-            swiggy: { app: `swiggy://search?query=${encodeURIComponent(text)}`, web: `https://www.swiggy.com/search?q=${encodeURIComponent(text)}` },
-            blinkit: { app: `blinkit://search?query=${encodeURIComponent(text)}`, web: `https://blinkit.com/s/?q=${encodeURIComponent(text)}` }
+            zomato: { 
+                app: `zomato://search?q=${query}`, 
+                web: `https://www.zomato.com/search?q=${query}` 
+            },
+            swiggy: { 
+                app: `swiggy://explore?query=${query}`, 
+                web: `https://www.swiggy.com/search?q=${query}` 
+            },
+            blinkit: { 
+                app: `blinkit://`, // Blinkit deep linking is restrictive, use generic open
+                web: `https://blinkit.com/s/?q=${query}` 
+            }
         };
+
         const target = links[platform];
         if (!target) return;
+
+        // Try App, Fallback to Web
         const start = Date.now();
         window.location.href = target.app;
-        setTimeout(() => { if (Date.now() - start < 2000) window.location.href = target.web; }, 1500);
+        
+        setTimeout(() => { 
+            if (Date.now() - start < 2000) {
+                window.location.href = target.web; 
+            }
+        }, 1500);
     }
 
     function sendWhatsapp() {
-        window.open(`https://wa.me/916351537770?text=ORDER: ${encodeURIComponent(buildCartText())}`, '_blank');
+        const msg = buildWhatsappMessage();
+        window.open(`https://wa.me/916351537770?text=${msg}`, '_blank');
     }
 
     function showToast(msg, type="normal") {
