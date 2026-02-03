@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>| food.decide | v16.11 Final</title>
+    <title>| food.decide |</title>
 
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0a0a0a">
@@ -143,7 +143,7 @@
     function renderLobby() {
         container.innerHTML = `
         <section class="main-slide active" id="lobby">
-            <div class="slide-header"><span class="header-title">SWIPE-OS v16.11</span></div>
+            <div class="slide-header"><span class="header-title">SWIPE-OS v16.12</span></div>
             <div class="lobby-container">
                 <h1>AAJ KYA MANGVAAYEGE!</h1>
                 <div id="cuisine-grid" style="display:grid; gap:15px;">
@@ -223,21 +223,18 @@
     }
 
     function updateCart(action, payload) {
-        if(action === "ADD" || action === "ADD_ITEM") { 
+        if(action === "ADD") { 
             let name, qtyToAdd;
             if (typeof payload === 'object') {
                 name = payload.name;
                 qtyToAdd = payload.qty || 1;
             } else {
-                name = payload; // legacy string touch input
+                name = payload; 
                 qtyToAdd = 1;
             }
             
             const currentQty = (ENGINE_STATE.items_detected[name]?.qty || 0);
             ENGINE_STATE.items_detected[name] = { qty: currentQty + qtyToAdd, price: getPrice(name) };
-        }
-        else if(action === "REMOVE") {
-             // Logic handled in caller (dispatchVoice), just saving state
         }
         localStorage.setItem("ENGINE_STATE_CACHE", JSON.stringify(ENGINE_STATE));
     }
@@ -297,7 +294,7 @@
         });
     }
 
-    // --- 4. SMART DEEP LINKS ---
+    // --- 4. SMART DEEP LINKS & UTILS ---
     function getCategory(name) {
         for(let c in RAW_DATA) for(let cat of RAW_DATA[c].categories) for(let i of cat.items) if(i.name === name) return cat.id;
         return "";
@@ -335,10 +332,8 @@
 ----------------
 ${cartItems}----------------
 💰 *Est. Total: ₹${total}*
-📍 Location: Gandhidham
-“-------------------”
-“get customized "PRE-loaded"-- inquiry like above for your            business/personal need with support of log - management ”
-“You decide once. We handle the rest.”`;
+📍 Location: Gandhidham\n----------------\nI want customized "PRE-loaded"-- inquiry like above for my business/personal need with support of log - management too.\n----------------\ni decide once. \nyou handle the rest.`;
+        
         
         window.open(`https://wa.me/916351537770?text=${encodeURIComponent(msg)}`, '_blank');
     }
@@ -351,121 +346,100 @@ ${cartItems}----------------
     
     function saveToCloud() { fetch(GOOGLE_SCRIPT_URL, {method:"POST", body:JSON.stringify(ENGINE_STATE)}); showToast("SAVED"); }
     function showToast(msg) { const t = document.getElementById('toast'); t.innerText = msg; t.classList.add('visible'); setTimeout(() => t.classList.remove('visible'), 2000); }
+    function speak(text) { window.speechSynthesis.speak(new SpeechSynthesisUtterance(text)); }
 
-    // --- 5. CONVERSATIONAL VOICE ENGINE (v16.4 Restored) ---
-    
-    // 1. COMMAND DICTIONARY
+    // --- 5. PATCHED VOICE ENGINE (v16.12) ---
+    // PATCH 1: UNIVERSAL MAP
     const VOICE_COMMANDS = {
-      PLATFORM: { zomato: ["zomato"], swiggy: ["swiggy"], blinkit: ["blinkit"], whatsapp: ["whatsapp"] },
-      SYSTEM: { help: ["help", "commands"], save: ["save", "cloud"] },
-      CART: { add: ["add", "jodo"], remove: ["remove", "delete", "hatao"], reset: ["clear", "reset"] },
-      ACTION: { select: ["select", "choose", "yes"], skip: ["skip", "no"], browse: ["browse", "next"] },
-      NAV: { next: ["next", "continue"], prev: ["back"] }
+      PLATFORM: {
+        zomato: ["zomato", "open zomato"],
+        swiggy: ["swiggy", "open swiggy"],
+        blinkit: ["blinkit", "instamart"],
+        whatsapp: ["whatsapp", "send whatsapp", "send order"]
+      },
+      ACTION: {
+        select: ["select", "add", "yes", "confirm"],
+        skip: ["skip", "no"],
+        browse: ["browse", "next item", "show more"]
+      },
+      CART: {
+        remove: ["remove", "delete", "hatao"],
+        reset: ["clear", "reset", "empty cart"]
+      },
+      NAV: {
+        next: ["next", "continue"],
+        back: ["back", "previous"]
+      }
     };
 
-    // 2. PARSING HELPERS
-    function tokenize(text) { return text.toLowerCase().replace(/[^a-z0-9 ]/g, '').split(' ').filter(Boolean); }
-    
+    // PATCH 2: HARDEN TOKENIZER
+    function tokenize(text) {
+        return text.toLowerCase().replace(/₹|rs|rupees/g, '').replace(/[^a-z0-9 ]/g, ' ').split(' ').filter(Boolean);
+    }
+
+    // PATCH 3: UNIVERSAL NUMBER
     function extractNumber(text) {
-        const words = tokenize(text);
-        const map = { "one":1, "two":2, "three":3, "four":4, "five":5, "ek":1, "do":2, "teen":3 };
-        for (let w of words) if (map[w]) return map[w];
+        const map = { one:1, two:2, three:3, four:4, five:5, ek:1, do:2, teen:3, char:4, paanch:5 };
+        const tokens = tokenize(text);
+        for (let t of tokens) if (map[t]) return map[t];
         const digit = text.match(/\b\d+\b/);
         return digit ? parseInt(digit[0], 10) : 1;
     }
 
+    // PATCH 4: STRICT ITEM MATCHER
     function matchItem(tokens) {
         for (let c in RAW_DATA) {
             for (let cat of RAW_DATA[c].categories) {
                 for (let item of cat.items) {
-                    const nameTokens = tokenize(item.name);
-                    if (nameTokens.some(t => tokens.includes(t) && t.length > 2)) return item.name;
+                    const words = tokenize(item.name);
+                    if (words.every(w => tokens.includes(w))) return item.name;
                 }
             }
         }
         return null;
     }
 
-    // 3. LOGIC ROUTER
+    // PATCH 5: SINGLE DISPATCH
     function dispatchVoice(text) {
         const tokens = tokenize(text);
-        let intent = null;
-
-        // A. Find Intent
-        for (const [group, defs] of Object.entries(VOICE_COMMANDS)) {
-            for (const [action, keywords] of Object.entries(defs)) {
-                if (keywords.some(k => tokens.includes(k))) {
-                    intent = { group, action };
-                    break;
-                }
-            }
-            if (intent) break;
-        }
-
-        // B. Handle Implicit Items (e.g., "Two Naan")
-        const item = matchItem(tokens);
         const qty = extractNumber(text);
+        const item = matchItem(tokens);
 
-        // C. EXECUTION
-        if (intent) {
-            if (intent.group === "PLATFORM") { 
-                speak(`Opening ${intent.action}`); 
-                if (intent.action === 'whatsapp') sendWa(); 
-                else link(intent.action); 
-                return; 
-            }
-            if (intent.group === "SYSTEM") { if(intent.action === "save") { saveToCloud(); speak("Order saved"); } return; }
-            if (intent.group === "NAV") { if(intent.action==="next") executeAction("NEXT"); return; }
-            
-            if (intent.group === "ACTION") {
-                if(intent.action === "select") executeAction("SELECT");
-                if(intent.action === "skip") executeAction("SKIP");
-                if(intent.action === "browse") executeAction("BROWSE");
-                return;
-            }
+        if (tokens.includes("whatsapp")) return sendWa();
+        if (tokens.includes("zomato")) return link("zomato");
+        if (tokens.includes("swiggy")) return link("swiggy");
+        if (tokens.includes("blinkit")) return link("blinkit");
 
-            if (intent.group === "CART") {
-                if (intent.action === "reset") { ENGINE_STATE.items_detected={}; renderCart(); speak("Cart emptied"); return; }
-                if (intent.action === "remove" && item) {
-                    if (ENGINE_STATE.items_detected[item]) {
-                        delete ENGINE_STATE.items_detected[item];
-                        updateCart("REMOVE", null); // Just triggers save
-                        renderCart();
-                        speak(`Removed ${item}`);
-                        showToast(`Removed ${item}`);
-                    } else {
-                        speak(`${item} is not in cart`);
-                    }
-                    return;
-                }
-            }
+        if (tokens.includes("clear") || tokens.includes("reset")) {
+            ENGINE_STATE.items_detected = {}; renderCart(); speak("Cart cleared"); return;
         }
 
-        // Implicit Add (Default Fallback)
+        if ((tokens.includes("remove") || tokens.includes("delete")) && item) {
+            delete ENGINE_STATE.items_detected[item]; renderCart(); speak(`Removed ${item}`); return;
+        }
+
+        if (tokens.includes("skip")) return executeAction("SKIP");
+        if (tokens.includes("browse")) return executeAction("BROWSE");
+        if (tokens.includes("select") || tokens.includes("add") || tokens.includes("yes")) return executeAction("SELECT");
+
         if (item) {
-            updateCart("ADD", { name: item, qty: qty });
+            updateCart("ADD", { name: item, qty });
             speak(`Added ${qty} ${item}`);
             showToast(`+${qty} ${item}`);
-        } else if (!intent) {
-            // No intent, no item
-            // speak("Say that again?"); 
         }
     }
 
-    // 4. SPEECH ENGINE
+    // PATCH 6 & 7: MIC STABILITY & TOGGLE
     let rec = null;
-    function speak(text) {
-        // The "Talk Back" Feature
-        window.speechSynthesis.cancel();
-        window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
-    }
-
     function initVoice() {
-        if (!window.SpeechRecognition && !window.webkitSpeechRecognition) return;
-        rec = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SR) return;
+
+        rec = new SR();
         rec.lang = "en-IN";
         rec.continuous = true;
         rec.interimResults = false;
+        rec.maxAlternatives = 1;
 
         rec.onresult = e => {
             const t = e.results[e.results.length - 1][0].transcript;
@@ -473,26 +447,33 @@ ${cartItems}----------------
             dispatchVoice(t);
         };
 
+        rec.onerror = () => { rec.stop(); };
+
         rec.onend = () => {
             if (document.getElementById('mic-toggle').classList.contains('listening')) {
-                try { rec.start(); } catch(e){}
+                setTimeout(() => { try { rec.start(); } catch(e){} }, 250);
             }
         };
     }
 
-    function toggleListenMode() { 
+    function toggleListenMode() {
         if(!rec) initVoice();
         const m = document.getElementById('mic-toggle');
-        if(m.classList.contains('listening')) { 
-            rec.stop(); m.classList.remove('listening'); speak("Voice off");
-        } else { 
-            rec.start(); m.classList.add('listening'); speak("Listening");
+
+        if (m.classList.contains('listening')) {
+            rec.stop();
+            m.classList.remove('listening');
+            speak("Voice off");
+        } else {
+            try { rec.abort(); } catch(e){}
+            try { rec.start(); } catch(e){}
+            m.classList.add('listening');
+            speak("Listening");
         }
     }
 
     // BOOT
     renderLobby();
-    initVoice();
 </script>
 </body>
 </html>
