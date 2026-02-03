@@ -323,7 +323,11 @@
         msg += "----------------\n";
         msg += `💰 *Est. Total: ₹${total}*\n`;
         msg += `📍 Location: Gandhidham`;
-        window.open(`https://wa.me/916351537770?text=${encodeURIComponent(msg)}`, '_blank');
+        msg += ` `
+     
+         msg += ` above messege can be customized according to your requirements --- reply with " yes " to get started ! `
+         msg += ` “You decide once. We handle the rest.”`
+             window.open(`https://wa.me/916351537770?text=${encodeURIComponent(msg)}`, '_blank');
     }
     
     function copyOrder() {
