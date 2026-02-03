@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,14 +9,11 @@
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0a0a0a">
     <meta name="background-color" content="#0a0a0a">
-
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="food.decide">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
-
     <meta name="mobile-web-app-capable" content="yes">
-
     <meta name="application-name" content="food.decide">
     <meta name="description" content="Voice-first food decision engine">
 
@@ -125,7 +123,6 @@
         h1 { font-size: 1.8rem; margin: 0 0 15px 0; line-height: 1; letter-spacing: -1px; color: var(--brand-orange); }
         .primary-question { font-size: 1.1rem; color: #fff; margin-bottom: 25px; line-height: 1.4; font-weight: 600; }
         
-        /* PATCH 4 CSS: Price Style */
         .price {
             font-size: 0.9rem;
             color: #aaa;
@@ -252,16 +249,16 @@
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyBMwKxq92U0dptKMdEHvUCXPS9AjExHtxHjcRmfh2JFjCSn9Zd82bzp34xLg6X0a7L9g/exec";
     const SHARE_LINK_TEXT = "food-decider | swipe OS";
 
-    /* 4️⃣ OPTIONAL PATCH: OFFLINE BANNER HOOK */
+    /* OFFLINE BANNER HOOK */
     const NET_STATE = { online: navigator.onLine };
     window.addEventListener("online", () => { 
         NET_STATE.online = true; 
-        showToast("ONLINE · SYNC ENABLED"); // Updated text per Patch 4
+        showToast("ONLINE · SYNC ENABLED"); 
         fetchVoiceConfig(); 
     });
     window.addEventListener("offline", () => { 
         NET_STATE.online = false; 
-        showToast("OFFLINE · USING SAVED DATA"); // Updated text per Patch 4
+        showToast("OFFLINE · USING SAVED DATA"); 
     });
 
     // FALLBACK MENU (This loads instantly)
@@ -306,7 +303,7 @@
     // Initialize RAW_DATA with Fallback instantly
     let RAW_DATA = FALLBACK_MENU.data; 
 
-    /* PATCH 2: SAFER MENU FETCHER (Prevents Empty Slides) */
+    /* SAFER MENU FETCHER */
     async function fetchMenuData() {
         const timeout = new Promise((_, reject) => setTimeout(() => reject("Timeout"), 3000));
         
@@ -315,7 +312,6 @@
             const res = await Promise.race([fetcher, timeout]);
             const json = await res.json();
 
-            // SAFETY CHECK: Does the fetched menu actually have items?
             let hasItems = false;
             if (json.data) {
                 for (let k in json.data) {
@@ -333,7 +329,7 @@
                 console.log("MENU: LIVE UPDATED");
                 return true;
             } else {
-                throw new Error("Fetched menu was empty"); // Trigger catch block to use Fallback
+                throw new Error("Fetched menu was empty");
             }
 
         } catch (e) {
@@ -451,7 +447,7 @@
     let currentIdx = 0;
 
     async function boot() {
-        renderLobby(); // Render immediately using Fallback
+        renderLobby(); 
         loadLocalState();
         initVoice();
         
@@ -468,7 +464,7 @@
         section.id = "lobby";
         
         let html = `
-        <div class="slide-header"><span class="header-title">SWIPE-OS v10.3</span></div>
+        <div class="slide-header"><span class="header-title">SWIPE-OS v10.4</span></div>
         <div class="lobby-container">
             <h1 style="text-align:center; margin-bottom:40px;">AAJ KYA MANGVAAYEGE!</h1>
             <div id="cuisine-grid" style="display:grid; gap:15px;">
@@ -737,7 +733,7 @@
     }
 
     /* =========================================
-       4. MASTER VOICE ROUTER (PATCH V1)
+       4. MASTER VOICE ROUTER
        ========================================= */
     const VOICE_INTENTS = {
       NAV: { next: ["next","continue","go ahead"], prev: ["back","previous","go back"], jump: ["go to","open","show me"] },
@@ -861,7 +857,11 @@
           speak("Updated quantity");
           updateResult();
           break;
-        case "PLATFORM": copyAndRedirect(cmd.key); break;
+        case "PLATFORM": 
+             // FIXED: Explicit Whatsapp handling
+             if(cmd.key === "whatsapp") sendWhatsapp();
+             else copyAndRedirect(cmd.key); 
+             break;
         case "SYSTEM":
           if(cmd.key==="help") speak("You can say next, select, add item, clear cart, or hunt.");
           if(cmd.key==="copy") autoCopy();
@@ -883,7 +883,13 @@
             const txt = e.results[e.results.length - 1][0].transcript;
             showToast(`Heard: "${txt}"`);
             const intent = parseVoice(txt);
-            if (intent) dispatchVoice(intent);
+            if (intent) {
+                dispatchVoice(intent);
+            } else {
+                // FIXED: Implicit "Two Naan" command support
+                const num = extractNumber(txt);
+                if (num !== null) handleGlobalAdd(txt); 
+            }
         };
 
         rec.onerror = e => { showToast("VOICE TEMP UNAVAILABLE"); };
