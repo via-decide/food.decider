@@ -100,6 +100,17 @@
         h1 { font-size: 1.8rem; margin: 0 0 15px 0; line-height: 1; letter-spacing: -1px; color: var(--brand-orange); }
         .primary-question { font-size: 1.1rem; color: #fff; margin-bottom: 25px; line-height: 1.4; font-weight: 600; }
         
+        /* PATCH 4: Price UI Styling */
+        .price {
+            font-size: 0.9rem;
+            color: #aaa;
+            margin-left: 10px;
+            font-family: var(--font-tech);
+            background: #222;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        
         .role-label {
             font-family: var(--font-tech);
             font-size: 0.6rem;
@@ -211,14 +222,16 @@
 
 <script>
 /* ⚠️ GEMINI / LLM WARNING ⚠️
-   This file implements UNIFIED INTENT SCHEMA v1.2
-   Voice patches must merge into ENGINE_STATE, not replace it.
+   SWIPE-OS v10.0: Intelligent Edition
+   - Dynamic Menu Fetching
+   - Price Awareness
+   - Offline Fallbacks
 */
 
     /* =========================================
        0. CONFIGURATION
        ========================================= */
-    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyU29SJRKCV4vSMg6-amvyjiMZcb5WN_Sz1GcMhIyykZ1PdLOVgxzje0SjKaNpOYPgVnA/exec";
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyBMwKxq92U0dptKMdEHvUCXPS9AjExHtxHjcRmfh2JFjCSn9Zd82bzp34xLg6X0a7L9g/exec";
     const SHARE_LINK_TEXT = "food-decider | swipe OS";
 
     /* PATCH 1: OFFLINE NETWORK DETECTION */
@@ -226,40 +239,81 @@
     window.addEventListener("online", () => { NET_STATE.online = true; showToast("ONLINE MODE"); fetchVoiceConfig(); });
     window.addEventListener("offline", () => { NET_STATE.online = false; showToast("OFFLINE MODE"); });
 
-    const RAW_DATA = {
-        punjabi: {
-            label: "PUNJABI",
-            categories: [
-                { id: "p_breads", label: "Breads", items: [{name:"Butter Naan"}, {name:"Tandoori Roti"}, {name:"Garlic Naan"}, {name:"Lachha Paratha"}] },
-                { id: "p_mains", label: "Mains", items: [{name:"Dal Makhani"}, {name:"Paneer Butter Masala"}, {name:"Butter Chicken"}, {name:"Shahi Paneer"}, {name:"Kadai Paneer"}] },
-                { id: "p_rice", label: "Rice", items: [{name:"Jeera Rice"}, {name:"Chicken Biryani"}, {name:"Veg Pulao"}] },
-                { id: "p_starters", label: "Starters", items: [{name:"Paneer Tikka"}, {name:"Chicken Tikka"}, {name:"Hara Bhara Kabab"}] },
-                { id: "p_bev", label: "Beverages", items: [{name:"Sweet Lassi"}, {name:"Salted Lassi"}, {name:"Masala Chaas"}] }
-            ]
-        },
-        chinese: {
-            label: "CHINESE",
-            categories: [
-                { id: "c_dimsum", label: "Dim Sum", items: [{name:"Pork Siu Mai"}, {name:"Har Gao"}, {name:"Veg Crystal Dumpling"}] },
-                { id: "c_noodles", label: "Noodles", items: [{name:"Dan Dan Noodles"}, {name:"Hakka Noodles"}, {name:"Lo Mein"}] },
-                { id: "c_wok", label: "Wok Specials", items: [{name:"Kung Pao Chicken"}, {name:"Mapo Tofu"}, {name:"Chilli Chicken"}] }
-            ]
-        },
-        pizza: {
-            label: "PIZZA",
-            categories: [
-                { id: "z_classic", label: "Classic", items: [{name:"Margherita"}, {name:"Pepperoni"}, {name:"Marinara"}] },
-                { id: "z_gourmet", label: "Gourmet", items: [{name:"Burrata Pizza"}, {name:"Truffle Mushroom"}, {name:"Wood Fired Chicken"}] }
-            ]
-        },
-        snacks: {
-            label: "NASTA PANI",
-            categories: [
-                { id: "s_pkg", label: "Packaged", items: [{name:"Coke"}, {name:"Chips"}, {name:"Kurkure"}, {name:"Thums Up"}] },
-                { id: "s_hot", label: "Hot Snacks", items: [{name:"Samosa"}, {name:"Puff"}, {name:"Burger"}] }
-            ]
+    /* PATCH 1: DYNAMIC RAW DATA + FALLBACK */
+    let RAW_DATA = null;
+
+    const FALLBACK_MENU = {
+        version: "offline-v1",
+        data: {
+            punjabi: {
+                label: "PUNJABI",
+                categories: [
+                    { id: "p_breads", label: "Breads", items: [{name:"Butter Naan", price:40}, {name:"Tandoori Roti", price:25}, {name:"Garlic Naan", price:50}] },
+                    { id: "p_mains", label: "Mains", items: [{name:"Dal Makhani", price:220}, {name:"Paneer Butter Masala", price:240}, {name:"Butter Chicken", price:280}] },
+                    { id: "p_rice", label: "Rice", items: [{name:"Jeera Rice", price:150}, {name:"Chicken Biryani", price:290}] }
+                ]
+            },
+            chinese: {
+                label: "CHINESE",
+                categories: [
+                    { id: "c_dimsum", label: "Dim Sum", items: [{name:"Pork Siu Mai", price:250}, {name:"Veg Crystal Dumpling", price:220}] },
+                    { id: "c_noodles", label: "Noodles", items: [{name:"Hakka Noodles", price:180}, {name:"Lo Mein", price:220}] }
+                ]
+            },
+            pizza: {
+                label: "PIZZA",
+                categories: [
+                    { id: "z_classic", label: "Classic", items: [{name:"Margherita", price:350}, {name:"Pepperoni", price:450}] },
+                    { id: "z_gourmet", label: "Gourmet", items: [{name:"Burrata Pizza", price:550}, {name:"Wood Fired Chicken", price:480}] }
+                ]
+            },
+            snacks: {
+                label: "NASTA PANI",
+                categories: [
+                    { id: "s_pkg", label: "Packaged", items: [{name:"Coke", price:40}, {name:"Chips", price:20}, {name:"Kurkure", price:20}] },
+                    { id: "s_hot", label: "Hot Snacks", items: [{name:"Samosa", price:20}, {name:"Burger", price:60}] }
+                ]
+            }
         }
     };
+
+    /* PATCH 2: UNIFIED MENU FETCHER (Online -> Cache -> Fallback) */
+    async function fetchMenuData() {
+        try {
+            const res = await fetch(GOOGLE_SCRIPT_URL + "?type=menu", { cache: "no-store" });
+            const json = await res.json();
+
+            RAW_DATA = json.data;
+            localStorage.setItem("MENU_CACHE", JSON.stringify(json));
+            localStorage.setItem("MENU_CACHE_TS", Date.now());
+
+            console.log("MENU: LIVE");
+            return true;
+        } catch (e) {
+            console.warn("MENU: OFFLINE, loading cache");
+            const cached = localStorage.getItem("MENU_CACHE");
+            if (cached) {
+                RAW_DATA = JSON.parse(cached).data;
+                return true;
+            }
+            RAW_DATA = FALLBACK_MENU.data;
+            return false;
+        }
+    }
+
+    /* PATCH 7: PUSH UPDATE AWARENESS */
+    const SERVER_VERSION_KEY = "MENU_VERSION";
+    async function checkMenuVersion() {
+      try {
+        const res = await fetch(GOOGLE_SCRIPT_URL + "?type=menu_version");
+        const { version } = await res.json();
+        const local = localStorage.getItem(SERVER_VERSION_KEY);
+        if (version !== local) {
+          localStorage.setItem(SERVER_VERSION_KEY, version);
+          await fetchMenuData(); // Auto-update
+        }
+      } catch(e){}
+    }
 
     /* =========================================
        1. UNIFIED INTENT ENGINE v1.2 (STATE)
@@ -274,6 +328,19 @@
         cart_state: { items: [], total: 0 }
     };
 
+    /* PATCH 6: HELPER TO FIND PRICE */
+    function findItemPrice(name) {
+        if (!RAW_DATA) return 0;
+        for (let c in RAW_DATA) {
+            for (let cat of RAW_DATA[c].categories) {
+                for (let item of cat.items) {
+                    if (item.name.toLowerCase() === name.toLowerCase()) return item.price || 0;
+                }
+            }
+        }
+        return 0;
+    }
+
     function engineUpdate(patchType, payload) {
         if (patchType === "ADD_CUISINE") {
             if(!ENGINE_STATE.cuisines_detected.includes(payload)) ENGINE_STATE.cuisines_detected.push(payload);
@@ -281,9 +348,14 @@
         if (patchType === "REMOVE_CUISINE") {
             ENGINE_STATE.cuisines_detected = ENGINE_STATE.cuisines_detected.filter(c => c !== payload);
         }
+        /* PATCH 6: ENGINE STORES PRICE */
         if (patchType === "ADD_ITEM") {
             const qty = ENGINE_STATE.items_detected[payload] ? ENGINE_STATE.items_detected[payload].qty + 1 : 1;
-            ENGINE_STATE.items_detected[payload] = { qty: qty, added_at: Date.now() };
+            ENGINE_STATE.items_detected[payload] = { 
+                qty: qty, 
+                price: findItemPrice(payload),
+                added_at: Date.now() 
+            };
             recalcStrategy();
         }
         if (patchType === "REMOVE_ITEM") {
@@ -305,7 +377,7 @@
                 }
             }
         }
-        saveLocalState(); // PATCH 3: PERSISTENCE
+        saveLocalState(); 
     }
 
     function recalcStrategy() {
@@ -333,11 +405,18 @@
     let slideElements = [];
     let currentIdx = 0;
 
-    function init() {
-        loadLocalState(); // PATCH 3
+    /* PATCH 3: ASYNC BOOT SEQUENCE */
+    async function boot() {
+        await fetchMenuData(); // Wait for menu before rendering
+        loadLocalState(); 
         renderLobby();
         initVoice();
         fetchVoiceConfig();
+        setTimeout(checkMenuVersion, 3000); // PATCH 7: Pull-once version check
+    }
+
+    function init() {
+        // Init is now handled by boot
     }
 
     function renderLobby() {
@@ -347,7 +426,7 @@
         section.id = "lobby";
         
         let html = `
-        <div class="slide-header"><span class="header-title">SWIPE-OS v9.5</span></div>
+        <div class="slide-header"><span class="header-title">SWIPE-OS v10.0</span></div>
         <div class="lobby-container">
             <h1 style="text-align:center; margin-bottom:40px;">AAJ KYA MANGVAAYEGE!</h1>
             <div id="cuisine-grid" style="display:grid; gap:15px;">
@@ -395,14 +474,16 @@
         let slides = [];
 
         ENGINE_STATE.cuisines_detected.forEach(cId => {
-            RAW_DATA[cId].categories.forEach(cat => {
-                slides.push({
-                    id: cat.id,
-                    type: 'selector',
-                    title: `${RAW_DATA[cId].label} · ${cat.label.toUpperCase()}`,
-                    items: cat.items
+            if(RAW_DATA[cId]) {
+                RAW_DATA[cId].categories.forEach(cat => {
+                    slides.push({
+                        id: cat.id,
+                        type: 'selector',
+                        title: `${RAW_DATA[cId].label} · ${cat.label.toUpperCase()}`,
+                        items: cat.items
+                    });
                 });
-            });
+            }
         });
 
         slides.push({ id: "final", type: "final", title: "FINAL ORDER" });
@@ -418,10 +499,14 @@
 
             if (cfg.type === 'selector') {
                 cfg.items.forEach((item, i) => {
+                    /* PATCH 4: PRICE AWARE UI */
                     html += `
                     <div class="sub-slide ${i===0 ? 'opt-active' : 'opt-hidden'}" data-opt-idx="${i}" data-val="${item.name}">
                         <div class="role-label">${cfg.title.split('·')[0].trim()}</div>
-                        <h1>${item.name}</h1>
+                        <h1>
+                            ${item.name}
+                            ${item.price ? `<span class="price">₹${item.price}</span>` : ""}
+                        </h1>
                         <div class="primary-question">Swipe Right to Browse</div>
                         <div class="nav-hint">
                             <span style="flex:1; color:var(--accent-skip); font-weight:bold;">&larr; SKIP</span>
@@ -517,14 +602,26 @@
             }
         });
 
-        // 2. Render List
+        /* PATCH 5: TOTAL BILL CALCULATION */
         let html = '';
+        let total = 0;
         if (Object.keys(cart).length === 0) {
             html = '<div style="text-align:center;color:#666;margin-top:20px;">No items selected.</div>';
         } else {
             for (const [name, data] of Object.entries(cart)) {
-                html += `<div class="input-row"><span class="input-key">${name}</span><span class="input-val">x${data.qty}</span></div>`;
+                const price = data.price || 0;
+                total += price * data.qty;
+                html += `
+                <div class="input-row">
+                  <span class="input-key">${name}</span>
+                  <span class="input-val">x${data.qty} · ₹${price * data.qty}</span>
+                </div>`;
             }
+            html += `
+              <div class="input-row" style="border-top:1px solid #444; margin-top:10px;">
+                <span class="input-key">TOTAL</span>
+                <span class="input-val">₹${total}</span>
+              </div>`;
         }
         list.innerHTML = html;
     }
@@ -743,18 +840,21 @@
 
     function handleGlobalAdd(txt) {
         let found = false;
-        Object.keys(RAW_DATA).forEach(cId => {
-            RAW_DATA[cId].categories.forEach(cat => {
-                cat.items.forEach(item => {
-                    if (!found && txt.includes(item.name.toLowerCase())) {
-                        engineUpdate("ADD_ITEM", item.name);
-                        showToast(`ADDED ${item.name}`);
-                        found = true;
-                        if (slideElements[currentIdx].id === 'final') updateResult();
-                    }
+        // Search in ALL loaded RAW_DATA
+        if(RAW_DATA) {
+            Object.keys(RAW_DATA).forEach(cId => {
+                RAW_DATA[cId].categories.forEach(cat => {
+                    cat.items.forEach(item => {
+                        if (!found && txt.includes(item.name.toLowerCase())) {
+                            engineUpdate("ADD_ITEM", item.name);
+                            showToast(`ADDED ${item.name}`);
+                            found = true;
+                            if (slideElements[currentIdx] && slideElements[currentIdx].id === 'final') updateResult();
+                        }
+                    });
                 });
             });
-        });
+        }
         if(!found) showToast("ITEM NOT FOUND");
     }
 
@@ -772,8 +872,13 @@
     
     function buildCartText() { 
         let str = "";
-        for(let [k,v] of Object.entries(ENGINE_STATE.items_detected)) str += `${k} (x${v.qty}), `;
-        return str.slice(0, -2) || "No items"; 
+        let total = 0;
+        for(let [k,v] of Object.entries(ENGINE_STATE.items_detected)) {
+            str += `${k} (x${v.qty}), `;
+            total += v.price * v.qty;
+        }
+        str = str.slice(0, -2) || "No items";
+        return str + ` | TOTAL: ₹${total}`;
     }
 
     function saveToCloud() {
@@ -819,138 +924,10 @@
     function showToast(msg, type="normal") {
         const t = document.getElementById('toast');
         t.innerText = msg; t.classList.add('visible');
-        setTimeout(() => t.className = "toast-msg", 2000);
+        setTimeout(() => t.classList.remove('visible'), 2000);
     }
 
-    init();
+    boot();
 </script>
 </body>
 </html>
-
-### **Part 2: The Backend (Apps Script)**
-Here is the accompanying backend logic for `Code.gs`. This needs to be deployed to generate the final functional URL.
-
-```javascript
-/* =========================================
-   | food.decide | BACKEND ENGINE v9.5
-   ========================================= */
-
-// ⚠️ REPLACE WITH YOUR GOOGLE SHEET ID
-const SHEET_ID = "YOUR_GOOGLE_SHEET_ID_HERE"; 
-
-/* 1. HTTP GET HANDLER 
-   - Serves the App UI (index.html)
-   - Serves the Voice Config API
-*/
-function doGet(e) {
-  // 🛡️ SAFETY CHECK: Handle manual execution (Run button) gracefully
-  if (!e || !e.parameter) {
-    return serveApp();
-  }
-
-  // API Mode: Fetch Voice Configuration
-  if (e.parameter.type === "voice_config") {
-    return getVoiceConfig();
-  }
-
-  // Default: Serve the HTML App
-  return serveApp();
-}
-
-function serveApp() {
-  return HtmlService.createHtmlOutputFromFile('index')
-      .setTitle("| food.decide |")
-      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
-      .addMetaTag('viewport', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
-}
-
-/* 2. HTTP POST HANDLER
-   - Receives Order Data (Engine State)
-   - Logs to 'Orders' Sheet
-*/
-function doPost(e) {
-  try {
-    const ss = SpreadsheetApp.openById(SHEET_ID);
-    let sheet = ss.getSheetByName("Orders");
-    
-    // Auto-create Orders tab if missing
-    if (!sheet) {
-      sheet = ss.insertSheet("Orders");
-      sheet.appendRow(["Timestamp", "Session ID", "Cuisines Selected", "Items (JSON)", "Total Items"]);
-    }
-
-    const payload = JSON.parse(e.postData.contents);
-    
-    // Extract Data from Intent Engine Schema
-    const timestamp = new Date();
-    const session = payload.session_id || "unknown";
-    const cuisines = payload.cuisines_detected ? payload.cuisines_detected.join(", ") : "";
-    const items = payload.items_detected ? JSON.stringify(payload.items_detected) : "{}";
-    const totalQty = Object.keys(payload.items_detected || {}).length;
-
-    // Log to Sheet
-    sheet.appendRow([timestamp, session, cuisines, items, totalQty]);
-
-    return ContentService.createTextOutput(JSON.stringify({ status: "success", message: "Order Logged" }))
-      .setMimeType(ContentService.MimeType.JSON);
-
-  } catch (error) {
-    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: error.toString() }))
-      .setMimeType(ContentService.MimeType.JSON);
-  }
-}
-
-/* 3. VOICE CONFIG CACHE ENGINE
-   - Reads 'VoiceConfig' tab
-   - Caches result for 6 hours for speed
-*/
-function getVoiceConfig() {
-  const cache = CacheService.getScriptCache();
-  const cachedData = cache.get("voice_intents_v9");
-
-  // Return Cache if available (Super fast)
-  if (cachedData != null) {
-    return ContentService.createTextOutput(cachedData)
-      .setMimeType(ContentService.MimeType.JSON);
-  }
-
-  // If no cache, read Sheet
-  try {
-    const ss = SpreadsheetApp.openById(SHEET_ID);
-    const sheet = ss.getSheetByName("VoiceConfig");
-    
-    if (!sheet) return createError("VoiceConfig tab not found");
-
-    const data = sheet.getDataRange().getValues();
-    const headers = data.shift(); // Remove header row
-    
-    let intentMap = {};
-
-    // Expected Columns: [Group, Key, Synonyms]
-    data.forEach(row => {
-      let group = row[0].toString().trim();
-      let key = row[1].toString().trim();
-      let synonyms = row[2].toString().split(",").map(s => s.trim().toLowerCase()).filter(s => s);
-
-      if(group && key) {
-        if(!intentMap[group]) intentMap[group] = {};
-        // Ensure the key itself is a synonym
-        if(!synonyms.includes(key)) synonyms.push(key);
-        intentMap[group][key] = synonyms;
-      }
-    });
-
-    const jsonOutput = JSON.stringify(intentMap);
-    cache.put("voice_intents_v9", jsonOutput, 21600); // Cache for 6 hours
-
-    return ContentService.createTextOutput(jsonOutput).setMimeType(ContentService.MimeType.JSON);
-
-  } catch (err) {
-    return createError(err.toString());
-  }
-}
-
-function createError(msg) {
-  return ContentService.createTextOutput(JSON.stringify({ error: msg }))
-    .setMimeType(ContentService.MimeType.JSON);
-}
