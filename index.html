@@ -318,55 +318,194 @@
         }
         msg += "----------------\n";
         msg += `💰 *Est. Total: ₹${total}*\n`;
-        msg += `📍 Location: Gandhidham`;
+        msg += `📍 Location: Gandhidham\n-------------------\n
+get customized "PRE-loaded"-- inquiry like above for your business/personal need with support of log - management ”\n
+-------------------\n“You decide once. We handle the rest.”`;
         window.open(`https://wa.me/916351537770?text=${encodeURIComponent(msg)}`, '_blank');
     }
     
     function saveToCloud() { fetch(GOOGLE_SCRIPT_URL, {method:"POST", body:JSON.stringify(ENGINE_STATE)}); showToast("SAVED"); }
     function showToast(msg) { const t = document.getElementById('toast'); t.innerText = msg; t.classList.add('visible'); setTimeout(() => t.classList.remove('visible'), 2000); }
 
-    // --- 5. ORIGINAL CONTINUOUS VOICE ---
-    function toggleListenMode() { 
-        if(!rec) initVoice();
-        const m = document.getElementById('mic-toggle');
-        if(m.classList.contains('listening')) { rec.stop(); m.classList.remove('listening'); } else { rec.start(); m.classList.add('listening'); }
-    }
-    let rec;
-    function initVoice() {
-        if(!window.SpeechRecognition && !window.webkitSpeechRecognition) return;
-        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-        rec = new SR(); rec.lang = "en-IN"; rec.continuous = true;
-        rec.onresult = e => {
-            const t = e.results[e.results.length-1][0].transcript.toLowerCase();
-            showToast(t);
-            if(t.includes("zomato")) link('zomato');
-            else if(t.includes("swiggy")) link('swiggy');
-            else if(t.includes("whatsapp")) sendWa();
-            else if(t.includes("select") || t.includes("add")) executeAction("SELECT");
-            else if(t.includes("skip") || t.includes("next")) executeAction("SKIP");
-            else if(t.includes("browse") || t.includes("show")) executeAction("BROWSE");
-            else {
-                const nums = {"one":1,"two":2,"three":3,"1":1,"2":2,"3":3};
-                for(let k in nums) if(t.includes(k)) { 
-                    const s = slideElements[currentIdx];
-                    if(s && s.dataset.mode === 'options') {
-                         const val = s.querySelector('.opt-active').dataset.val;
-                         ENGINE_STATE.items_detected[val] = { qty: nums[k], price: getPrice(val) };
-                         showToast(`ADDED ${nums[k]} ${val}`);
-                         nextSlide();
-                    }
-                }
-            }
-        };
-        // Auto-restart logic
-        rec.onend = () => { 
-            if(document.getElementById('mic-toggle').classList.contains('listening')) {
-                try { rec.start(); } catch(e){} 
-            } 
-        };
-        // Safe start - don't start on load, wait for user
+   // --- 5. STRICT VOICE ENGINE (PATCHED) ---
+    
+    // 1. LOCKED DICTIONARY
+    const VOICE_COMMANDS = {
+      PLATFORM: {
+        zomato: ["zomato"],
+        swiggy: ["swiggy"],
+        blinkit: ["blinkit"],
+        whatsapp: ["whatsapp"]
+      },
+      SYSTEM: {
+        help: ["help", "commands"],
+        copy: ["copy", "clipboard"],
+        save: ["save", "cloud"]
+      },
+      CART: {
+        add: ["add", "jodo"],
+        remove: ["remove", "delete", "hatao"],
+        reset: ["clear", "reset", "start"],
+        read: ["read", "list"]
+      },
+      QUANTITY: {
+        double: ["double", "do", "two"],
+        half: ["half", "aadha"]
+      },
+      ACTION: {
+        select: ["select", "choose", "pick", "yes", "ha"],
+        skip: ["skip", "no", "na"],
+        browse: ["browse", "next", "show", "dekhao"]
+      },
+      NAV: {
+        next: ["next", "continue"],
+        prev: ["back", "previous"]
+      }
+    };
+
+    // 2. PRIORITY ORDER (No Backtracking)
+    const INTENT_PRIORITY = ["PLATFORM", "SYSTEM", "CART", "QUANTITY", "ACTION", "NAV", "IMPLICIT_ADD"];
+
+    // 3. STRICT TOKENIZATION
+    function tokenize(text) {
+        return text.toLowerCase().replace(/[^a-z0-9 ]/g, '').split(' ').filter(Boolean);
     }
 
+    function extractNumber(text) {
+        const words = tokenize(text);
+        const map = { "one":1, "two":2, "three":3, "four":4, "five":5, "1":1, "2":2, "3":3, "ek":1, "do":2, "teen":3 };
+        for (let w of words) if (map[w]) return map[w];
+        const digit = text.match(/\b\d+\b/);
+        return digit ? parseInt(digit[0], 10) : null;
+    }
+
+    // 4. ITEM MATCHING (Last Resort)
+    function matchItem(tokens) {
+        for (let c in RAW_DATA) {
+            for (let cat of RAW_DATA[c].categories) {
+                for (let item of cat.items) {
+                    const nameTokens = tokenize(item.name);
+                    // Match if ALL item tokens are present in speech tokens
+                    if (nameTokens.every(t => tokens.includes(t))) return item.name;
+                    // Fallback: Match if ANY rare token matches (simplified for usability)
+                    if (nameTokens.some(t => tokens.includes(t) && t.length > 3)) return item.name;
+                }
+            }
+        }
+        return null;
+    }
+
+    function parseVoiceStrict(text) {
+        const tokens = tokenize(text);
+
+        // Check Intents in Priority Order
+        for (const group of INTENT_PRIORITY) {
+            if (group === "IMPLICIT_ADD") continue;
+            
+            const definitions = VOICE_COMMANDS[group];
+            if (!definitions) continue;
+
+            for (const [action, keywords] of Object.entries(definitions)) {
+                // Strict Token Match
+                if (keywords.some(k => tokens.includes(k))) {
+                    return { group, key: action, raw: text };
+                }
+            }
+        }
+
+        // Implicit Add Logic
+        const item = matchItem(tokens);
+        if (item) {
+            const qty = extractNumber(text) || 1;
+            return { group: "IMPLICIT_ADD", item, qty };
+        }
+
+        return null;
+    }
+
+    function dispatchVoice(cmd) {
+        if (!cmd) { speak("Say help for commands"); return; }
+
+        // PATCH 7: Platform is Final
+        if (cmd.group === "PLATFORM") {
+            if(cmd.key === "whatsapp") sendWa();
+            else link(cmd.key);
+            return;
+        }
+
+        // PATCH 5: Implicit Add
+        if (cmd.group === "IMPLICIT_ADD") {
+            updateCart("ADD", { name: cmd.item, qty: cmd.qty }); // Fixed payload structure
+            speak(`Added ${cmd.qty} ${cmd.item}`);
+            showToast(`+${cmd.qty} ${cmd.item}`);
+            return;
+        }
+
+        // Routing
+        switch (cmd.group) {
+            case "NAV": 
+                if (cmd.key === "next") executeAction("NEXT"); 
+                if (cmd.key === "prev") executeAction("PREV");
+                break;
+            case "ACTION":
+                if (cmd.key === "select") executeAction("SELECT");
+                if (cmd.key === "skip") executeAction("SKIP");
+                if (cmd.key === "browse") executeAction("BROWSE");
+                break;
+            case "SYSTEM":
+                if (cmd.key === "save") saveToCloud();
+                if (cmd.key === "help") speak("You can say Select, Skip, Next, or order food directly.");
+                break;
+            case "CART":
+                if (cmd.key === "reset") { ENGINE_STATE.items_detected={}; renderCart(); speak("Cart cleared"); }
+                break;
+        }
+    }
+
+    // --- ENGINE CORE ---
+    let rec = null;
+    function initVoice() {
+        if (rec) return;
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SR) { showToast("VOICE NOT SUPPORTED"); return; }
+
+        rec = new SR();
+        rec.lang = "en-IN";
+        rec.continuous = true; 
+        rec.interimResults = false;
+
+        rec.onresult = e => {
+            const t = e.results[e.results.length - 1][0].transcript;
+            showToast(`"${t}"`);
+            const cmd = parseVoiceStrict(t);
+            dispatchVoice(cmd);
+        };
+
+        // Auto-restart wrapper
+        rec.onend = () => {
+            if (document.getElementById('mic-toggle').classList.contains('listening')) {
+                try { rec.start(); } catch(e){}
+            }
+        };
+    }
+
+    function toggleListenMode() {
+        initVoice();
+        if (!rec) return;
+        const btn = document.getElementById('mic-toggle');
+        if (btn.classList.contains('listening')) {
+            btn.classList.remove('listening');
+            rec.stop();
+            showToast("MIC OFF");
+        } else {
+            btn.classList.add('listening');
+            try { rec.start(); showToast("LISTENING..."); } catch(e){}
+        }
+    }
+    
+    function speak(text) {
+        window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
+    }
     // BOOT
     renderLobby();
     initVoice();
