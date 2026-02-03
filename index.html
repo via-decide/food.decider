@@ -1,527 +1,862 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>| food.decide | v16.7</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>| food.decide | [ your branding ]</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0a0a0a">
+  <meta name="background-color" content="#0a0a0a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#0a0a0a">
-    <meta name="background-color" content="#0a0a0a">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="mobile-web-app-capable" content="yes">
-    <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js').catch(() => {});
+      });
+    }
+  </script>
 
-    <script src="https://webgazer.cs.brown.edu/webgazer.js" async></script>
+  <style>
+    :root {
+      --orange: #ff671f;
+      --bg: #0a0a0a;
+      --text: #f0f0f0;
+      --go: #00e676;
+      --red: #ff3333;
+      --blue: #4285F4;
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --mono: 'Courier New', monospace;
+    }
 
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('./service-worker.js').catch(()=>{});
-        });
-      }
-    </script>
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      overflow: hidden;
+      touch-action: none;
+    }
 
-    <style>
-        :root { --orange: #ff671f; --bg: #0a0a0a; --text: #f0f0f0; --go: #00e676; --red: #ff3333; --blue: #4285F4; --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; --mono: 'Courier New', monospace; }
-        
-        html, body { margin:0; padding:0; height:100%; width:100%; background:var(--bg); color:var(--text); font-family:var(--font); overflow:hidden; touch-action:none; }
-        #master-container { height: 100vh; width: 100vw; position: relative; overflow: hidden; }
+    #master-container {
+      height: 100vh;
+      width: 100vw;
+      position: relative;
+      overflow: hidden;
+    }
 
-        /* SENSOR STATUS */
-        .status-pill { position: fixed; left: 50%; transform: translateX(-50%); font-family: var(--mono); font-size: 0.6rem; color: #444; border: 1px solid #333; padding: 4px 8px; border-radius: 4px; opacity: 0; transition: opacity 0.5s; z-index: 1000; pointer-events: none; background: #000; }
-        #gyro-status { top: 15px; } #eye-status { top: 40px; }
-        .active-pill { opacity: 1 !important; color: var(--go) !important; border-color: var(--go) !important; }
-        #gaze-dot { position: fixed; width: 10px; height: 10px; background: var(--orange); border-radius: 50%; z-index: 9999; pointer-events: none; display: none; transform: translate(-50%, -50%); box-shadow: 0 0 10px var(--orange); }
+    .main-slide {
+      height: 100vh;
+      width: 100vw;
+      position: absolute;
+      top: 0;
+      left: 0;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg);
+      transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+      will-change: transform;
+    }
 
-        /* SLIDES */
-        .main-slide { height: 100vh; width: 100vw; position: absolute; top: 0; left: 0; display: flex; flex-direction: column; background: var(--bg); transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1); will-change: transform; }
-        .main-slide.prev { transform: translateY(-100%); } .main-slide.active { transform: translateY(0); z-index: 10; } .main-slide.next { transform: translateY(100%); z-index: 20; }
+    .main-slide.prev {
+      transform: translateY(-100%);
+    }
 
-        .slide-header { padding: 20px; border-left: 3px solid var(--orange); height: 70px; flex-shrink: 0; z-index: 10; display: flex; align-items: center; }
-        .header-title { font-family: var(--mono); font-size: 0.75rem; color: var(--orange); letter-spacing: 1px; font-weight: 700; text-transform: uppercase; }
-        
-        .carousel-viewport { position: relative; flex-grow: 1; width: 100%; height: 100%; }
-        
-        .sub-slide { 
-            position: absolute; inset: 0; padding: 25px; display: flex; flex-direction: column; justify-content: center; 
-            opacity: 0; pointer-events: none; background: var(--bg); border-radius: 12px; 
-            transform-origin: 50% 150%; 
-            transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s; 
-            will-change: transform; 
-            overflow: hidden; 
-        }
-        .sub-slide.opt-active { z-index: 30; opacity: 1; pointer-events: auto; transform: translateX(0); }
-        .sub-slide.opt-hidden { z-index: 0; opacity: 0; pointer-events: none; transform: scale(0.9); }
-        .sub-slide.static { z-index: 30; opacity: 1; pointer-events: auto; transform: none; }
+    .main-slide.active {
+      transform: translateY(0);
+      z-index: 10;
+    }
 
-        /* GYRO OVERLAYS */
-        .overlay-label {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            display: flex; align-items: center; justify-content: center;
-            font-family: var(--mono); font-size: 2.5rem; font-weight: 900; letter-spacing: 2px; text-transform: uppercase;
-            opacity: 0; pointer-events: none; z-index: 50; transition: opacity 0.05s linear;
-        }
-        .overlay-skip { background: rgba(255, 51, 51, 0.15); color: var(--red); transform: rotate(-10deg); }
-        .overlay-browse { background: rgba(66, 133, 244, 0.15); color: var(--blue); transform: rotate(10deg); }
-        .overlay-select { background: rgba(0, 230, 118, 0.15); color: var(--go); flex-direction: column; justify-content: flex-end; padding-bottom: 100px; }
+    .main-slide.next {
+      transform: translateY(100%);
+      z-index: 20;
+    }
 
-        /* UI ELEMENTS */
-        h1 { font-size: 1.8rem; margin: 0 0 15px 0; line-height: 1; letter-spacing: -1px; color: var(--orange); position: relative; z-index: 10; }
-        .primary-question { font-size: 1.1rem; color: #fff; margin-bottom: 25px; font-weight: 600; position: relative; z-index: 10; }
-        .price { font-size: 0.9rem; color: #aaa; margin-left: 10px; font-family: var(--mono); background: #222; padding: 2px 6px; border-radius: 4px; }
-        .role-label { font-family: var(--mono); font-size: 0.6rem; color: #000; background: var(--go); padding: 4px 8px; border-radius: 4px; width: fit-content; margin-bottom: 15px; font-weight: bold; position: relative; z-index: 10; }
-        .nav-hint { margin-top: 30px; padding-top: 20px; border-top: 1px solid #333; font-family: var(--mono); font-size: 0.7rem; color: #666; display: flex; justify-content: space-between; position: relative; z-index: 10; }
+    .slide-header {
+      padding: 20px;
+      border-left: 3px solid var(--orange);
+      height: 70px;
+      flex-shrink: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+    }
 
-        .lobby-container { display: flex; flex-direction: column; gap: 15px; padding: 30px; height: 100%; justify-content: center; }
-        .cuisine-btn { background: #222; border: 1px solid #444; color: #888; padding: 20px; font-size: 1.2rem; font-weight: bold; text-transform: uppercase; border-radius: 12px; transition: all 0.2s; }
-        .cuisine-btn.selected { background: var(--orange); color: #000; border-color: var(--orange); box-shadow: 0 0 15px rgba(255, 103, 31, 0.4); }
-        .hunt-btn { background: #fff; color: #000; font-weight: 900; margin-top: 30px; letter-spacing: 2px; padding: 15px; border-radius: 8px; border: none; cursor: pointer;}
-        
-        .toggle-btn {
-            background: transparent; border: 1px solid #666; color: #ccc; font-family: var(--mono); font-size: 0.7rem; font-weight: bold;
-            flex: 1; padding: 15px; border-radius: 8px; transition: all 0.3s; cursor: pointer;
-        }
-        .toggle-btn.active { border-color: var(--go); color: var(--go); background: rgba(0, 230, 118, 0.1); box-shadow: 0 0 15px rgba(0, 230, 118, 0.2); }
+    .header-title {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--orange);
+      letter-spacing: 1px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
 
-        .final-actions { display: grid; gap: 10px; margin-top: 20px; }
-        .btn { background: #222; color: #fff; border: 1px solid #333; padding: 15px; border-radius: 8px; font-weight: 600; text-align: center; font-size: 0.9rem; cursor: pointer; width: 100%; box-sizing: border-box;}
-        .btn-zomato { background: #cb202d; opacity: 0.5; border:none;} .btn-swiggy { background: #fc8019; opacity: 0.5; border:none;} .btn-blinkit { background: #f8cb46; color: #000; opacity: 0.5; border:none;}
-        .btn-wa { background: #25D366; color: #000; border: none; } .btn-cloud { background: #4285F4; border: none; }
-        .btn-zomato.active, .btn-swiggy.active, .btn-blinkit.active { opacity: 1; box-shadow: 0 0 10px rgba(255,255,255,0.2); }
-        
-        .verdict-container { display: flex; flex-direction: column; height: 100%; justify-content: center; }
-        .choice-header { font-family: var(--mono); color: #666; font-size: 0.8rem; margin-bottom: 20px; text-transform: uppercase; text-align: center; }
-        .input-group { border: 1px solid #333; background: #111; padding: 20px; border-radius: 8px; margin-bottom: 20px; min-height: 100px; max-height: 40vh; overflow-y: auto; }
-        .input-row { display: flex; justify-content: space-between; border-bottom: 1px dashed #333; padding: 10px 0; font-family: var(--mono); font-size: 0.8rem; }
-        .input-key { color: #888; text-transform: uppercase; } .input-val { color: var(--go); font-weight: bold; text-align: right; }
-        
-        .biz-card { background: linear-gradient(145deg, #111, #050505); border: 1px solid var(--orange); padding: 30px; border-radius: 12px; text-align: center; }
-        .biz-tagline { font-family: var(--mono); color: var(--orange); font-size: 0.7rem; margin-bottom: 10px; display: block; } .biz-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 20px; color: #fff; }
+    .carousel-viewport {
+      position: relative;
+      flex-grow: 1;
+      width: 100%;
+      height: 100%;
+    }
 
-        /* v11 PHYSICS UI */
-        #depth-fill { position: fixed; right: 0; top: 0; bottom: 0; width: 4px; background: #333; z-index: 900; height: 0%; transition: height 0.05s linear; }
+    .sub-slide {
+      position: absolute;
+      inset: 0;
+      padding: 25px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      background: var(--bg);
+      border-radius: 12px;
+      transform-origin: 50% 150%;
+      transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s;
+      will-change: transform;
+      overflow: hidden;
+    }
 
-        #mic-toggle { position: fixed; bottom: 20px; left: 20px; width: 50px; height: 50px; background: #111; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid #444; z-index: 2000; cursor: pointer; transition: all 0.3s; }
-        #mic-toggle svg { width: 24px; height: 24px; fill: #666; }
-        #mic-toggle.listening { border-color: var(--go); box-shadow: 0 0 15px rgba(0,230,118,0.3); }
-        #mic-toggle.listening svg { fill: var(--go); }
-        #toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: #222; color: #00e676; padding: 10px 20px; border: 1px solid #00e676; border-radius: 20px; font-family: var(--mono); font-size: 0.8rem; opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 3000; white-space: nowrap; }
-        #toast.visible { opacity: 1; }
-    </style>
+    .sub-slide.opt-active {
+      z-index: 30;
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateX(0);
+    }
+
+    .sub-slide.opt-hidden {
+      z-index: 0;
+      opacity: 0;
+      pointer-events: none;
+      transform: scale(0.9);
+    }
+
+    .sub-slide.static {
+      z-index: 30;
+      opacity: 1;
+      pointer-events: auto;
+      transform: none;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      margin: 0 0 15px 0;
+      line-height: 1;
+      letter-spacing: -1px;
+      color: var(--orange);
+      position: relative;
+      z-index: 10;
+    }
+
+    .primary-question {
+      font-size: 1.1rem;
+      color: #fff;
+      margin-bottom: 25px;
+      font-weight: 600;
+      position: relative;
+      z-index: 10;
+    }
+
+    .price {
+      font-size: 0.9rem;
+      color: #aaa;
+      margin-left: 10px;
+      font-family: var(--mono);
+      background: #222;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .role-label {
+      font-family: var(--mono);
+      font-size: 0.6rem;
+      color: #000;
+      background: var(--go);
+      padding: 4px 8px;
+      border-radius: 4px;
+      width: fit-content;
+      margin-bottom: 15px;
+      font-weight: bold;
+      position: relative;
+      z-index: 10;
+    }
+
+    .nav-hint {
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid #333;
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: #666;
+      display: flex;
+      justify-content: space-between;
+      position: relative;
+      z-index: 10;
+    }
+
+    .lobby-container {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      padding: 30px;
+      height: 100%;
+      justify-content: center;
+    }
+
+    .cuisine-btn {
+      background: #222;
+      border: 1px solid #444;
+      color: #888;
+      padding: 20px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      text-transform: uppercase;
+      border-radius: 12px;
+      transition: all 0.2s;
+    }
+
+    .cuisine-btn.selected {
+      background: var(--orange);
+      color: #000;
+      border-color: var(--orange);
+      box-shadow: 0 0 15px rgba(255, 103, 31, 0.4);
+    }
+
+    .hunt-btn {
+      background: #fff;
+      color: #000;
+      font-weight: 900;
+      margin-top: 30px;
+      letter-spacing: 2px;
+      padding: 15px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+    }
+
+    .final-actions {
+      display: grid;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .btn {
+      background: #222;
+      color: #fff;
+      border: 1px solid #333;
+      padding: 15px;
+      border-radius: 8px;
+      font-weight: 600;
+      text-align: center;
+      font-size: 0.9rem;
+      cursor: pointer;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .btn-wa {
+      background: #25D366;
+      color: #000;
+      border: none;
+    }
+
+    .btn-zomato {
+      background: #cb202d;
+      opacity: 1;
+      border: none;
+    }
+
+    .btn-swiggy {
+      background: #fc8019;
+      opacity: 1;
+      border: none;
+    }
+
+    .btn-blinkit {
+      background: #f8cb46;
+      color: #000;
+      opacity: 1;
+      border: none;
+    }
+
+    .verdict-container {
+      display: flex; flex-direction: column; height: 100%; justify-content: center;
+    }
+
+    .choice-header {
+      font-family: var(--mono); color: #666; font-size: 0.8rem; margin-bottom: 20px; text-transform: uppercase; text-align: center;
+    }
+
+    .input-group {
+      border: 1px solid #333; background: #111; padding: 20px; border-radius: 8px; margin-bottom: 20px; min-height: 100px; max-height: 40vh; overflow-y: auto;
+    }
+
+    .input-row {
+      display: flex; justify-content: space-between; border-bottom: 1px dashed #333; padding: 10px 0; font-family: var(--mono); font-size: 0.8rem;
+    }
+
+    .input-key { color: #888; text-transform: uppercase; }
+
+    .input-val { color: var(--go); font-weight: bold; text-align: right; }
+
+    .biz-card {
+      background: linear-gradient(145deg, #111, #050505); border: 1px solid var(--orange); padding: 30px; border-radius: 12px; text-align: center;
+    }
+
+    .biz-tagline { font-family: var(--mono); color: var(--orange); font-size: 0.7rem; margin-bottom: 10px; display: block; }
+
+    .biz-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 20px; color: #fff; }
+
+    #depth-fill { position: fixed; right: 0; top: 0; bottom: 0; width: 4px; background: #333; z-index: 900; height: 0%; transition: height 0.05s linear; }
+
+    #mic-toggle {
+      position: fixed; bottom: 20px; left: 20px; width: 50px; height: 50px; background: #111; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid #444; z-index: 2000; cursor: pointer; transition: all 0.3s;
+    }
+
+    #mic-toggle svg { width: 24px; height: 24px; fill: #666; }
+
+    #mic-toggle.listening { border-color: var(--go); box-shadow: 0 0 15px rgba(0,230,118,0.3); }
+
+    #mic-toggle.listening svg { fill: var(--go); }
+
+    #toast {
+      position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: #222; color: #00e676; padding: 10px 20px; border: 1px solid #00e676; border-radius: 20px; font-family: var(--mono); font-size: 0.8rem; opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 3000; white-space: nowrap;
+    }
+
+    #toast.visible { opacity: 1; }
+  </style>
 </head>
+
 <body>
-
-<div id="gyro-status" class="status-pill">GYRO ACTIVE</div>
-<div id="eye-status" class="status-pill">EYE TRACKING</div>
-<div id="gaze-dot"></div>
-
-<div id="master-container"></div>
-<div id="depth-fill"></div>
-<div id="toast" class="toast-msg"></div>
-
-<div id="mic-toggle" onclick="toggleListenMode()">
-    <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
-</div>
-
-<script>
-    // --- 1. DATA (IMMEDIATE LOAD) ---
+  <div id="master-container"></div>
+  <div id="depth-fill"></div>
+  <div id="toast" class="toast-msg"></div>
+  <div id="mic-toggle" onclick="toggleListenMode()">
+    <svg viewBox="0 0 24 24">
+      <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z" />
+      <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z" />
+    </svg>
+  </div>
+  <script>
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyBMwKxq92U0dptKMdEHvUCXPS9AjExHtxHjcRmfh2JFjCSn9Zd82bzp34xLg6X0a7L9g/exec";
-    let SENSORS_ENABLED = false;
-    let GAZE_ENABLED = false;
-    
     const RAW_DATA = {
-        "punjabi": {
-          "label": "PUNJABI",
-          "categories": [
-            { "id": "p_breads", "label": "Breads", "items": [ { "name": "Butter Naan", "price": 40 }, { "name": "Garlic Naan", "price": 50 }, { "name": "Tandoori Roti", "price": 25 }, { "name": "Lachha Paratha", "price": 55 } ] },
-            { "id": "p_mains", "label": "Mains", "items": [ { "name": "Dal Makhani", "price": 220 }, { "name": "Paneer Butter Masala", "price": 240 }, { "name": "Shahi Paneer", "price": 250 }, { "name": "Butter Chicken", "price": 280 }, { "name": "Kadai Paneer", "price": 230 } ] },
-            { "id": "p_rice", "label": "Rice", "items": [ { "name": "Jeera Rice", "price": 150 }, { "name": "Veg Pulao", "price": 160 }, { "name": "Chicken Biryani", "price": 290 } ] },
-            { "id": "p_beverages", "label": "Beverages", "items": [ { "name": "Sweet Lassi", "price": 60 }, { "name": "Salted Lassi", "price": 50 }, { "name": "Masala Chaas", "price": 40 } ] }
-          ]
-        },
-        "chinese": {
-          "label": "CHINESE",
-          "categories": [
-            { "id": "c_dimsum", "label": "Dim Sum", "items": [ { "name": "Veg Crystal Dumpling", "price": 220 }, { "name": "Pork Siu Mai", "price": 260 }, { "name": "Har Gao", "price": 280 } ] },
-            { "id": "c_noodles", "label": "Noodles", "items": [ { "name": "Lo Mein", "price": 220 }, { "name": "Dan Dan Noodles", "price": 260 }, { "name": "Hakka Noodles", "price": 200 } ] },
-            { "id": "c_wok", "label": "Wok Specials", "items": [ { "name": "Kung Pao Chicken", "price": 280 }, { "name": "Mapo Tofu", "price": 240 }, { "name": "Chilli Chicken", "price": 260 } ] }
-          ]
-        },
-        "pizza": {
-          "label": "PIZZA",
-          "categories": [
-            { "id": "z_classic", "label": "Classic", "items": [ { "name": "Margherita", "price": 350 }, { "name": "Marinara", "price": 330 }, { "name": "Pepperoni", "price": 450 } ] },
-            { "id": "z_gourmet", "label": "Gourmet", "items": [ { "name": "Burrata Pizza", "price": 550 }, { "name": "Truffle Mushroom Pizza", "price": 520 }, { "name": "Wood Fired Chicken Pizza", "price": 480 } ] }
-          ]
-        },
-        "snacks": {
-          "label": "NASTA PANI",
-          "categories": [
-            { "id": "s_packaged", "label": "Packaged", "items": [ { "name": "Coke", "price": 40 }, { "name": "Thums Up", "price": 40 }, { "name": "Chips", "price": 20 }, { "name": "Kurkure", "price": 20 } ] },
-            { "id": "s_hot", "label": "Hot Snacks", "items": [ { "name": "Samosa", "price": 20 }, { "name": "Veg Puff", "price": 30 }, { "name": "Burger", "price": 60 } ] }
-          ]
-        }
+      "punjabi": {
+        "label": "PUNJABI",
+        "categories": [{
+          "id": "p_breads",
+          "label": "Breads",
+          "items": [{
+            "name": "Butter Naan",
+            "price": 40
+          }, {
+            "name": "Garlic Naan",
+            "price": 50
+          }, {
+            "name": "Tandoori Roti",
+            "price": 25
+          }, {
+            "name": "Lachha Paratha",
+            "price": 55
+          }]
+        }, {
+          "id": "p_mains",
+          "label": "Mains",
+          "items": [{
+            "name": "Dal Makhani",
+            "price": 220
+          }, {
+            "name": "Paneer Butter Masala",
+            "price": 240
+          }, {
+            "name": "Shahi Paneer",
+            "price": 250
+          }, {
+            "name": "Butter Chicken",
+            "price": 280
+          }, {
+            "name": "Kadai Paneer",
+            "price": 230
+          }]
+        }]
+      },
+      "chinese": {
+        "label": "CHINESE",
+        "categories": [{
+          "id": "c_dimsum",
+          "label": "Dim Sum",
+          "items": [{
+            "name": "Veg Crystal Dumpling",
+            "price": 220
+          }, {
+            "name": "Pork Siu Mai",
+            "price": 260
+          }, {
+            "name": "Har Gao",
+            "price": 280
+          }]
+        }, {
+          "id": "c_noodles",
+          "label": "Noodles",
+          "items": [{
+            "name": "Lo Mein",
+            "price": 220
+          }, {
+            "name": "Dan Dan Noodles",
+            "price": 260
+          }, {
+            "name": "Hakka Noodles",
+            "price": 200
+          }]
+        }, {
+          "id": "c_wok",
+          "label": "Wok Specials",
+          "items": [{
+            "name": "Kung Pao Chicken",
+            "price": 280
+          }, {
+            "name": "Mapo Tofu",
+            "price": 240
+          }, {
+            "name": "Chilli Chicken",
+            "price": 260
+          }]
+        }]
+      },
+      "pizza": {
+        "label": "PIZZA",
+        "categories": [{
+          "id": "z_classic",
+          "label": "Classic",
+          "items": [{
+            "name": "Margherita",
+            "price": 350
+          }, {
+            "name": "Marinara",
+            "price": 330
+          }, {
+            "name": "Pepperoni",
+            "price": 450
+          }]
+        }, {
+          "id": "z_gourmet",
+          "label": "Gourmet",
+          "items": [{
+            "name": "Burrata Pizza",
+            "price": 550
+          }, {
+            "name": "Truffle Mushroom Pizza",
+            "price": 520
+          }, {
+            "name": "Wood Fired Chicken Pizza",
+            "price": 480
+          }]
+        }]
+      },
+      "snacks": {
+        "label": "NASTA PANI",
+        "categories": [{
+          "id": "s_packaged",
+          "label": "Packaged",
+          "items": [{
+            "name": "Coke",
+            "price": 40
+          }, {
+            "name": "Thums Up",
+            "price": 40
+          }, {
+            "name": "Chips",
+            "price": 20
+          }, {
+            "name": "Kurkure",
+            "price": 20
+          }]
+        }, {
+          "id": "s_hot",
+          "label": "Hot Snacks",
+          "items": [{
+            "name": "Samosa",
+            "price": 20
+          }, {
+            "name": "Veg Puff",
+            "price": 30
+          }, {
+            "name": "Burger",
+            "price": 60
+          }]
+        }]
+      }
     };
-    
-    let ENGINE_STATE = { session_id: "auto-" + Date.now(), cuisines_detected: [], items_detected: {}, platform_strategy: { fulfillment: [] } };
-
-    // --- 2. INPUT ENGINES ---
-    let lastInputTs = 0;
-    let TOUCH_ACTIVE = false;
-
-    // GAZE (UVC PATCHED)
-    class GazeController {
-        constructor() { this.active = false; }
-        start() {
-            if(this.active || typeof webgazer === 'undefined') { showToast("UVC LOADING..."); return; }
-            this.active = true;
-            document.getElementById('eye-status').classList.add('active-pill');
-            document.getElementById('gaze-dot').style.display = 'block';
-            document.getElementById('btn-eye').classList.add('active');
-            
-            webgazer.setGazeListener((data, elapsed) => {
-                if (data == null || TOUCH_ACTIVE || !GAZE_ENABLED) return;
-                const dot = document.getElementById('gaze-dot');
-                dot.style.left = data.x + 'px'; dot.style.top = data.y + 'px';
-                if (Date.now() - lastInputTs > 1500) {
-                    if (data.y < window.innerHeight * 0.2) { executeAction("SELECT"); lastInputTs = Date.now(); }
-                    else if (data.x < window.innerWidth * 0.2) { executeAction("SKIP"); lastInputTs = Date.now(); }
-                    else if (data.x > window.innerWidth * 0.8) { executeAction("BROWSE"); lastInputTs = Date.now(); }
-                }
-            }).begin();
-        }
-    }
-    const gazeEngine = new GazeController();
-
-    // PHYSICS + GYRO
-    class PhysicsController {
-        constructor(el, cbs) {
-            this.el = el; this.cbs = cbs; this.active = false; this.current = {x:0, y:0}; this.target = {x:0, y:0};
-            this.oSkip = el.querySelector('.overlay-skip');
-            this.oBrowse = el.querySelector('.overlay-browse');
-            this.oSelect = el.querySelector('.overlay-select');
-
-            const s = e => this.start(e); const m = e => this.move(e); const e2 = () => this.end();
-            el.addEventListener("mousedown",s); window.addEventListener("mousemove",m); window.addEventListener("mouseup",e2);
-            el.addEventListener("touchstart",s,{passive:false}); el.addEventListener("touchmove",e=>{if(this.active)e.preventDefault();m(e)},{passive:false}); el.addEventListener("touchend",e2);
-            
-            if(SENSORS_ENABLED) {
-                this.handleOrient = this.handleOrient.bind(this);
-                if(window.DeviceOrientationEvent) window.addEventListener("deviceorientation", this.handleOrient);
-                this.loop();
-            }
-        }
-        cleanup() { window.removeEventListener("deviceorientation", this.handleOrient); }
-        loop() {
-            if(!SENSORS_ENABLED || TOUCH_ACTIVE) return;
-            this.current.x += (this.target.x - this.current.x) * 0.08;
-            this.current.y += (this.target.y - this.current.y) * 0.08;
-            this.updateVisuals(this.current.x, this.current.y);
-            
-            if(Math.abs(this.current.x) > 200) this.commit(Math.sign(this.current.x)*100, 0);
-            else if(Math.abs(this.current.y) > 200) this.commit(0, Math.sign(this.current.y)*100);
-            else requestAnimationFrame(() => this.loop());
-        }
-        handleOrient(e) {
-            if(this.active) return;
-            let g = e.gamma; let b = e.beta - 45;
-            if(Math.abs(g) > 1) this.target.x = 1000 * Math.tan(g * Math.PI / 180); else this.target.x = 0;
-            if(Math.abs(b) > 1) this.target.y = 1000 * Math.tan(b * Math.PI / 180); else this.target.y = 0;
-        }
-        start(e) { 
-            this.active=true; TOUCH_ACTIVE=true; 
-            this.startPos={x:(e.touches?e.touches[0]:e).clientX, y:(e.touches?e.touches[0]:e).clientY}; 
-            this.el.style.transition="none"; 
-        }
-        move(e) { 
-            if(!this.active) return; 
-            const c = (e.touches?e.touches[0]:e); 
-            // v11 PHYSICS: Vertical Drag fills bar
-            const dy = c.clientY - this.startPos.y;
-            const dx = c.clientX - this.startPos.x;
-            if(Math.abs(dy) > Math.abs(dx)) {
-                let ratio = Math.min(dy/250, 1);
-                if(dy>0) document.getElementById('depth-fill').style.height = (ratio*100)+'%';
-            }
-            this.updateVisuals(dx, dy); 
-        }
-        updateVisuals(dx, dy) {
-            this.el.style.transform = `translate(${dx}px, ${dy}px) rotate(${dx/20}deg)`;
-            const opX = Math.min(Math.abs(dx)/150, 1);
-            const opY = Math.min(Math.abs(dy)/150, 1);
-            if(this.oSkip) this.oSkip.style.opacity = (dx < -20) ? opX : 0;
-            if(this.oBrowse) this.oBrowse.style.opacity = (dx > 20) ? opX : 0;
-            if(this.oSelect) this.oSelect.style.opacity = (dy > 20) ? opY : 0; // v11: Down is select
-        }
-        end() { 
-            if(!this.active) return; this.active=false; TOUCH_ACTIVE=false;
-            document.getElementById('depth-fill').style.height = '0%';
-            const m = new WebKitCSSMatrix(getComputedStyle(this.el).transform);
-            if(Math.hypot(m.m41, m.m42) > 80) this.commit(m.m41, m.m42);
-            else { 
-                this.el.style.transition="0.3s ease"; 
-                this.el.style.transform="translate(0,0)"; 
-                if(this.oSkip) this.oSkip.style.opacity=0;
-                if(this.oBrowse) this.oBrowse.style.opacity=0;
-                if(this.oSelect) this.oSelect.style.opacity=0;
-            }
-        }
-        commit(dx, dy) {
-            let dir = "RIGHT";
-            const a = (Math.atan2(-dy, dx) * 180 / Math.PI + 360) % 360;
-            if(a>45 && a<135) dir = "UP"; else if(a>135 && a<225) dir = "LEFT"; else if(a>225 && a<315) dir = "DOWN"; 
-            this.el.style.transition = "0.4s ease";
-            this.el.style.transform = `translate(${dx*4}px, ${dy*4}px)`;
-            this.el.style.opacity = "0";
-            setTimeout(() => { this.cleanup(); this.cbs(dir); }, 300);
-        }
-    }
-
-    // --- 3. APP LOGIC ---
+    let ENGINE_STATE = {
+      session_id: "auto-" + Date.now(),
+      cuisines_detected: [],
+      items_detected: {}
+    };
     let container = document.getElementById('master-container');
-    let slideElements = [], currentIdx = 0, activePhysics = null;
+    let slideElements = [], currentIdx = 0, rec;
 
-    async function boot() { renderLobby(); initVoice(); }
+    async function boot() { renderLobby(); }
 
     function renderLobby() {
-        container.innerHTML = `
-        <section class="main-slide active" id="lobby">
-            <div class="slide-header"><span class="header-title">SWIPE-OS v16.7</span></div>
-            <div class="lobby-container">
-                <h1>AAJ KYA MANGVAAYEGE!</h1>
-                <div id="cuisine-grid" style="display:grid; gap:15px;">
-                    <button class="cuisine-btn" onclick="toggleCuisine('punjabi', this)">PUNJABI</button>
-                    <button class="cuisine-btn" onclick="toggleCuisine('chinese', this)">CHINESE</button>
-                    <button class="cuisine-btn" onclick="toggleCuisine('pizza', this)">PIZZA</button>
-                    <button class="cuisine-btn" onclick="toggleCuisine('snacks', this)">NASTA PANI</button>
-                </div>
-                <button class="hunt-btn" onclick="startHunt()">HUNT &rarr;</button>
-                <div style="display:flex;gap:10px;margin-top:15px">
-                    <button id="btn-gyro" class="toggle-btn" onclick="reqGyro()">ENABLE GYRO</button>
-                    <button id="btn-eye" class="toggle-btn" onclick="reqGaze()">ENABLE EYES</button>
-                </div>
-            </div>
-        </section>`;
-        slideElements = [document.getElementById('lobby')];
-        if(ENGINE_STATE.cuisines_detected) ENGINE_STATE.cuisines_detected.forEach(c => { const b = document.querySelector(`button[onclick*='${c}']`); if(b) b.classList.add('selected'); });
+      container.innerHTML = `
+<section class="main-slide active" id="lobby">
+  <div class="slide-header">
+    <span class="header-title">[ your branding ] powered by swipe.OS </span>
+  </div>
+  <div class="lobby-container">
+    <h1>AAJ KYA MANGVAAYEGE!</h1>
+    <div id="cuisine-grid" style="display:grid; gap:15px;">
+      <button class="cuisine-btn" onclick="toggleCuisine('punjabi', this)">PUNJABI</button>
+      <button class="cuisine-btn" onclick="toggleCuisine('chinese', this)">CHINESE</button>
+      <button class="cuisine-btn" onclick="toggleCuisine('pizza', this)">PIZZA</button>
+      <button class="cuisine-btn" onclick="toggleCuisine('snacks', this)">NASTA PANI</button>
+    </div>
+    <button class="hunt-btn" onclick="startHunt()">HUNT →</button>
+  </div>
+</section>`;
+      slideElements = [document.getElementById('lobby')];
     }
 
     function toggleCuisine(id, btn) {
-        if(ENGINE_STATE.cuisines_detected.includes(id)) { ENGINE_STATE.cuisines_detected = ENGINE_STATE.cuisines_detected.filter(c=>c!==id); btn.classList.remove('selected'); }
-        else { ENGINE_STATE.cuisines_detected.push(id); btn.classList.add('selected'); }
-        localStorage.setItem("ENGINE_STATE_CACHE", JSON.stringify(ENGINE_STATE));
-    }
-
-    function reqGyro() { 
-        SENSORS_ENABLED = true; 
-        document.getElementById('gyro-status').classList.add('active-pill'); 
-        document.getElementById('btn-gyro').classList.add('active'); 
-        showToast("GYRO ACTIVE"); 
-    }
-    function reqGaze() { 
-        GAZE_ENABLED = true;
-        gazeEngine.start(); 
-        document.getElementById('btn-eye').classList.add('active'); 
-        showToast("EYE TRACKING ON"); 
+      if (ENGINE_STATE.cuisines_detected.includes(id)) {
+        ENGINE_STATE.cuisines_detected = ENGINE_STATE.cuisines_detected.filter(c => c !== id);
+        btn.classList.remove('selected');
+      } else {
+        ENGINE_STATE.cuisines_detected.push(id);
+        btn.classList.add('selected');
+      }
     }
 
     function startHunt() {
-        if(ENGINE_STATE.cuisines_detected.length === 0) { showToast("SELECT A CUISINE"); return; }
-        
-        container.innerHTML = ""; slideElements = [];
-        ENGINE_STATE.cuisines_detected.forEach(cId => {
-            if(RAW_DATA[cId]) {
-                RAW_DATA[cId].categories.forEach(cat => {
-                    const s = document.createElement('section'); s.className = 'main-slide next'; s.id = cat.id; s.dataset.mode = 'options';
-                    let h = `<div class="slide-header"><span class="header-title">${cat.label}</span></div><div class="carousel-viewport">`;
-                    cat.items.forEach((item, i) => {
-                        h += `
-                        <div class="sub-slide ${i===0?'opt-active':'opt-hidden'}" data-val="${item.name}">
-                            <div class="overlay-label overlay-skip">SKIP</div>
-                            <div class="overlay-label overlay-browse">BROWSE</div>
-                            <div class="overlay-label overlay-select">SELECT</div>
-                            <div class="role-label">${cat.label}</div>
-                            <h1>${item.name} ${item.price?`<span class="price">₹${item.price}</span>`:""}</h1>
-                            <div class="primary-question">Swipe / Tilt / Voice</div>
-                            <div class="nav-hint"><span>SKIP</span><span>SELECT</span><span>BROWSE</span></div>
-                        </div>`;
-                    });
-                    s.innerHTML = h + `</div>`; container.appendChild(s);
-                });
-            }
+      if (ENGINE_STATE.cuisines_detected.length === 0) {
+        showToast("SELECT A CUISINE");
+        return;
+      }
+      container.innerHTML = "";
+      slideElements = [];
+      ENGINE_STATE.cuisines_detected.forEach(cId => {
+        if (RAW_DATA[cId]) RAW_DATA[cId].categories.forEach(cat => {
+          const s = document.createElement('section');
+          s.className = 'main-slide next';
+          s.id = cat.id;
+          s.dataset.mode = 'options';
+          let h = `
+<div class="slide-header">
+  <span class="header-title">${cat.label}</span>
+</div>
+<div class="carousel-viewport">`;
+          cat.items.forEach((item, i) => {
+            h += `
+<div class="sub-slide ${i === 0 ? 'opt-active' : 'opt-hidden'}" data-val="${item.name}">
+  <div class="role-label">${cat.label}</div>
+  <h1>${item.name} ${item.price ? `<span class="price">₹${item.price}</span>` : ""}</h1>
+  <div class="primary-question">Swipe Right to Browse</div>
+  <div class="nav-hint"><span>SKIP</span><span>SELECT</span><span>BROWSE</span></div>
+</div>`;
+          });
+          s.innerHTML = h + `</div>`;
+          container.appendChild(s);
         });
-
-        const final = document.createElement('section'); final.className = 'main-slide next'; final.id = 'final';
-        final.innerHTML = `<div class="sub-slide static"><div class="verdict-container"><div class="choice-header">FINAL ORDER</div><div class="input-group" id="final-list"></div><div class="final-actions"><button class="btn btn-zomato" onclick="link('zomato')">ZOMATO</button><button class="btn btn-swiggy" onclick="link('swiggy')">SWIGGY</button><button class="btn btn-blinkit" onclick="link('blinkit')">BLINKIT</button><button class="btn btn-cloud" onclick="copyOrder()">COPY ORDER</button><button class="btn btn-wa" onclick="goToSlide(currentIdx+1)">WHATSAPP &rarr;</button></div></div></div>`;
-        container.appendChild(final);
-
-        const biz = document.createElement('section'); biz.className = 'main-slide next'; biz.id = 'business';
-        biz.innerHTML = `<div class="sub-slide static"><div class="biz-card"><span class="biz-tagline">POWERED BY KUTCH AUTOMATION</span><div class="biz-title">BUILD YOUR OWN ENGINE</div><div class="final-actions"><button class="btn btn-wa" onclick="sendWa()">WHATSAPP CTA &rarr;</button><button class="btn" style="border:1px solid #333; margin-top:10px;" onclick="location.reload()">RESTART</button></div></div></div>`;
-        container.appendChild(biz);
-        
-        slideElements = Array.from(document.querySelectorAll('.main-slide'));
-        slideElements[0].className = "main-slide active";
-        currentIdx = 0;
-        if(slideElements[0].dataset.mode === 'options') attachPhysics(slideElements[0].querySelector('.sub-slide'));
-    }
-
-    function attachPhysics(el) {
-        if(activePhysics) activePhysics.cleanup();
-        activePhysics = new PhysicsController(el, (dir) => {
-            const view = slideElements[currentIdx].querySelector('.carousel-viewport');
-            const val = el.dataset.val;
-            if(dir === "DOWN") { updateCart("ADD", val); showToast("ADDED"); nextSlide(); }
-            else if(dir === "LEFT") { showToast("SKIPPED"); nextSlide(); }
-            else if(dir === "RIGHT") { 
-                const slides = view.querySelectorAll('.sub-slide');
-                let curr = 0; 
-                slides.forEach((s,i) => { 
-                    if(s.classList.contains('opt-active')) curr = i; 
-                    s.classList.remove('opt-active'); s.classList.add('opt-hidden'); 
-                    setTimeout(()=>{ s.style.transform = ''; s.style.opacity = '1'; }, 300);
-                });
-                const next = slides[(curr+1)%slides.length];
-                next.classList.remove('opt-hidden'); next.classList.add('opt-active');
-                next.style.transform = ''; next.style.opacity = '1'; 
-                attachPhysics(next);
-            }
-            else { el.style.transform = ""; el.style.opacity = "1"; }
-        });
+      });
+      const final = document.createElement('section');
+      final.className = 'main-slide next';
+      final.id = 'final';
+      final.innerHTML = `
+<div class="sub-slide static">
+  <div class="verdict-container">
+    <div class="choice-header">FINAL ORDER</div>
+    <div class="input-group" id="final-list"></div>
+    <div class="final-actions">
+      <button class="btn btn-zomato" onclick="link('zomato')">ZOMATO</button>
+      <button class="btn btn-swiggy" onclick="link('swiggy')">SWIGGY</button>
+      <button class="btn btn-blinkit" onclick="link('blinkit')">BLINKIT</button>
+      <button class="btn btn-wa" onclick="goToSlide(currentIdx+1)">WHATSAPP →</button>
+    </div>
+  </div>
+</div>`;
+      container.appendChild(final);
+      const biz = document.createElement('section');
+      biz.className = 'main-slide next';
+      biz.id = 'business';
+      biz.innerHTML = `
+<div class="sub-slide static">
+  <div class="biz-card">
+    <span class="biz-tagline">POWERED BY KUTCH AUTOMATION</span>
+    <div class="biz-title">BUILD YOUR OWN ENGINE</div>
+    <div class="biz-desc" style="margin:12px 0 24px 0; color:#aaa; font-size:0.85rem; line-height:1.4;">
+      You just used one.<br>
+      This is how decisions move without platforms.
+    </div>
+    <div class="final-actions">
+      <button class="btn btn-wa" onclick="sendWa()">CHAT WITH AI</button>
+      <button class="btn" onclick="location.reload()">RESTART</button>
+    </div>
+  </div>
+</div>`;
+      container.appendChild(biz);
+      slideElements = Array.from(document.querySelectorAll('.main-slide'));
+      slideElements[0].className = "main-slide active";
+      currentIdx = 0;
+      attachEvents();
     }
 
     function nextSlide() {
-        if(currentIdx >= slideElements.length - 1) return;
-        slideElements[currentIdx].classList.remove('active'); slideElements[currentIdx].classList.add('prev');
-        currentIdx++;
-        slideElements[currentIdx].classList.remove('next'); slideElements[currentIdx].classList.add('active');
-        if(slideElements[currentIdx].id === 'final') renderCart();
-        else if(slideElements[currentIdx].dataset.mode === 'options') attachPhysics(slideElements[currentIdx].querySelector('.sub-slide'));
+      if (currentIdx >= slideElements.length - 1) return;
+      goToSlide(currentIdx + 1);
     }
 
-    function updateCart(action, item) {
-        if(action === "ADD") { 
-            const qty = (ENGINE_STATE.items_detected[item]?.qty || 0) + 1;
-            ENGINE_STATE.items_detected[item] = { qty: qty, price: getPrice(item) };
-        }
-        localStorage.setItem("ENGINE_STATE_CACHE", JSON.stringify(ENGINE_STATE));
+    function goToSlide(idx) {
+      if (idx < 0 || idx >= slideElements.length) return;
+      slideElements[currentIdx].classList.remove('active');
+      slideElements[currentIdx].classList.add(idx > currentIdx ? 'prev' : 'next');
+      currentIdx = idx;
+      slideElements[currentIdx].classList.remove('prev', 'next');
+      slideElements[currentIdx].classList.add('active');
+      if (slideElements[currentIdx].id === 'final') renderCart();
+      document.getElementById('depth-fill').style.height = '0%';
+    }
+
+    function updateCart(action, name, qty = 1) {
+      if (action === "ADD") {
+        const cur = (ENGINE_STATE.items_detected[name]?.qty || 0);
+        ENGINE_STATE.items_detected[name] = {
+          qty: cur + qty,
+          price: getPrice(name)
+        };
+      } else if (action === "REMOVE") {
+        delete ENGINE_STATE.items_detected[name];
+      } else if (action === "DOUBLE") {
+        if (ENGINE_STATE.items_detected[name]) ENGINE_STATE.items_detected[name].qty *= 2;
+      } else if (action === "HALF") {
+        if (ENGINE_STATE.items_detected[name]) ENGINE_STATE.items_detected[name].qty = Math.ceil(ENGINE_STATE.items_detected[name].qty / 2);
+      }
+      if (slideElements[currentIdx].id === 'final') renderCart();
     }
 
     function getPrice(name) {
-        for(let c in RAW_DATA) for(let cat of RAW_DATA[c].categories) for(let i of cat.items) if(i.name === name) return i.price;
-        return 0;
-    }
-
-    function renderCart() {
-        const list = document.getElementById('final-list');
-        let h = "", total = 0;
-        for(let [k,v] of Object.entries(ENGINE_STATE.items_detected)) {
-            h += `<div class="input-row"><span class="input-key">${k}</span><span class="input-val">x${v.qty} · ₹${v.price*v.qty}</span></div>`;
-            total += v.price*v.qty;
-        }
-        h += `<div class="input-row" style="border-top:1px solid #444;margin-top:10px"><span>TOTAL</span><span>₹${total}</span></div>`;
-        list.innerHTML = h;
-    }
-
-    function executeAction(act) {
-        if(document.getElementById('lobby')) return;
-        const s = slideElements[currentIdx];
-        if(s.dataset.mode === 'options') {
-            const val = s.querySelector('.opt-active').dataset.val;
-            if(act === "SELECT") { updateCart("ADD", val); showToast("ADDED"); nextSlide(); }
-            if(act === "SKIP") { showToast("SKIPPED"); nextSlide(); }
-            if(act === "BROWSE") {
-                const view = s.querySelector('.carousel-viewport');
-                const slides = view.querySelectorAll('.sub-slide');
-                let curr = 0; 
-                slides.forEach((s,i) => { if(s.classList.contains('opt-active')) curr = i; s.classList.remove('opt-active'); s.classList.add('opt-hidden'); setTimeout(()=>{s.style.transform='';s.style.opacity='1'},300); });
-                const next = slides[(curr+1)%slides.length];
-                next.classList.remove('opt-hidden'); next.classList.add('opt-active');
-                next.style.transform = ''; next.style.opacity = '1';
-                attachPhysics(next);
-            }
-        }
+      for (let c in RAW_DATA)
+        for (let cat of RAW_DATA[c].categories)
+          for (let i of cat.items)
+            if (i.name.toLowerCase() === name.toLowerCase()) return i.price;
+      return 0;
     }
 
     function getCategory(name) {
-        for(let c in RAW_DATA) for(let cat of RAW_DATA[c].categories) for(let i of cat.items) if(i.name === name) return cat.id;
-        return "";
+      for (let c in RAW_DATA)
+        for (let cat of RAW_DATA[c].categories)
+          for (let i of cat.items)
+            if (i.name === name) return cat.id;
+      return "";
     }
-    function link(p) {
-        const allItems = Object.keys(ENGINE_STATE.items_detected);
-        let validItems = [];
-        if (p === 'blinkit') {
-            validItems = allItems.filter(name => { const cat = getCategory(name); return cat.startsWith("s_") || cat.includes("beverage"); });
-        } else {
-            validItems = allItems.filter(name => { const cat = getCategory(name); return !cat.startsWith("s_packaged"); });
+
+    function renderCart() {
+      const list = document.getElementById('final-list');
+      if (!list) return;
+      let h = "", total = 0;
+      for (let [k, v] of Object.entries(ENGINE_STATE.items_detected)) {
+        h += `
+<div class="input-row">
+  <span class="input-key">${k}</span>
+  <span class="input-val">x${v.qty} · ₹${v.price * v.qty}</span>
+</div>`;
+        total += v.price * v.qty;
+      }
+      h += `
+<div class="input-row" style="border-top:1px solid #444;margin-top:10px">
+  <span>TOTAL</span><span>₹${total}</span>
+</div>`;
+      list.innerHTML = h || `<div style="text-align:center;color:#666;margin-top:20px;">Cart is empty.</div>`;
+    }
+
+    function executeAction(act) {
+      if (document.getElementById('lobby')) return;
+      const s = slideElements[currentIdx];
+      if (s.dataset.mode === 'options') {
+        const val = s.querySelector('.opt-active').dataset.val;
+        if (act === "SELECT") {
+          updateCart("ADD", val);
+          showToast(`ADDED ${val}`);
+          nextSlide();
         }
-        if (validItems.length === 0) return showToast("NO ITEMS FOR THIS APP");
-        const q = encodeURIComponent(validItems.map(k => `${k} x${ENGINE_STATE.items_detected[k].qty}`).join(", "));
-        const urls = { zomato: `https://www.zomato.com/search?q=${q}`, swiggy: `https://www.swiggy.com/search?query=${q}`, blinkit: `https://blinkit.com/s/?q=${q}` };
-        window.open(urls[p], '_blank');
+        if (act === "SKIP") {
+          showToast(`SKIPPED`);
+          nextSlide();
+        }
+        if (act === "BROWSE") {
+          const view = s.querySelector('.carousel-viewport');
+          const slides = view.querySelectorAll('.sub-slide');
+          let curr = 0;
+          slides.forEach((sl, i) => {
+            if (sl.classList.contains('opt-active')) curr = i;
+            sl.classList.remove('opt-active');
+            sl.classList.add('opt-hidden');
+            sl.style.transform = '';
+            sl.style.opacity = '1';
+          });
+          const nxt = slides[(curr + 1) % slides.length];
+          nxt.classList.remove('opt-hidden');
+          nxt.classList.add('opt-active');
+        }
+      }
+    }
+
+    function attachEvents() {
+      document.querySelectorAll('.carousel-viewport').forEach(view => {
+        let startX = 0, startY = 0;
+        view.addEventListener('touchstart', e => {
+          startX = e.touches[0].clientX;
+          startY = e.touches[0].clientY;
+        }, {
+          passive: true
+        });
+        view.addEventListener('touchmove', e => {
+          const dx = e.touches[0].clientX - startX;
+          const dy = e.touches[0].clientY - startY;
+          const axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+          if (axis === 'y' && dy > 0) {
+            e.preventDefault();
+            let dragRatio = Math.min(dy / 250, 1);
+            document.getElementById('depth-fill').style.height = (dragRatio * 100) + '%';
+          }
+        }, {
+          passive: false
+        });
+        view.addEventListener('touchend', e => {
+          const dx = e.changedTouches[0].clientX - startX;
+          const dy = e.changedTouches[0].clientY - startY;
+          const axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+          if (axis === 'y') {
+            if (dy < -50) executeAction('PREV');
+            else if (dy > 50) executeAction('SELECT');
+          } else if (axis === 'x' && view.closest('.main-slide').dataset.mode === 'options') {
+            if (dx < -50) executeAction('SKIP');
+            else if (dx > 50) executeAction('BROWSE');
+          }
+          document.getElementById('depth-fill').style.height = '0%';
+        });
+      });
+    }
+
+    function link(p) {
+      const cartItems = Object.keys(ENGINE_STATE.items_detected);
+      if (!cartItems.length) return showToast("CART EMPTY");
+      let validItems = [];
+      if (p === 'blinkit') {
+        validItems = cartItems.filter(name => {
+          const cat = getCategory(name);
+          return cat.startsWith("s_") || cat.includes("beverage");
+        });
+      } else {
+        validItems = cartItems.filter(name => {
+          const cat = getCategory(name);
+          return !cat.startsWith("s_packaged");
+        });
+      }
+      if (!validItems.length) return showToast("NO ITEMS FOR " + p.toUpperCase());
+      const query = encodeURIComponent(validItems.map(k => `${k} x${ENGINE_STATE.items_detected[k].qty}`).join(", "));
+      window.open({
+        zomato: `https://www.zomato.com/search?q=${query}`,
+        swiggy: `https://www.swiggy.com/search?query=${query}`,
+        blinkit: `https://blinkit.com/s/?q=${query}`
+      } [p], '_blank');
     }
 
     function sendWa() {
-        let total = 0;
-        let msg = "📋 *NEW ORDER*\n----------------\n";
-        let i = 1;
-        for(let [k,v] of Object.entries(ENGINE_STATE.items_detected)) {
-            const line = v.price * v.qty;
-            total += line;
-            msg += `${i}. ${k} (x${v.qty}) - ₹${line}\n`;
-            i++;
-        }
-        msg += "----------------\n";
-        msg += `💰 *Est. Total: ₹${total}*\n`;
-        msg += `📍 Location: Gandhidham`;
-        window.open(`https://wa.me/916351537770?text=${encodeURIComponent(msg)}`, '_blank');
+      let total = 0, msg = "📋 NEW ORDER\n----------------\n", i = 1;
+      for (let [k, v] of Object.entries(ENGINE_STATE.items_detected)) {
+        const line = v.price * v.qty;
+        total += line;
+        msg += `${i}. ${k} (x${v.qty}) - ₹${line}\n`;
+        i++;
+      }
+      msg += `----------------\n💰 Est. Total: ₹${total}\n📍 Location: Gandhidham\n“You decide once. We handle the rest.”\n --------------------\nget customized PRE-loaded -- inquiry ,\n like this for your business/personal need with support of log - management\n`;
+      window.open(`https://wa.me/916351537770?text=${encodeURIComponent(msg)}`, '_blank');
     }
-    
-    function copyOrder() {
-        let text = "ORDER SUMMARY:\n";
-        for(let [k,v] of Object.entries(ENGINE_STATE.items_detected)) text += `${k} x${v.qty}\n`;
-        navigator.clipboard.writeText(text).then(() => showToast("COPIED TO CLIPBOARD"));
-    }
-    
-    function saveToCloud() { fetch(GOOGLE_SCRIPT_URL, {method:"POST", body:JSON.stringify(ENGINE_STATE)}); showToast("SAVED"); }
-    function showToast(msg) { const t = document.getElementById('toast'); t.innerText = msg; t.classList.add('visible'); setTimeout(() => t.classList.remove('visible'), 2000); }
 
-    function toggleListenMode() { 
-        if(!rec) initVoice();
-        const m = document.getElementById('mic-toggle');
-        if(m.classList.contains('listening')) { rec.stop(); m.classList.remove('listening'); } else { rec.start(); m.classList.add('listening'); }
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.innerText = msg;
+      t.classList.add('visible');
+      setTimeout(() => t.classList.remove('visible'), 2000);
     }
-    let rec;
+
+    function speak(text) {
+      if (!window.speechSynthesis) return;
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = "en-IN";
+      window.speechSynthesis.speak(u);
+    }
+
+    let VOICE_ACTIVE = false, VOICE_READY = false, REC_RUNNING = false;
+
     function initVoice() {
-        if(!window.SpeechRecognition && !window.webkitSpeechRecognition) return;
-        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-        rec = new SR(); rec.lang = "en-IN"; rec.continuous = true;
-        rec.onresult = e => {
-            const t = e.results[e.results.length-1][0].transcript.toLowerCase();
-            showToast(t);
-            if(t.includes("zomato")) link('zomato');
-            else if(t.includes("swiggy")) link('swiggy');
-            else if(t.includes("whatsapp")) sendWa();
-            else if(t.includes("select") || t.includes("add")) executeAction("SELECT");
-            else if(t.includes("skip") || t.includes("next")) executeAction("SKIP");
-            else if(t.includes("browse") || t.includes("show")) executeAction("BROWSE");
-            else {
-                const nums = {"one":1,"two":2,"three":3,"1":1,"2":2,"3":3};
-                for(let k in nums) if(t.includes(k)) { 
-                    const s = slideElements[currentIdx];
-                    if(s && s.dataset.mode === 'options') {
-                         const val = s.querySelector('.opt-active').dataset.val;
-                         ENGINE_STATE.items_detected[val] = { qty: nums[k], price: getPrice(val) };
-                         showToast(`ADDED ${nums[k]} ${val}`);
-                         nextSlide();
-                    }
-                }
-            }
-        };
-        rec.start();
+      if (VOICE_READY) return;
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR) return;
+      rec = new SR();
+      rec.lang = "en-IN";
+      rec.continuous = false;
+      rec.interimResults = false;
+      const MENU_NAMES = [];
+      for (let c in RAW_DATA)
+        for (let cat of RAW_DATA[c].categories)
+          for (let i of cat.items) MENU_NAMES.push(i.name.toLowerCase());
+      rec.onresult = e => {
+        REC_RUNNING = false;
+        const t = e.results[0][0].transcript.toLowerCase().trim();
+        showToast(`🎙️ ${t}`);
+        if (t.includes("zomato")) return link("zomato");
+        if (t.includes("swiggy")) return link("swiggy");
+        if (t.includes("blinkit")) return link("blinkit");
+        if (t.includes("whatsapp")) return sendWa();
+        if (t.includes("skip")) return executeAction("SKIP");
+        if (t.includes("browse") || t.includes("show")) return executeAction("BROWSE");
+        if (t.includes("next")) return nextSlide();
+        let qty = 1;
+        const n = t.match(/\b\d+\b/);
+        if (n) qty = parseInt(n[0], 10);
+        let found = null;
+        for (let name of MENU_NAMES) { if (t.includes(name)) { found = name; break; } }
+        if (t.includes("remove") && found) { updateCart("REMOVE", found); return; }
+        if (found) { updateCart("ADD", found, qty); nextSlide(); return; }
+        const s = slideElements[currentIdx];
+        if (s && s.dataset.mode === "options" && (t.includes("add") || t.includes("select"))) {
+          const val = s.querySelector(".opt-active")?.dataset?.val;
+          if (val) { updateCart("ADD", val, qty); nextSlide(); }
+        }
+      };
+      rec.onend = () => {
+        REC_RUNNING = false;
+        if (VOICE_ACTIVE) {
+          setTimeout(() => {
+            if (!REC_RUNNING) { try { REC_RUNNING = true; rec.start(); } catch (e) {} }
+          }, 400);
+        }
+      };
+      rec.onerror = () => { REC_RUNNING = false; };
+      VOICE_READY = true;
     }
 
+    function toggleListenMode() {
+      initVoice();
+      const mic = document.getElementById("mic-toggle");
+      if (VOICE_ACTIVE) {
+        VOICE_ACTIVE = false;
+        mic.classList.remove("listening");
+        if (REC_RUNNING) { try { rec.stop(); } catch (e) {} REC_RUNNING = false; }
+      } else {
+        VOICE_ACTIVE = true;
+        mic.classList.add("listening");
+        if (!REC_RUNNING) { try { REC_RUNNING = true; rec.start(); } catch (e) {} }
+      }
+    }
     boot();
-</script>
+  </script>
 </body>
+
 </html>
