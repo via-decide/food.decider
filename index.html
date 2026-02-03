@@ -1,1000 +1,486 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>| food.decide |</title>
+    <title>| food.decide | Ultimate</title>
 
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0a0a0a">
     <meta name="background-color" content="#0a0a0a">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="food.decide">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="application-name" content="food.decide">
-    <meta name="description" content="Voice-first food decision engine">
+    
+    <script src="https://webgazer.cs.brown.edu/webgazer.js" async></script>
 
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('./service-worker.js')
-            .catch(err => console.log('SW failed:', err));
+          navigator.serviceWorker.register('./service-worker.js').catch(e=>{});
         });
       }
     </script>
 
     <style>
-        /* =========================================
-           CORE SYSTEM
-           ========================================= */
-        :root {
-            --brand-orange: #ff671f;
-            --brand-bg: #0a0a0a;
-            --text-main: #f0f0f0;
-            --accent-go: #00e676; 
-            --accent-skip: #ff3333;
-            --accent-zomato: #cb202d;
-            --accent-swiggy: #fc8019;
-            --accent-blinkit: #f8cb46;
-            --font-tech: 'Courier New', monospace;
-            --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        }
+        /* CORE VISUALS (LOCKED) */
+        :root { --orange: #ff671f; --bg: #0a0a0a; --text: #f0f0f0; --go: #00e676; --red: #ff3333; --blue: #4285F4; --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        html, body { margin:0; padding:0; height:100%; width:100%; background:var(--bg); color:var(--text); font-family:var(--font); overflow:hidden; touch-action:none; }
+        #master-container { height: 100vh; width: 100vw; position: relative; overflow: hidden; }
 
-        html, body {
-            margin: 0; padding: 0; height: 100%; width: 100%;
-            background-color: var(--brand-bg);
-            color: var(--text-main);
-            font-family: var(--font-ui);
-            overflow: hidden;
-            touch-action: none; 
-        }
+        /* SENSOR UI */
+        .status-pill { position: fixed; left: 50%; transform: translateX(-50%); font-size: 0.6rem; color: #444; border: 1px solid #333; padding: 4px 8px; border-radius: 4px; opacity: 0; transition: opacity 0.5s; z-index: 1000; pointer-events: none; background: #000; }
+        #gyro-status { top: 15px; } #eye-status { top: 40px; }
+        .active-pill { opacity: 1 !important; color: var(--go) !important; border-color: var(--go) !important; }
+        #gaze-dot { position: fixed; width: 10px; height: 10px; background: var(--orange); border-radius: 50%; z-index: 9999; pointer-events: none; display: none; transform: translate(-50%, -50%); box-shadow: 0 0 10px var(--orange); }
 
-        #master-container {
-            height: 100vh;
-            width: 100vw;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .main-slide {
-            height: 100vh;
-            width: 100vw;
-            position: absolute;
-            top: 0;
-            left: 0;
-            display: flex;
-            flex-direction: column;
-            background: var(--brand-bg);
-            transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
-            will-change: transform;
-        }
-
-        .main-slide.prev { transform: translateY(-100%); }
-        .main-slide.active { transform: translateY(0); z-index: 10; }
-        .main-slide.next { transform: translateY(100%); z-index: 20; }
-
-        .slide-header {
-            padding: 20px;
-            border-left: 3px solid var(--brand-orange);
-            height: 70px;
-            flex-shrink: 0;
-            z-index: 10;
-            display: flex;
-            align-items: center;
-        }
-
-        .header-title {
-            font-family: var(--font-tech);
-            font-size: 0.75rem;
-            color: var(--brand-orange);
-            letter-spacing: 1px;
-            font-weight: 700;
-            text-transform: uppercase;
-        }
-
-        .carousel-viewport {
-            position: relative;
-            flex-grow: 1;
-            width: 100%;
-            height: 100%;
-        }
-
-        .sub-slide {
-            position: absolute;
-            inset: 0;
-            padding: 25px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            opacity: 0;
-            pointer-events: none;
-            transform: translateX(20px);
-            transition: transform 0.3s ease, opacity 0.3s ease;
-        }
-
+        /* SLIDES */
+        .main-slide { height: 100vh; width: 100vw; position: absolute; top: 0; left: 0; display: flex; flex-direction: column; background: var(--bg); transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1); will-change: transform; }
+        .main-slide.prev { transform: translateY(-100%); } .main-slide.active { transform: translateY(0); z-index: 10; } .main-slide.next { transform: translateY(100%); z-index: 20; }
+        .slide-header { padding: 20px; border-left: 3px solid var(--orange); height: 70px; flex-shrink: 0; z-index: 10; display: flex; align-items: center; }
+        .header-title { font-size: 0.75rem; color: var(--orange); letter-spacing: 1px; font-weight: 700; text-transform: uppercase; }
+        .carousel-viewport { position: relative; flex-grow: 1; width: 100%; height: 100%; perspective: 1000px; }
+        
+        .sub-slide { position: absolute; inset: 0; padding: 25px; display: flex; flex-direction: column; justify-content: center; opacity: 0; pointer-events: none; background: var(--bg); border-radius: 12px; transform-origin: 50% 150%; transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s; will-change: transform; overflow: hidden; }
         .sub-slide.opt-active { z-index: 30; opacity: 1; pointer-events: auto; transform: translateX(0); }
-        .sub-slide.opt-hidden { z-index: 0; opacity: 0; pointer-events: none; }
+        .sub-slide.opt-hidden { z-index: 0; opacity: 0; pointer-events: none; transform: scale(0.9); }
         .sub-slide.static { z-index: 30; opacity: 1; pointer-events: auto; transform: none; }
 
-        h1 { font-size: 1.8rem; margin: 0 0 15px 0; line-height: 1; letter-spacing: -1px; color: var(--brand-orange); }
-        .primary-question { font-size: 1.1rem; color: #fff; margin-bottom: 25px; line-height: 1.4; font-weight: 600; }
-        
-        .price {
-            font-size: 0.9rem;
-            color: #aaa;
-            margin-left: 10px;
-            font-family: var(--font-tech);
-            background: #222;
-            padding: 2px 6px;
-            border-radius: 4px;
-        }
+        /* GYRO TEXT OVERLAYS */
+        .overlay-label { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; opacity: 0; pointer-events: none; z-index: 50; transition: opacity 0.05s linear; }
+        .overlay-skip { background: rgba(255, 51, 51, 0.15); color: var(--red); transform: rotate(-10deg); }
+        .overlay-browse { background: rgba(66, 133, 244, 0.15); color: var(--blue); transform: rotate(10deg); }
+        .overlay-select { background: rgba(0, 230, 118, 0.15); color: var(--go); flex-direction: column; justify-content: flex-end; padding-bottom: 100px; }
 
-        .role-label {
-            font-family: var(--font-tech);
-            font-size: 0.6rem;
-            color: #000;
-            background: var(--accent-go);
-            padding: 4px 8px;
-            border-radius: 4px;
-            width: fit-content;
-            margin-bottom: 15px;
-            font-weight: bold;
-        }
+        /* TYPOGRAPHY & UI */
+        h1 { font-size: 1.8rem; margin: 0 0 15px 0; line-height: 1; letter-spacing: -1px; color: var(--orange); position: relative; z-index: 10; }
+        .primary-question { font-size: 1.1rem; color: #fff; margin-bottom: 25px; font-weight: 600; position: relative; z-index: 10; }
+        .price { font-size: 0.9rem; color: #aaa; margin-left: 10px; background: #222; padding: 2px 6px; border-radius: 4px; }
+        .role-label { font-size: 0.6rem; color: #000; background: var(--go); padding: 4px 8px; border-radius: 4px; width: fit-content; margin-bottom: 15px; font-weight: bold; position: relative; z-index: 10; }
+        .nav-hint { margin-top: 30px; padding-top: 20px; border-top: 1px solid #333; font-size: 0.7rem; color: #666; display: flex; justify-content: space-between; position: relative; z-index: 10; }
+        .lobby-container { display: flex; flex-direction: column; gap: 15px; padding: 30px; height: 100%; justify-content: center; }
+        .cuisine-btn { background: #222; border: 1px solid #444; color: #888; padding: 20px; font-size: 1.2rem; font-weight: bold; border-radius: 12px; transition: all 0.2s; }
+        .cuisine-btn.selected { background: var(--orange); color: #000; border-color: var(--orange); box-shadow: 0 0 15px rgba(255, 103, 31, 0.4); }
+        .hunt-btn { background: #fff; color: #000; font-weight: 900; margin-top: 30px; letter-spacing: 2px; padding: 15px; border-radius: 8px; border: none; cursor: pointer;}
+        
+        .toggle-btn { background: transparent; border: 1px solid #666; color: #ccc; font-size: 0.7rem; font-weight: bold; flex: 1; padding: 15px; border-radius: 8px; transition: all 0.3s; cursor: pointer; }
+        .toggle-btn.active { border-color: var(--go); color: var(--go); background: rgba(0, 230, 118, 0.1); box-shadow: 0 0 15px rgba(0, 230, 118, 0.2); }
 
-        .nav-hint {
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid #333;
-            font-family: var(--font-tech);
-            font-size: 0.7rem;
-            color: #666;
-            display: flex;
-            justify-content: space-between;
-        }
-
-        .verdict-container { display: flex; flex-direction: column; height: 100%; justify-content: center; }
-        .choice-header { font-family: var(--font-tech); color: #666; font-size: 0.8rem; margin-bottom: 20px; text-transform: uppercase; text-align: center; }
-        
-        .input-group { 
-            border: 1px solid #333; background: #111; padding: 20px; border-radius: 8px; 
-            margin-bottom: 20px; min-height: 100px; max-height: 40vh; overflow-y: auto; 
-        }
-        
-        .input-row { display: flex; justify-content: space-between; border-bottom: 1px dashed #333; padding: 10px 0; font-family: var(--font-tech); font-size: 0.8rem; }
-        .input-key { color: #888; text-transform: uppercase; }
-        .input-val { color: var(--accent-go); font-weight: bold; text-align: right; }
-        
         .final-actions { display: grid; gap: 10px; margin-top: 20px; }
-        .btn { background: #222; color: #fff; border: 1px solid #333; padding: 15px; border-radius: 8px; font-weight: 600; text-align: center; font-size: 0.9rem; cursor: pointer; display: block; width: 100%; box-sizing: border-box;}
-        .btn-wa { background: #25D366; color: #000; border: none; }
-        .btn-zomato { background: var(--accent-zomato); border: none; opacity: 0.5; }
-        .btn-swiggy { background: var(--accent-swiggy); border: none; opacity: 0.5; }
-        .btn-blinkit { background: var(--accent-blinkit); color: #000; border: none; opacity: 0.5; }
-        .btn-cloud { background: #4285F4; border: none; opacity: 1; }
-        
+        .btn { background: #222; color: #fff; border: 1px solid #333; padding: 15px; border-radius: 8px; font-weight: 600; text-align: center; font-size: 0.9rem; cursor: pointer; width: 100%; box-sizing: border-box;}
+        .btn-zomato { background: #cb202d; opacity: 0.5; border:none;} .btn-swiggy { background: #fc8019; opacity: 0.5; border:none;} .btn-blinkit { background: #f8cb46; color: #000; opacity: 0.5; border:none;}
+        .btn-wa { background: #25D366; color: #000; border: none; } .btn-cloud { background: #4285F4; border: none; }
         .btn-zomato.active, .btn-swiggy.active, .btn-blinkit.active { opacity: 1; box-shadow: 0 0 10px rgba(255,255,255,0.2); }
+        .input-group { border: 1px solid #333; background: #111; padding: 20px; border-radius: 8px; margin-bottom: 20px; min-height: 100px; max-height: 40vh; overflow-y: auto; }
+        .input-row { display: flex; justify-content: space-between; border-bottom: 1px dashed #333; padding: 10px 0; font-size: 0.8rem; }
+        .biz-card { background: linear-gradient(145deg, #111, #050505); border: 1px solid var(--orange); padding: 30px; border-radius: 12px; text-align: center; }
+        .biz-tagline { color: var(--orange); font-size: 0.7rem; margin-bottom: 10px; display: block; } .biz-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 20px; color: #fff; }
 
-        .biz-card {
-            background: linear-gradient(145deg, #111, #050505);
-            border: 1px solid var(--brand-orange);
-            padding: 30px;
-            border-radius: 12px;
-            text-align: center;
-        }
-        .biz-tagline { font-family: var(--font-tech); color: var(--brand-orange); font-size: 0.7rem; margin-bottom: 10px; display: block; }
-        .biz-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 20px; color: #fff; }
-
-        .lobby-container {
-            display: flex; flex-direction: column; gap: 15px; padding: 30px;
-            height: 100%; justify-content: center;
-        }
-        .cuisine-btn {
-            background: #222; border: 1px solid #444; color: #888;
-            padding: 20px; font-size: 1.2rem; font-weight: bold;
-            text-transform: uppercase; border-radius: 12px;
-            transition: all 0.2s;
-        }
-        .cuisine-btn.selected {
-            background: var(--brand-orange); color: #000; border-color: var(--brand-orange);
-            box-shadow: 0 0 15px rgba(255, 103, 31, 0.4);
-        }
-        .hunt-btn {
-            background: #fff; color: #000; font-weight: 900; margin-top: 30px;
-            letter-spacing: 2px;
-        }
-
-        #depth-fill { position: fixed; right: 0; top: 0; bottom: 0; width: 4px; background: #333; z-index: 900; height: 0%; transition: height 0.05s linear; }
-        
-        .toast-msg {
-            position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
-            background: #222; color: #00e676; padding: 10px 20px; border: 1px solid #00e676;
-            border-radius: 20px; font-size: 0.8rem; opacity: 0; pointer-events: none;
-            transition: opacity 0.3s; z-index: 3000; white-space: nowrap; font-family: var(--font-tech);
-        }
-        .toast-msg.visible { opacity: 1; }
-
-        #mic-toggle {
-            position: fixed; bottom: 20px; left: 20px; width: 50px; height: 50px;
-            background: #111; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-            border: 1px solid #444; z-index: 2000; cursor: pointer; transition: all 0.3s;
-        }
+        #mic-toggle { position: fixed; bottom: 20px; left: 20px; width: 50px; height: 50px; background: #111; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid #444; z-index: 2000; cursor: pointer; transition: all 0.3s; }
         #mic-toggle svg { width: 24px; height: 24px; fill: #666; }
-        #mic-toggle.listening { border-color: var(--accent-go); box-shadow: 0 0 15px rgba(0,230,118,0.3); }
-        #mic-toggle.listening svg { fill: var(--accent-go); }
-
+        #mic-toggle.listening { border-color: var(--go); box-shadow: 0 0 15px rgba(0,230,118,0.3); }
+        #mic-toggle.listening svg { fill: var(--go); }
+        #toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: #222; color: #00e676; padding: 10px 20px; border: 1px solid #00e676; border-radius: 20px; font-size: 0.8rem; opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 3000; white-space: nowrap; }
+        #toast.visible { opacity: 1; }
     </style>
 </head>
 <body>
 
+<div id="gyro-status" class="status-pill">GYRO ACTIVE</div>
+<div id="eye-status" class="status-pill">EYE TRACKING ACTIVE</div>
+<div id="gaze-dot"></div>
 <div id="master-container"></div>
-<div id="depth-fill"></div>
-<div id="toast" class="toast-msg"></div>
-
-<div id="mic-toggle" onclick="toggleListenMode()">
-    <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
-</div>
+<div id="toast"></div>
+<div id="mic-toggle" onclick="toggleListenMode()"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></div>
 
 <script>
-    /* =========================================
-       0. CONFIGURATION
-       ========================================= */
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyBMwKxq92U0dptKMdEHvUCXPS9AjExHtxHjcRmfh2JFjCSn9Zd82bzp34xLg6X0a7L9g/exec";
-    const SHARE_LINK_TEXT = "food-decider | swipe OS";
-
-    const NET_STATE = { online: navigator.onLine };
-    window.addEventListener("online", () => { NET_STATE.online = true; showToast("ONLINE · SYNC ENABLED"); fetchVoiceConfig(); });
-    window.addEventListener("offline", () => { NET_STATE.online = false; showToast("OFFLINE · USING SAVED DATA"); });
-
-    // FALLBACK MENU
+    let SENSORS_ENABLED = false;
+    let GAZE_ENABLED = false;
+    
+    // --- DATA ---
     const FALLBACK_MENU = {
-        version: "offline-v1",
-        data: {
-            punjabi: {
-                label: "PUNJABI",
-                categories: [
-                    { id: "p_breads", label: "Breads", items: [{name:"Butter Naan", price:40}, {name:"Tandoori Roti", price:25}, {name:"Garlic Naan", price:50}] },
-                    { id: "p_mains", label: "Mains", items: [{name:"Dal Makhani", price:220}, {name:"Paneer Butter Masala", price:240}, {name:"Butter Chicken", price:280}] },
-                    { id: "p_rice", label: "Rice", items: [{name:"Jeera Rice", price:150}, {name:"Chicken Biryani", price:290}] }
-                ]
-            },
-            chinese: {
-                label: "CHINESE",
-                categories: [
-                    { id: "c_dimsum", label: "Dim Sum", items: [{name:"Pork Siu Mai", price:250}, {name:"Veg Crystal Dumpling", price:220}] },
-                    { id: "c_noodles", label: "Noodles", items: [{name:"Hakka Noodles", price:200}, {name:"Lo Mein", price:220}] }
-                ]
-            },
-            pizza: {
-                label: "PIZZA",
-                categories: [
-                    { id: "z_classic", label: "Classic", items: [{name:"Margherita", price:350}, {name:"Pepperoni", price:450}] },
-                    { id: "z_gourmet", label: "Gourmet", items: [{name:"Burrata Pizza", price:550}, {name:"Wood Fired Chicken", price:480}] }
-                ]
-            },
-            snacks: {
-                label: "NASTA PANI",
-                categories: [
-                    { id: "s_pkg", label: "Packaged", items: [{name:"Coke", price:40}, {name:"Chips", price:20}, {name:"Thums Up", price:40}] },
-                    { id: "s_hot", label: "Hot Snacks", items: [{name:"Samosa", price:20}, {name:"Burger", price:60}] }
-                ]
-            }
-        }
+      "punjabi": {
+        "label": "PUNJABI",
+        "categories": [
+          { "id": "p_breads", "label": "Breads", "items": [ { "name": "Butter Naan", "price": 40 }, { "name": "Garlic Naan", "price": 50 }, { "name": "Tandoori Roti", "price": 25 }, { "name": "Lachha Paratha", "price": 55 } ] },
+          { "id": "p_mains", "label": "Mains", "items": [ { "name": "Dal Makhani", "price": 220 }, { "name": "Paneer Butter Masala", "price": 240 }, { "name": "Shahi Paneer", "price": 250 }, { "name": "Butter Chicken", "price": 280 }, { "name": "Kadai Paneer", "price": 230 } ] },
+          { "id": "p_rice", "label": "Rice", "items": [ { "name": "Jeera Rice", "price": 150 }, { "name": "Veg Pulao", "price": 160 }, { "name": "Chicken Biryani", "price": 290 } ] },
+          { "id": "p_beverages", "label": "Beverages", "items": [ { "name": "Sweet Lassi", "price": 60 }, { "name": "Salted Lassi", "price": 50 }, { "name": "Masala Chaas", "price": 40 } ] }
+        ]
+      },
+      "chinese": {
+        "label": "CHINESE",
+        "categories": [
+          { "id": "c_dimsum", "label": "Dim Sum", "items": [ { "name": "Veg Crystal Dumpling", "price": 220 }, { "name": "Pork Siu Mai", "price": 260 }, { "name": "Har Gao", "price": 280 } ] },
+          { "id": "c_noodles", "label": "Noodles", "items": [ { "name": "Lo Mein", "price": 220 }, { "name": "Dan Dan Noodles", "price": 260 }, { "name": "Hakka Noodles", "price": 200 } ] },
+          { "id": "c_wok", "label": "Wok Specials", "items": [ { "name": "Kung Pao Chicken", "price": 280 }, { "name": "Mapo Tofu", "price": 240 }, { "name": "Chilli Chicken", "price": 260 } ] }
+        ]
+      },
+      "pizza": {
+        "label": "PIZZA",
+        "categories": [
+          { "id": "z_classic", "label": "Classic", "items": [ { "name": "Margherita", "price": 350 }, { "name": "Marinara", "price": 330 }, { "name": "Pepperoni", "price": 450 } ] },
+          { "id": "z_gourmet", "label": "Gourmet", "items": [ { "name": "Burrata Pizza", "price": 550 }, { "name": "Truffle Mushroom Pizza", "price": 520 }, { "name": "Wood Fired Chicken Pizza", "price": 480 } ] }
+        ]
+      },
+      "snacks": {
+        "label": "NASTA PANI",
+        "categories": [
+          { "id": "s_packaged", "label": "Packaged", "items": [ { "name": "Coke", "price": 40 }, { "name": "Thums Up", "price": 40 }, { "name": "Chips", "price": 20 }, { "name": "Kurkure", "price": 20 } ] },
+          { "id": "s_hot", "label": "Hot Snacks", "items": [ { "name": "Samosa", "price": 20 }, { "name": "Veg Puff", "price": 30 }, { "name": "Burger", "price": 60 } ] }
+        ]
+      }
     };
+    
+    let RAW_DATA = FALLBACK_MENU; 
+    let ENGINE_STATE = { session_id: "auto-" + Date.now(), cuisines_detected: [], items_detected: {}, platform_strategy: { fulfillment: [] } };
 
-    let RAW_DATA = FALLBACK_MENU.data; 
-
-    /* SAFER MENU FETCHER */
-    async function fetchMenuData() {
-        const timeout = new Promise((_, reject) => setTimeout(() => reject("Timeout"), 3000));
-        try {
-            const fetcher = fetch(GOOGLE_SCRIPT_URL + "?type=menu", { cache: "no-store" });
-            const res = await Promise.race([fetcher, timeout]);
-            const json = await res.json();
-
-            let hasItems = false;
-            if (json.data) {
-                for (let k in json.data) {
-                    if (json.data[k].categories && json.data[k].categories.length > 0) {
-                        hasItems = true; break;
-                    }
+    // --- INPUT ENGINES ---
+    class GazeController {
+        constructor() { this.active = false; this.lastTrigger = 0; }
+        start() {
+            if(this.active || typeof webgazer === 'undefined') return;
+            this.active = true;
+            document.getElementById('eye-status').classList.add('active-pill');
+            document.getElementById('gaze-dot').style.display = 'block';
+            webgazer.setGazeListener((data, elapsed) => {
+                if (data == null) return;
+                const dot = document.getElementById('gaze-dot');
+                dot.style.left = data.x + 'px'; dot.style.top = data.y + 'px';
+                if (Date.now() - this.lastTrigger > 1500) {
+                    if (data.y < window.innerHeight * 0.2) this.trigger("UP");
+                    else if (data.x < window.innerWidth * 0.2) this.trigger("LEFT");
+                    else if (data.x > window.innerWidth * 0.8) this.trigger("RIGHT");
                 }
-            }
-
-            if (hasItems) {
-                RAW_DATA = json.data;
-                localStorage.setItem("MENU_CACHE", JSON.stringify(json));
-                localStorage.setItem("MENU_CACHE_TS", Date.now());
-                console.log("MENU: LIVE UPDATED");
-                return true;
-            } else { throw new Error("Empty Menu"); }
-        } catch (e) {
-            console.warn("MENU: USING BACKUP", e);
-            const cached = localStorage.getItem("MENU_CACHE");
-            if (cached) {
-                const cachedJson = JSON.parse(cached);
-                if(cachedJson.data) RAW_DATA = cachedJson.data;
-            }
-            return false;
+            }).begin();
+        }
+        trigger(dir) {
+            this.lastTrigger = Date.now();
+            showToast("EYE: " + dir);
+            if(dir === "UP") executeAction("SELECT");
+            if(dir === "LEFT") executeAction("SKIP");
+            if(dir === "RIGHT") executeAction("BROWSE");
         }
     }
+    const gazeEngine = new GazeController();
 
-    const SERVER_VERSION_KEY = "MENU_VERSION";
-    async function checkMenuVersion() {
-      try {
-        const res = await fetch(GOOGLE_SCRIPT_URL + "?type=menu_version");
-        const { version } = await res.json();
-        const local = localStorage.getItem(SERVER_VERSION_KEY);
-        if (version !== local) {
-          localStorage.setItem(SERVER_VERSION_KEY, version);
-          await fetchMenuData();
-        }
-      } catch(e){}
-    }
-
-    /* =========================================
-       1. UNIFIED INTENT ENGINE v1.2 (STATE)
-       ========================================= */
-    let ENGINE_STATE = {
-        session_id: "auto-" + Date.now(),
-        cuisines_detected: [],
-        items_detected: {}, 
-        platform_strategy: { discover: ["zomato", "swiggy"], fulfillment: ["zomato", "swiggy"] },
-        cart_state: { items: [], total: 0 }
-    };
-
-    function findItemPrice(name) {
-        if (!RAW_DATA) return 0;
-        for (let c in RAW_DATA) {
-            for (let cat of RAW_DATA[c].categories) {
-                for (let item of cat.items) {
-                    if (item.name.toLowerCase() === name.toLowerCase()) return item.price || 0;
-                }
+    class PhysicsController {
+        constructor(el, cbs) {
+            this.el = el; this.cbs = cbs; this.active = false; this.current = {x:0, y:0}; this.target = {x:0, y:0};
+            this.oSkip = el.querySelector('.overlay-skip');
+            this.oBrowse = el.querySelector('.overlay-browse');
+            this.oSelect = el.querySelector('.overlay-select');
+            const s = e => this.start(e); const m = e => this.move(e); const e2 = () => this.end();
+            el.addEventListener("mousedown",s); window.addEventListener("mousemove",m); window.addEventListener("mouseup",e2);
+            el.addEventListener("touchstart",s,{passive:false}); el.addEventListener("touchmove",e=>{if(this.active)e.preventDefault();m(e)},{passive:false}); el.addEventListener("touchend",e2);
+            if(SENSORS_ENABLED) {
+                this.handleOrient = this.handleOrient.bind(this);
+                if(window.DeviceOrientationEvent) window.addEventListener("deviceorientation", this.handleOrient);
+                this.loop();
             }
         }
-        return 0;
-    }
-
-    function engineUpdate(patchType, payload) {
-        if (patchType === "ADD_CUISINE") {
-            if(!ENGINE_STATE.cuisines_detected.includes(payload)) ENGINE_STATE.cuisines_detected.push(payload);
+        cleanup() { window.removeEventListener("deviceorientation", this.handleOrient); }
+        loop() {
+            if(!SENSORS_ENABLED) return;
+            this.current.x += (this.target.x - this.current.x) * 0.08;
+            this.current.y += (this.target.y - this.current.y) * 0.08;
+            this.updateVisuals(this.current.x, this.current.y);
+            if(Math.abs(this.current.x) > 200) this.commit(Math.sign(this.current.x)*100, 0);
+            else if(Math.abs(this.current.y) > 200) this.commit(0, Math.sign(this.current.y)*100);
+            else requestAnimationFrame(() => this.loop());
         }
-        if (patchType === "REMOVE_CUISINE") {
-            ENGINE_STATE.cuisines_detected = ENGINE_STATE.cuisines_detected.filter(c => c !== payload);
+        handleOrient(e) {
+            if(this.active) return;
+            let g = e.gamma; let b = e.beta - 45;
+            if(Math.abs(g) > 1) this.target.x = 1000 * Math.tan(g * Math.PI / 180); else this.target.x = 0;
+            if(Math.abs(b) > 1) this.target.y = 1000 * Math.tan(b * Math.PI / 180); else this.target.y = 0;
         }
-        if (patchType === "ADD_ITEM") {
-            const qty = ENGINE_STATE.items_detected[payload] ? ENGINE_STATE.items_detected[payload].qty + 1 : 1;
-            ENGINE_STATE.items_detected[payload] = { qty: qty, price: findItemPrice(payload), added_at: Date.now() };
-            recalcStrategy();
+        start(e) { this.active=true; this.startPos={x:(e.touches?e.touches[0]:e).clientX, y:(e.touches?e.touches[0]:e).clientY}; this.el.style.transition="none"; }
+        move(e) { 
+            if(!this.active) return; 
+            const c = (e.touches?e.touches[0]:e); 
+            this.updateVisuals(c.clientX - this.startPos.x, c.clientY - this.startPos.y); 
         }
-        if (patchType === "REMOVE_ITEM") {
-            delete ENGINE_STATE.items_detected[payload];
-            recalcStrategy();
+        updateVisuals(dx, dy) {
+            this.el.style.transform = `translate(${dx}px, ${dy}px) rotate(${dx/20}deg)`;
+            const opX = Math.min(Math.abs(dx)/150, 1);
+            const opY = Math.min(Math.abs(dy)/150, 1);
+            if(this.oSkip) this.oSkip.style.opacity = (dx < -20) ? opX : 0;
+            if(this.oBrowse) this.oBrowse.style.opacity = (dx > 20) ? opX : 0;
+            if(this.oSelect) this.oSelect.style.opacity = (dy < -20) ? opY : 0;
         }
-        if (patchType === "RESET") {
-            ENGINE_STATE.items_detected = {};
-            ENGINE_STATE.cuisines_detected = [];
-            recalcStrategy();
-        }
-        if (patchType === "QUANTITY") {
-            for(let key in ENGINE_STATE.items_detected) {
-                if(key.toLowerCase().includes(payload.target.toLowerCase())) {
-                    let q = ENGINE_STATE.items_detected[key].qty;
-                    if(payload.mod === "double") q *= 2;
-                    if(payload.mod === "half") q = Math.max(1, Math.ceil(q/2));
-                    ENGINE_STATE.items_detected[key].qty = q;
-                }
+        end() { 
+            if(!this.active) return; this.active=false;
+            const m = new WebKitCSSMatrix(getComputedStyle(this.el).transform);
+            if(Math.hypot(m.m41, m.m42) > 80) this.commit(m.m41, m.m42);
+            else { 
+                this.el.style.transition="0.3s ease"; this.el.style.transform="translate(0,0)"; 
+                if(this.oSkip) this.oSkip.style.opacity=0;
+                if(this.oBrowse) this.oBrowse.style.opacity=0;
+                if(this.oSelect) this.oSelect.style.opacity=0;
             }
         }
-        saveLocalState(); 
-    }
-
-    function recalcStrategy() {
-        const items = Object.keys(ENGINE_STATE.items_detected);
-        const cuisines = ENGINE_STATE.cuisines_detected;
-        let platforms = new Set(["zomato", "swiggy"]); 
-        if(cuisines.includes('snacks') || items.some(i => i.match(/coke|chips|thumbs|water/i))) {
-            platforms.add("blinkit");
+        commit(dx, dy) {
+            let dir = "RIGHT";
+            const a = (Math.atan2(-dy, dx) * 180 / Math.PI + 360) % 360;
+            if(a>45 && a<135) dir = "UP"; else if(a>135 && a<225) dir = "LEFT"; else if(a>225 && a<315) dir = "DOWN";
+            this.el.style.transition = "0.4s ease";
+            this.el.style.transform = `translate(${dx*4}px, ${dy*4}px)`;
+            this.el.style.opacity = "0";
+            setTimeout(() => { this.cleanup(); this.cbs(dir); }, 300);
         }
-        ENGINE_STATE.platform_strategy.fulfillment = Array.from(platforms);
-        updateResult();
     }
 
-    function saveLocalState(){ localStorage.setItem("ENGINE_STATE_CACHE", JSON.stringify(ENGINE_STATE)); }
-    function loadLocalState(){
-        const cached = localStorage.getItem("ENGINE_STATE_CACHE");
-        if(cached) { ENGINE_STATE = JSON.parse(cached); }
-    }
+    // --- APP LOGIC ---
+    let container = document.getElementById('master-container');
+    let slideElements = [], currentIdx = 0, activePhysics = null;
 
-    /* =========================================
-       2. UI BUILDER (DYNAMIC)
-       ========================================= */
-    const container = document.getElementById('master-container');
-    let slideElements = [];
-    let currentIdx = 0;
-
-    async function boot() {
-        renderLobby(); 
-        loadLocalState();
-        initVoice();
-        await fetchMenuData(); 
-        fetchVoiceConfig();
-        setTimeout(checkMenuVersion, 3000);
-    }
+    async function boot() { renderLobby(); initVoice(); }
 
     function renderLobby() {
-        container.innerHTML = "";
-        const section = document.createElement('section');
-        section.className = "main-slide active";
-        section.id = "lobby";
-        
-        let html = `
-        <div class="slide-header"><span class="header-title">SWIPE-OS v11.0</span></div>
-        <div class="lobby-container">
-            <h1 style="text-align:center; margin-bottom:40px;">AAJ KYA MANGVAAYEGE!</h1>
-            <div id="cuisine-grid" style="display:grid; gap:15px;">
-                <button class="cuisine-btn" onclick="toggleCuisine('punjabi', this)">PUNJABI</button>
-                <button class="cuisine-btn" onclick="toggleCuisine('chinese', this)">CHINESE</button>
-                <button class="cuisine-btn" onclick="toggleCuisine('pizza', this)">PIZZA</button>
-                <button class="cuisine-btn" onclick="toggleCuisine('snacks', this)">NASTA PANI</button>
+        container.innerHTML = `
+        <section class="main-slide active" id="lobby">
+            <div class="slide-header"><span class="header-title">SWIPE-OS v15.2</span></div>
+            <div class="lobby-container">
+                <h1>AAJ KYA MANGVAAYEGE!</h1>
+                <div id="cuisine-grid" style="display:grid; gap:15px;">
+                    <button class="cuisine-btn" onclick="toggleCuisine('punjabi', this)">PUNJABI</button>
+                    <button class="cuisine-btn" onclick="toggleCuisine('chinese', this)">CHINESE</button>
+                    <button class="cuisine-btn" onclick="toggleCuisine('pizza', this)">PIZZA</button>
+                    <button class="cuisine-btn" onclick="toggleCuisine('snacks', this)">NASTA PANI</button>
+                </div>
+                <button class="hunt-btn" onclick="startHunt()">HUNT &rarr;</button>
+                <div style="display:flex;gap:10px;margin-top:15px">
+                    <button id="btn-gyro" class="toggle-btn" onclick="reqGyro()">ENABLE GYRO</button>
+                    <button id="btn-eye" class="toggle-btn" onclick="reqGaze()">ENABLE EYES</button>
+                </div>
             </div>
-            <button class="btn hunt-btn" onclick="startHunt()">HUNT &rarr;</button>
-        </div>`;
-        section.innerHTML = html;
-        container.appendChild(section);
-        slideElements = [section];
-        currentIdx = 0;
-        
-        if(ENGINE_STATE.cuisines_detected) {
-            ENGINE_STATE.cuisines_detected.forEach(c => {
-                const btn = document.querySelector(`button[onclick*='${c}']`);
-                if(btn) btn.classList.add('selected');
-            });
-        }
+        </section>`;
+        slideElements = [document.getElementById('lobby')];
+        if(ENGINE_STATE.cuisines_detected) ENGINE_STATE.cuisines_detected.forEach(c => { const b = document.querySelector(`button[onclick*='${c}']`); if(b) b.classList.add('selected'); });
     }
 
-    window.toggleCuisine = (id, btn) => {
-        if(ENGINE_STATE.cuisines_detected.includes(id)) {
-            engineUpdate("REMOVE_CUISINE", id);
-            btn.classList.remove('selected');
-        } else {
-            engineUpdate("ADD_CUISINE", id);
-            btn.classList.add('selected');
-        }
-    };
+    function toggleCuisine(id, btn) {
+        if(ENGINE_STATE.cuisines_detected.includes(id)) { ENGINE_STATE.cuisines_detected = ENGINE_STATE.cuisines_detected.filter(c=>c!==id); btn.classList.remove('selected'); }
+        else { ENGINE_STATE.cuisines_detected.push(id); btn.classList.add('selected'); }
+        localStorage.setItem("ENGINE_STATE_CACHE", JSON.stringify(ENGINE_STATE));
+    }
 
-    window.startHunt = () => {
-        if(ENGINE_STATE.cuisines_detected.length === 0) {
-            showToast("SELECT AT LEAST ONE!");
-            speak("Please select a cuisine first");
-            return;
-        }
-        buildGameDeck();
-    };
+    function reqGyro() { 
+        SENSORS_ENABLED = true; document.getElementById('gyro-status').classList.add('active-pill'); 
+        document.getElementById('btn-gyro').classList.add('active'); showToast("GYRO ACTIVE"); 
+    }
+    function reqGaze() { 
+        gazeEngine.start(); document.getElementById('btn-eye').classList.add('active'); showToast("EYE TRACKING ON"); 
+    }
 
-    function buildGameDeck() {
-        container.innerHTML = ""; 
-        let slides = [];
-
+    function startHunt() {
+        if(ENGINE_STATE.cuisines_detected.length === 0) { showToast("SELECT A CUISINE"); return; }
+        
+        container.innerHTML = ""; slideElements = [];
         ENGINE_STATE.cuisines_detected.forEach(cId => {
             if(RAW_DATA[cId]) {
                 RAW_DATA[cId].categories.forEach(cat => {
-                    slides.push({
-                        id: cat.id,
-                        type: 'selector',
-                        title: `${RAW_DATA[cId].label} · ${cat.label.toUpperCase()}`,
-                        items: cat.items
+                    const s = document.createElement('section'); s.className = 'main-slide next'; s.id = cat.id; s.dataset.mode = 'options';
+                    let h = `<div class="slide-header"><span class="header-title">${cat.label}</span></div><div class="carousel-viewport">`;
+                    cat.items.forEach((item, i) => {
+                        h += `
+                        <div class="sub-slide ${i===0?'opt-active':'opt-hidden'}" data-val="${item.name}">
+                            <div class="overlay-label overlay-skip">SKIP</div><div class="overlay-label overlay-browse">BROWSE</div><div class="overlay-label overlay-select">SELECT</div>
+                            <div class="role-label">${cat.label}</div>
+                            <h1>${item.name} ${item.price?`<span class="price">₹${item.price}</span>`:""}</h1>
+                            <div class="primary-question">Swipe / Tilt / Voice</div>
+                            <div class="nav-hint"><span>SKIP</span><span>SELECT</span><span>BROWSE</span></div>
+                        </div>`;
                     });
+                    s.innerHTML = h + `</div>`; container.appendChild(s);
                 });
             }
         });
 
-        slides.push({ id: "final", type: "final", title: "FINAL ORDER" });
-        slides.push({ id: "business", type: "business", title: "KUTCH AUTOMATION" });
+        const final = document.createElement('section'); final.className = 'main-slide next'; final.id = 'final';
+        final.innerHTML = `<div class="sub-slide static"><div class="verdict-container"><div class="choice-header">FINAL ORDER</div><div class="input-group" id="final-list"></div><div class="final-actions"><button class="btn btn-zomato" onclick="link('zomato')">ZOMATO</button><button class="btn btn-swiggy" onclick="link('swiggy')">SWIGGY</button><button class="btn btn-blinkit" onclick="link('blinkit')">BLINKIT</button><button class="btn btn-cloud" onclick="saveToCloud()">SAVE</button><button class="btn btn-wa" onclick="goToSlide(currentIdx+1)">WHATSAPP &rarr;</button></div></div></div>`;
+        container.appendChild(final);
 
-        slides.forEach((cfg, idx) => {
-            const section = document.createElement('section');
-            section.className = `main-slide ${idx === 0 ? 'active' : 'next'}`;
-            section.id = cfg.id;
-            section.dataset.mode = cfg.type === 'selector' ? 'options' : 'static';
-
-            let html = `<div class="slide-header"><span class="header-title">${cfg.title}</span></div><div class="carousel-viewport" data-id="${cfg.id}">`;
-
-            if (cfg.type === 'selector') {
-                cfg.items.forEach((item, i) => {
-                    html += `
-                    <div class="sub-slide ${i===0 ? 'opt-active' : 'opt-hidden'}" data-opt-idx="${i}" data-val="${item.name}">
-                        <div class="role-label">${cfg.title.split('·')[0].trim()}</div>
-                        <h1>${item.name}${item.price ? `<span class="price">₹${item.price}</span>` : ""}</h1>
-                        <div class="primary-question">Swipe Right to Browse</div>
-                        <div class="nav-hint">
-                            <span style="flex:1; color:var(--accent-skip); font-weight:bold;">&larr; SKIP</span>
-                            <span style="flex:2; text-align:center; color:var(--accent-go); font-weight:bold;">&darr; SELECT</span>
-                            <span style="flex:1; text-align:right;">BROWSE &rarr;</span>
-                        </div>
-                    </div>`;
-                });
-            } else if (cfg.type === 'final') {
-                html += `
-                <div class="sub-slide static">
-                    <div class="verdict-container">
-                        <div class="choice-header">WHAT YOU CHOSE</div>
-                        <div class="input-group" id="final-list"></div>
-                        <div class="final-actions">
-                            <button class="btn btn-zomato" id="btn-zomato" onclick="copyAndRedirect('zomato')">ZOMATO</button>
-                            <button class="btn btn-swiggy" id="btn-swiggy" onclick="copyAndRedirect('swiggy')">SWIGGY</button>
-                            <button class="btn btn-blinkit" id="btn-blinkit" onclick="copyAndRedirect('blinkit')">BLINKIT</button>
-                            <button class="btn btn-cloud" onclick="saveToCloud()">SAVE TO CLOUD</button>
-                            <button class="btn btn-wa" onclick="sendWhatsapp()">WHATSAPP</button>
-                        </div>
-                        <div class="nav-hint"><span style="width:100%; text-align:center; color:var(--brand-orange)">SWIPE DOWN FOR BUSINESS &darr;</span></div>
-                    </div>
-                </div>`;
-            } else if (cfg.type === 'business') {
-                html += `
-                <div class="sub-slide static">
-                    <div class="biz-card">
-                        <span class="biz-tagline">POWERED BY KUTCH AUTOMATION</span>
-                        <div class="biz-title">BUILD YOUR OWN ENGINE</div>
-                        <p style="color:#888; font-size:0.9rem; line-height:1.6; margin-bottom:20px;">Custom AI automation for the modern era.</p>
-                        <div style="font-family: var(--font-tech); font-size: 0.8rem; color: var(--accent-go); margin-bottom: 20px;">🔗 ${SHARE_LINK_TEXT}</div>
-                        <div class="final-actions">
-                            <button class="btn btn-wa" onclick="window.open('https://wa.me/916351537770', '_blank')">CONSULT WHATSAPP</button>
-                            <button class="btn" style="border:1px solid #444;" onclick="location.reload()">START NEW HUNT</button>
-                        </div>
-                    </div>
-                </div>`;
-            }
-            html += `</div>`;
-            section.innerHTML = html;
-            container.appendChild(section);
-        });
-
-        slideElements = Array.from(document.querySelectorAll('.main-slide'));
-        currentIdx = 0;
-        attachEvents(); 
-        updateResult();
-    }
-
-    /* =========================================
-       3. NAVIGATION & LOGIC
-       ========================================= */
-    let dragRatio = 0;
-    const MAX_DRAG = 250;
-    const TRIGGER_THRESHOLD = 0.9;
-
-    function goToSlide(idx) {
-        if (idx < 0 || idx >= slideElements.length) return;
-        const curr = slideElements[currentIdx];
-        curr.classList.remove('active');
-        if (idx > currentIdx) { curr.classList.add('prev'); curr.classList.remove('next'); }
-        else { curr.classList.add('next'); curr.classList.remove('prev'); }
-        currentIdx = idx;
-        const next = slideElements[currentIdx];
-        next.classList.remove('prev', 'next');
-        next.classList.add('active');
-        if(next.id === 'final') updateResult();
-        dragRatio = 0;
-        document.getElementById('depth-fill').style.height = '0%';
-    }
-
-    function updateResult() {
-        const list = document.getElementById('final-list');
-        if(!list) return;
-
-        const cart = ENGINE_STATE.items_detected;
-        const strategies = ENGINE_STATE.platform_strategy.fulfillment;
-
-        ['zomato','swiggy','blinkit'].forEach(p => {
-            const btn = document.getElementById(`btn-${p}`);
-            if(btn) {
-                if(strategies.includes(p)) btn.classList.add('active');
-                else btn.classList.remove('active');
-            }
-        });
-
-        let html = '';
-        let total = 0;
-        if (Object.keys(cart).length === 0) {
-            html = '<div style="text-align:center;color:#666;margin-top:20px;">No items selected.</div>';
-        } else {
-            for (const [name, data] of Object.entries(cart)) {
-                const price = data.price || 0;
-                total += price * data.qty;
-                html += `<div class="input-row"><span class="input-key">${name}</span><span class="input-val">x${data.qty} · ₹${price * data.qty}</span></div>`;
-            }
-            html += `<div class="input-row" style="border-top:1px solid #444; margin-top:10px;"><span class="input-key">TOTAL</span><span class="input-val">₹${total}</span></div>`;
-        }
-        list.innerHTML = html;
-    }
-
-    function executeAction(action) {
-        const currSlide = slideElements[currentIdx];
-        const mode = currSlide.dataset.mode;
+        const biz = document.createElement('section'); biz.className = 'main-slide next'; biz.id = 'business';
+        biz.innerHTML = `<div class="sub-slide static"><div class="biz-card"><span class="biz-tagline">POWERED BY KUTCH AUTOMATION</span><div class="biz-title">BUILD YOUR OWN ENGINE</div><div class="final-actions"><button class="btn btn-wa" onclick="sendWa()">CHAT WITH 916351537770</button><button class="btn" onclick="location.reload()">RESTART</button></div></div></div>`;
+        container.appendChild(biz);
         
-        switch(action) {
-            case 'NEXT': goToSlide(currentIdx + 1); break;
-            case 'PREV': if(currentIdx > 0) goToSlide(currentIdx - 1); break;
-            case 'SELECT': 
-                if(mode === 'options') {
-                    const view = currSlide.querySelector('.carousel-viewport');
-                    const val = view.querySelectorAll('.sub-slide')[view._currOpt || 0].dataset.val;
-                    engineUpdate("ADD_ITEM", val);
-                    showToast(`SELECTED: ${val}`);
-                    goToSlide(currentIdx + 1);
-                } else goToSlide(currentIdx + 1);
-                break;
-            case 'SKIP':
-                if(mode === 'options') {
-                    showToast("SKIPPED", "skip");
-                    goToSlide(currentIdx + 1);
-                }
-                break;
-            case 'BROWSE':
-                if(mode === 'options') {
-                    const view = currSlide.querySelector('.carousel-viewport');
-                    const slides = view.querySelectorAll('.sub-slide');
-                    let curr = view._currOpt || 0;
-                    curr = (curr + 1) % slides.length;
-                    view._currOpt = curr;
-                    slides.forEach((s, i) => {
-                        s.style.transform = '';
-                        if(i === curr) { s.classList.remove('opt-hidden'); s.classList.add('opt-active'); }
-                        else { s.classList.remove('opt-active'); s.classList.add('opt-hidden'); }
-                    });
-                }
-                break;
-        }
+        slideElements = Array.from(document.querySelectorAll('.main-slide'));
+        slideElements[0].className = "main-slide active";
+        currentIdx = 0;
+        if(slideElements[0].dataset.mode === 'options') attachPhysics(slideElements[0].querySelector('.sub-slide'));
     }
 
-    function attachEvents() {
-        let startX = 0, startY = 0;
-        document.querySelectorAll('.carousel-viewport').forEach(view => {
-            view._currOpt = 0;
-            view.addEventListener('touchstart', e => { startX = e.touches[0].clientX; startY = e.touches[0].clientY; }, {passive: true});
-            view.addEventListener('touchmove', e => {
-                const dx = e.touches[0].clientX - startX;
-                const dy = e.touches[0].clientY - startY;
-                const axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
-                if(axis === 'y' && dy > 0) {
-                    e.preventDefault();
-                    dragRatio = Math.min(dy/MAX_DRAG, 1);
-                    document.getElementById('depth-fill').style.height = (dragRatio*100)+'%';
-                }
-            }, {passive: false});
-            view.addEventListener('touchend', e => {
-                const dx = e.changedTouches[0].clientX - startX;
-                const dy = e.changedTouches[0].clientY - startY;
-                const axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
-                if (axis === 'y') {
-                    if (dy < -50) executeAction('PREV');
-                    else if (dy > 50 && dragRatio > TRIGGER_THRESHOLD) executeAction('SELECT');
-                } else if (axis === 'x' && view.closest('.main-slide').dataset.mode === 'options') {
-                    if (dx < -50) executeAction('SKIP');
-                    else if (dx > 50) executeAction('BROWSE');
-                }
-                document.getElementById('depth-fill').style.height = '0%';
-            });
+    function attachPhysics(el) {
+        if(activePhysics) activePhysics.cleanup();
+        activePhysics = new PhysicsController(el, (dir) => {
+            const view = slideElements[currentIdx].querySelector('.carousel-viewport');
+            const val = el.dataset.val;
+            if(dir === "UP") { updateCart("ADD", val); showToast("ADDED"); nextSlide(); }
+            else if(dir === "LEFT") { showToast("SKIPPED"); nextSlide(); }
+            else if(dir === "RIGHT") { 
+                const slides = view.querySelectorAll('.sub-slide');
+                let curr = 0; 
+                slides.forEach((s,i) => { 
+                    if(s.classList.contains('opt-active')) curr = i; 
+                    s.classList.remove('opt-active'); s.classList.add('opt-hidden'); 
+                    setTimeout(()=>{ s.style.transform = ''; s.style.opacity = '1'; }, 300);
+                });
+                const next = slides[(curr+1)%slides.length];
+                next.classList.remove('opt-hidden'); next.classList.add('opt-active');
+                next.style.transform = ''; next.style.opacity = '1'; 
+                attachPhysics(next);
+            }
+            else { el.style.transform = ""; el.style.opacity = "1"; }
         });
     }
 
-    /* =========================================
-       4. MASTER VOICE ROUTER
-       ========================================= */
-    const VOICE_INTENTS = {
-      NAV: { next: ["next","continue","go ahead"], prev: ["back","previous","go back"], jump: ["go to","open","show me"] },
-      ACTION: { select: ["select","choose","pick"], skip: ["skip","ignore"], browse: ["browse","show","next option"] },
-      CART: { add: ["add","include"], remove: ["remove","delete"], reset: ["clear cart","start over","reset order"], read: ["read cart","what did i choose","list items"] },
-      QUANTITY: { double: ["double","two portions","make it two"], half: ["half","less","small portion"] },
-      PLATFORM: { zomato: ["zomato"], swiggy: ["swiggy"], blinkit: ["blinkit"], whatsapp: ["whatsapp"] },
-      SYSTEM: { help: ["help","what can i say","commands"], copy: ["copy","clipboard","phone"], save: ["save","cloud"] }
-    };
-
-    const NUMBER_MAP = {
-      "zero": 0, "one": 1, "won": 1, "two": 2, "to": 2, "too": 2, "three": 3, "four": 4, "for": 4,
-      "five": 5, "six": 6, "seven": 7, "eight": 8, "ate": 8, "nine": 9, "ten": 10,
-      "eleven": 11, "twelve": 12, "half": 0.5
-    };
-
-    function extractNumber(text) {
-      text = text.toLowerCase();
-      const digit = text.match(/\b\d+\b/);
-      if (digit) return parseInt(digit[0], 10);
-      for (let word in NUMBER_MAP) {
-        if (text.includes(word)) return NUMBER_MAP[word];
-      }
-      return null;
+    function nextSlide() {
+        if(currentIdx >= slideElements.length - 1) return;
+        slideElements[currentIdx].classList.remove('active'); slideElements[currentIdx].classList.add('prev');
+        currentIdx++;
+        slideElements[currentIdx].classList.remove('next'); slideElements[currentIdx].classList.add('active');
+        if(slideElements[currentIdx].id === 'final') renderCart();
+        else if(slideElements[currentIdx].dataset.mode === 'options') attachPhysics(slideElements[currentIdx].querySelector('.sub-slide'));
     }
 
-    function fetchVoiceConfig() {
-        if(!NET_STATE.online){
-            const cached = localStorage.getItem("VOICE_INTENTS_CACHE");
-            if(cached){
-                const data = JSON.parse(cached);
-                for(let grp in data) {
-                    if(!VOICE_INTENTS[grp]) VOICE_INTENTS[grp] = {};
-                    Object.assign(VOICE_INTENTS[grp], data[grp]);
-                }
-            }
-            return;
+    function updateCart(action, item) {
+        if(action === "ADD") { 
+            const qty = (ENGINE_STATE.items_detected[item]?.qty || 0) + 1;
+            ENGINE_STATE.items_detected[item] = { qty: qty, price: getPrice(item) };
         }
-        fetch(GOOGLE_SCRIPT_URL + "?type=voice_config")
-        .then(res => res.json())
-        .then(data => {
-            if(data && !data.error) {
-                for(let grp in data) {
-                    if(!VOICE_INTENTS[grp]) VOICE_INTENTS[grp] = {};
-                    Object.assign(VOICE_INTENTS[grp], data[grp]);
-                }
-                localStorage.setItem("VOICE_INTENTS_CACHE", JSON.stringify(VOICE_INTENTS));
-            }
-        }).catch(e => console.log("Voice Config Fetch Failed"));
+        localStorage.setItem("ENGINE_STATE_CACHE", JSON.stringify(ENGINE_STATE));
     }
 
-    function parseVoice(text){
-      const t = text.toLowerCase();
-      for (const [group, intents] of Object.entries(VOICE_INTENTS)) {
-        for (const [key, words] of Object.entries(intents)) {
-          if (words.some(w => t.includes(w))) return { group, key, raw: t };
-        }
-      }
-      return null;
+    function getPrice(name) {
+        for(let c in RAW_DATA) for(let cat of RAW_DATA[c].categories) for(let i of cat.items) if(i.name === name) return i.price;
+        return 0;
     }
 
-    function dispatchVoice(cmd){
-      if(!cmd) return;
-      if(document.getElementById('lobby')) {
-          if(cmd.group === 'CART' && cmd.key === 'add') {
-             const map = {'punjabi': 'punjabi', 'chinese': 'chinese', 'pizza': 'pizza', 'nasta': 'snacks', 'snacks': 'snacks'};
-             for(let k in map) if(cmd.raw.includes(k)) toggleCuisine(map[k], document.querySelector(`button[onclick*='${map[k]}']`));
-          }
-          if(cmd.key === 'next' || cmd.key === 'jump') startHunt();
-          return;
-      }
-
-      /* JUMP */
-      if (cmd.group === "NAV" && cmd.key === "jump") {
-        const n = extractNumber(cmd.raw);
-        if (n !== null && slideElements[n - 1]) {
-            goToSlide(n - 1);
-            speak(`Jumping to slide ${n}`);
-            return;
-        }
-      }
-
-      switch(cmd.group){
-        case "NAV":
-          if(cmd.key==="next") executeAction("NEXT");
-          if(cmd.key==="prev") executeAction("PREV");
-          break;
-        case "ACTION":
-          if(cmd.key==="select") executeAction("SELECT");
-          if(cmd.key==="skip") executeAction("SKIP");
-          if(cmd.key==="browse") executeAction("BROWSE");
-          break;
-        case "CART":
-          if(cmd.key==="add") handleGlobalAdd(cmd.raw);
-          if(cmd.key==="remove") handleGlobalRemove(cmd.raw);
-          if(cmd.key==="reset") engineUpdate("RESET");
-          if(cmd.key==="read") readCart();
-          break;
-        case "QUANTITY": 
-          for(let item in ENGINE_STATE.items_detected) {
-              if(cmd.raw.includes(item.toLowerCase())) engineUpdate("QUANTITY", { target: item, mod: cmd.key });
-          }
-          speak("Updated quantity");
-          updateResult();
-          break;
-        case "PLATFORM": 
-             // 🆕 FIXED: Explicit Whatsapp handling
-             if(cmd.key === "whatsapp") sendWhatsapp();
-             else copyAndRedirect(cmd.key); 
-             break;
-        case "SYSTEM":
-          if(cmd.key==="help") speak("You can say next, select, add item, clear cart, or hunt.");
-          if(cmd.key==="copy") autoCopy();
-          if(cmd.key==="save") saveToCloud();
-          break;
-      }
-    }
-
-    let rec;
-    function initVoice() {
-        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SR) { showToast("VOICE NOT SUPPORTED"); return; }
-        rec = new SR();
-        rec.lang = "en-IN";
-        rec.continuous = true;
-        rec.interimResults = false;
-
-        rec.onresult = e => {
-            const txt = e.results[e.results.length - 1][0].transcript;
-            showToast(`Heard: "${txt}"`);
-            const intent = parseVoice(txt);
-            if (intent) {
-                dispatchVoice(intent);
-            } else {
-                // 🆕 FIXED: Implicit "Two Naan" command support
-                const num = extractNumber(txt);
-                if (num !== null) handleGlobalAdd(txt); 
-            }
-        };
-        rec.onerror = e => { showToast("VOICE TEMP UNAVAILABLE"); };
-        rec.onend = () => {
-            const mic = document.getElementById('mic-toggle');
-            if (mic && mic.classList.contains('listening')) setTimeout(() => { try { rec.start(); } catch(e) {} }, 300);
-        };
-        window.toggleListenMode = () => {
-            const mic = document.getElementById('mic-toggle');
-            if(mic.classList.contains('listening')) { rec.stop(); mic.classList.remove('listening'); }
-            else { try { rec.start(); } catch(e) {} mic.classList.add('listening'); }
-        };
-    }
-
-    /* =========================================
-       5. HELPERS (Search, Deep Links, WhatsApp)
-       ========================================= */
-    function readCart(){
-      const items = ENGINE_STATE.items_detected;
-      if(!Object.keys(items).length){ speak("Cart is empty"); return; }
-      let sentence = "You have ";
-      Object.entries(items).forEach(([k,v]) => { sentence += `${v.qty} ${k}, `; });
-      speak(sentence.slice(0, -2));
-    }
-
-    function handleGlobalAdd(txt) {
-      let qty = extractNumber(txt) || 1;
-      let found = false;
-      if(RAW_DATA) {
-          Object.keys(RAW_DATA).forEach(cId => {
-              RAW_DATA[cId].categories.forEach(cat => {
-                  cat.items.forEach(item => {
-                      if (!found && txt.includes(item.name.toLowerCase())) {
-                          const currentQty = ENGINE_STATE.items_detected[item.name]?.qty || 0;
-                          ENGINE_STATE.items_detected[item.name] = { 
-                              qty: currentQty + qty, 
-                              price: item.price || 0,
-                              added_at: Date.now() 
-                          };
-                          found = true;
-                          recalcStrategy();
-                          showToast(`ADDED ${qty} × ${item.name}`);
-                          if (slideElements[currentIdx] && slideElements[currentIdx].id === 'final') updateResult();
-                      }
-                  });
-              });
-          });
-      }
-      if(!found) showToast("ITEM NOT FOUND");
-    }
-
-    function handleGlobalRemove(txt) {
-      const qty = extractNumber(txt) || 1;
-      for (const item in ENGINE_STATE.items_detected) {
-        if (txt.includes(item.toLowerCase())) {
-          ENGINE_STATE.items_detected[item].qty -= qty;
-          if (ENGINE_STATE.items_detected[item].qty <= 0) {
-            delete ENGINE_STATE.items_detected[item];
-            showToast(`REMOVED ${item}`);
-          } else {
-            showToast(`REDUCED ${item} ×${qty}`);
-          }
-          recalcStrategy();
-          if (slideElements[currentIdx] && slideElements[currentIdx].id === 'final') updateResult();
-          return;
-        }
-      }
-    }
-
-    function speak(text) { window.speechSynthesis.speak(new SpeechSynthesisUtterance(text)); }
-    
-    function buildCartText() { 
-        let str = "";
-        let total = 0;
+    function renderCart() {
+        const list = document.getElementById('final-list');
+        let h = "", total = 0;
         for(let [k,v] of Object.entries(ENGINE_STATE.items_detected)) {
-            str += `${k} (x${v.qty}), `;
-            total += v.price * v.qty;
+            h += `<div class="input-row"><span>${k}</span><span>x${v.qty} · ₹${v.price*v.qty}</span></div>`;
+            total += v.price*v.qty;
         }
-        str = str.slice(0, -2) || "No items";
-        return str + ` | TOTAL: ₹${total}`;
+        h += `<div class="input-row" style="border-top:1px solid #444;margin-top:10px"><span>TOTAL</span><span>₹${total}</span></div>`;
+        list.innerHTML = h;
     }
 
-    function saveToCloud() {
-        if(!NET_STATE.online) { showToast("OFFLINE - SAVED LOCALLY"); return; }
-        showToast("SAVING...");
-        fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(ENGINE_STATE) })
-        .then(() => { showToast("SAVED ✅"); speak("Order saved"); });
-    }
-
-    function autoCopy() {
-        const data = buildCartText();
-        navigator.clipboard.writeText(data);
-        showToast("COPIED TO CLIPBOARD");
-        speak("Order copied");
-    }
-
-    /* 🆕 v11.0 DEEP LINK & SEARCH INJECTION ENGINE */
-    function buildCartSearchQuery() {
-        const cart = ENGINE_STATE.items_detected;
-        if(Object.keys(cart).length === 0) return "";
-        let query = [];
-        for(let [k, v] of Object.entries(cart)) {
-            query.push(`${k} x${v.qty}`);
+    function executeAction(act) {
+        if(document.getElementById('lobby')) return;
+        const s = slideElements[currentIdx];
+        if(s.dataset.mode === 'options') {
+            const val = s.querySelector('.opt-active').dataset.val;
+            if(act === "SELECT") { updateCart("ADD", val); showToast("ADDED"); nextSlide(); }
+            if(act === "SKIP") { showToast("SKIPPED"); nextSlide(); }
+            if(act === "BROWSE") {
+                const view = s.querySelector('.carousel-viewport');
+                const slides = view.querySelectorAll('.sub-slide');
+                let curr = 0; 
+                slides.forEach((s,i) => { 
+                    if(s.classList.contains('opt-active')) curr = i; 
+                    s.classList.remove('opt-active'); s.classList.add('opt-hidden');
+                    setTimeout(()=>{ s.style.transform = ''; s.style.opacity = '1'; }, 300);
+                });
+                const next = slides[(curr+1)%slides.length];
+                next.classList.remove('opt-hidden'); next.classList.add('opt-active');
+                next.style.transform = ''; next.style.opacity = '1';
+                attachPhysics(next);
+            }
         }
-        return encodeURIComponent(query.join(", "));
     }
 
-    function buildWhatsappMessage() {
-        const cart = ENGINE_STATE.items_detected;
-        let msg = "📋 *NEW ORDER*\n----------------\n";
+    // --- DEEP LINK LOGIC ---
+    function getCategory(name) {
+        for(let c in RAW_DATA) for(let cat of RAW_DATA[c].categories) for(let i of cat.items) if(i.name === name) return cat.id;
+        return "";
+    }
+
+    function link(p) {
+        const allItems = Object.keys(ENGINE_STATE.items_detected);
+        let validItems = [];
+
+        if (p === 'blinkit') {
+            validItems = allItems.filter(name => {
+                const cat = getCategory(name);
+                return cat.startsWith("s_") || cat.includes("beverage");
+            });
+        } else {
+            validItems = allItems.filter(name => {
+                const cat = getCategory(name);
+                return !cat.startsWith("s_packaged");
+            });
+        }
+
+        if (validItems.length === 0) return showToast("NO ITEMS FOR THIS APP");
+
+        const q = encodeURIComponent(validItems.map(k => `${k} x${ENGINE_STATE.items_detected[k].qty}`).join(", "));
+        const urls = { 
+            zomato: `https://www.zomato.com/search?q=${q}`, 
+            swiggy: `https://www.swiggy.com/search?query=${q}`, 
+            blinkit: `https://blinkit.com/s/?q=${q}` 
+        };
+        window.open(urls[p], '_blank');
+    }
+
+    function sendWa() {
         let total = 0;
+        let msg = "📋 *NEW ORDER*\n----------------\n";
         let i = 1;
-        for(let [k, v] of Object.entries(cart)) {
-            let lineTotal = v.price * v.qty;
-            total += lineTotal;
-            msg += `${i}. ${k} (x${v.qty}) - ₹${lineTotal}\n`;
+        for(let [k,v] of Object.entries(ENGINE_STATE.items_detected)) {
+            const line = v.price * v.qty;
+            total += line;
+            msg += `${i}. ${k} (x${v.qty}) - ₹${line}\n`;
             i++;
         }
         msg += "----------------\n";
         msg += `💰 *Est. Total: ₹${total}*\n`;
         msg += `📍 Location: Gandhidham`;
-        return encodeURIComponent(msg);
-    }
-
-    function copyAndRedirect(platform) {
-        if(!NET_STATE.online){
-            showToast("COPIED — OPEN APP MANUALLY");
-            speak("Order copied. Open app manually.");
-            autoCopy();
-            return;
-        }
-
-        const query = buildCartSearchQuery();
-        if(!query) { showToast("CART IS EMPTY"); return; }
-
-        showToast("OPENING " + platform.toUpperCase());
         
-        // Smart Fallback Schema
-        const links = {
-            zomato: { 
-                app: `zomato://search?q=${query}`, 
-                web: `https://www.zomato.com/search?q=${query}` 
-            },
-            swiggy: { 
-                app: `swiggy://explore?query=${query}`, 
-                web: `https://www.swiggy.com/search?q=${query}` 
-            },
-            blinkit: { 
-                app: `blinkit://`, // Blinkit deep linking is restrictive, use generic open
-                web: `https://blinkit.com/s/?q=${query}` 
+        window.open(`https://wa.me/916351537770?text=${encodeURIComponent(msg)}`, '_blank');
+    }
+    
+    function saveToCloud() { fetch(GOOGLE_SCRIPT_URL, {method:"POST", body:JSON.stringify(ENGINE_STATE)}); showToast("SAVED"); }
+    function showToast(m) { const t=document.getElementById('toast'); t.innerText=m; t.classList.add('visible'); setTimeout(()=>t.classList.remove('visible'),2000); }
+    
+    function toggleListenMode() { 
+        if(!rec) initVoice();
+        const m = document.getElementById('mic-toggle');
+        if(m.classList.contains('listening')) { rec.stop(); m.classList.remove('listening'); } else { rec.start(); m.classList.add('listening'); }
+    }
+    let rec;
+    function initVoice() {
+        if(!window.SpeechRecognition && !window.webkitSpeechRecognition) return;
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        rec = new SR(); rec.lang = "en-IN"; rec.continuous = true;
+        rec.onresult = e => {
+            const t = e.results[e.results.length-1][0].transcript.toLowerCase();
+            showToast(t);
+            if(t.includes("zomato")) link('zomato');
+            else if(t.includes("swiggy")) link('swiggy');
+            else if(t.includes("whatsapp")) sendWa();
+            else if(t.includes("select") || t.includes("add")) executeAction("SELECT");
+            else if(t.includes("skip") || t.includes("next")) executeAction("SKIP");
+            else if(t.includes("browse") || t.includes("show")) executeAction("BROWSE");
+            else if(t.includes("gyro") || t.includes("tilt")) reqGyro();
+            else {
+                const nums = {"one":1,"two":2,"three":3,"1":1,"2":2,"3":3};
+                for(let k in nums) if(t.includes(k)) { 
+                    const s = slideElements[currentIdx];
+                    if(s && s.dataset.mode === 'options') {
+                         const val = s.querySelector('.opt-active').dataset.val;
+                         ENGINE_STATE.items_detected[val] = { qty: nums[k], price: getPrice(val) };
+                         showToast(`ADDED ${nums[k]} ${val}`);
+                         nextSlide();
+                    }
+                }
             }
         };
-
-        const target = links[platform];
-        if (!target) return;
-
-        // Try App, Fallback to Web
-        const start = Date.now();
-        window.location.href = target.app;
-        
-        setTimeout(() => { 
-            if (Date.now() - start < 2000) {
-                window.location.href = target.web; 
-            }
-        }, 1500);
-    }
-
-    function sendWhatsapp() {
-        const msg = buildWhatsappMessage();
-        window.open(`https://wa.me/916351537770?text=${msg}`, '_blank');
-    }
-
-    function showToast(msg, type="normal") {
-        const t = document.getElementById('toast');
-        t.innerText = msg; t.classList.add('visible');
-        setTimeout(() => t.classList.remove('visible'), 2000);
+        rec.onend = () => { if(document.getElementById('mic-toggle').classList.contains('listening')) rec.start(); };
     }
 
     boot();
