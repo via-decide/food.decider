@@ -3,16 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>| food.decide | Trinity</title>
+    <title>| food.decide | Omni</title>
 
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0a0a0a">
     <meta name="background-color" content="#0a0a0a">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="food.decide">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <meta name="mobile-web-app-capable" content="yes">
+
+    <script src="https://webgazer.cs.brown.edu/webgazer.js"></script>
+
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./service-worker.js')
+            .catch(err => console.log('SW failed:', err));
+        });
+      }
+    </script>
 
     <style>
+        /* =========================================
+           CORE SYSTEM
+           ========================================= */
         :root {
             --brand-orange: #ff671f;
             --brand-bg: #0a0a0a;
@@ -26,28 +42,68 @@
             --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
 
-        html, body { margin: 0; padding: 0; height: 100%; width: 100%; background: var(--brand-bg); color: var(--text-main); font-family: var(--font-ui); overflow: hidden; touch-action: none; }
-        #master-container { height: 100vh; width: 100vw; position: relative; overflow: hidden; }
+        html, body {
+            margin: 0; padding: 0; height: 100%; width: 100%;
+            background-color: var(--brand-bg);
+            color: var(--text-main);
+            font-family: var(--font-ui);
+            overflow: hidden;
+            touch-action: none; 
+        }
 
-        /* SENSOR STATUS */
-        #gyro-status { position: fixed; top: 15px; left: 50%; transform: translateX(-50%); font-family: var(--font-tech); font-size: 0.6rem; color: #444; border: 1px solid #333; padding: 4px 8px; border-radius: 4px; opacity: 0; transition: opacity 0.5s; z-index: 1000; pointer-events: none; }
-        #gyro-status.active { opacity: 1; color: var(--accent-go); border-color: var(--accent-go); }
+        #master-container {
+            height: 100vh; width: 100vw; position: relative; overflow: hidden;
+        }
+
+        /* STATUS PILLS */
+        .status-pill {
+            position: fixed; left: 50%; transform: translateX(-50%);
+            font-family: var(--font-tech); font-size: 0.6rem; color: #444;
+            border: 1px solid #333; padding: 4px 8px; border-radius: 4px;
+            opacity: 0; transition: opacity 0.5s; z-index: 1000; pointer-events: none;
+        }
+        #gyro-status { top: 15px; }
+        #eye-status { top: 40px; }
+        .active-pill { opacity: 1 !important; color: var(--accent-go) !important; border-color: var(--accent-go) !important; }
+
+        /* GAZE CURSOR */
+        #gaze-dot {
+            position: fixed; width: 10px; height: 10px; background: var(--brand-orange); border-radius: 50%;
+            z-index: 9999; pointer-events: none; display: none; transform: translate(-50%, -50%);
+            box-shadow: 0 0 10px var(--brand-orange);
+        }
 
         /* SLIDES */
-        .main-slide { height: 100vh; width: 100vw; position: absolute; top: 0; left: 0; display: flex; flex-direction: column; background: var(--brand-bg); transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1); will-change: transform; }
+        .main-slide {
+            height: 100vh; width: 100vw; position: absolute; top: 0; left: 0;
+            display: flex; flex-direction: column; background: var(--brand-bg);
+            transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+            will-change: transform;
+        }
         .main-slide.prev { transform: translateY(-100%); }
         .main-slide.active { transform: translateY(0); z-index: 10; }
         .main-slide.next { transform: translateY(100%); z-index: 20; }
 
-        .slide-header { padding: 20px; border-left: 3px solid var(--brand-orange); height: 70px; flex-shrink: 0; z-index: 10; display: flex; align-items: center; }
-        .header-title { font-family: var(--font-tech); font-size: 0.75rem; color: var(--brand-orange); letter-spacing: 1px; font-weight: 700; text-transform: uppercase; }
+        .slide-header {
+            padding: 20px; border-left: 3px solid var(--brand-orange); height: 70px;
+            flex-shrink: 0; z-index: 10; display: flex; align-items: center;
+        }
+        .header-title {
+            font-family: var(--font-tech); font-size: 0.75rem; color: var(--brand-orange);
+            letter-spacing: 1px; font-weight: 700; text-transform: uppercase;
+        }
 
-        .carousel-viewport { position: relative; flex-grow: 1; width: 100%; height: 100%; perspective: 1000px; }
+        .carousel-viewport {
+            position: relative; flex-grow: 1; width: 100%; height: 100%; perspective: 1000px;
+        }
 
         .sub-slide {
-            position: absolute; inset: 0; padding: 25px; display: flex; flex-direction: column; justify-content: center;
+            position: absolute; inset: 0; padding: 25px;
+            display: flex; flex-direction: column; justify-content: center;
             opacity: 0; pointer-events: none; background: var(--brand-bg); border-radius: 12px;
-            transform-origin: 50% 150%; transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s; will-change: transform;
+            transform-origin: 50% 150%; 
+            transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s;
+            will-change: transform;
         }
         .sub-slide.opt-active { z-index: 30; opacity: 1; pointer-events: auto; transform: translateX(0); }
         .sub-slide.opt-hidden { z-index: 0; opacity: 0; pointer-events: none; transform: scale(0.9); }
@@ -56,13 +112,25 @@
         h1 { font-size: 1.8rem; margin: 0 0 15px 0; line-height: 1; letter-spacing: -1px; color: var(--brand-orange); }
         .primary-question { font-size: 1.1rem; color: #fff; margin-bottom: 25px; line-height: 1.4; font-weight: 600; }
         
-        .price { font-size: 0.9rem; color: #aaa; margin-left: 10px; font-family: var(--font-tech); background: #222; padding: 2px 6px; border-radius: 4px; }
-        .role-label { font-family: var(--font-tech); font-size: 0.6rem; color: #000; background: var(--accent-go); padding: 4px 8px; border-radius: 4px; width: fit-content; margin-bottom: 15px; font-weight: bold; }
-        
-        .nav-hint { margin-top: 30px; padding-top: 20px; border-top: 1px solid #333; font-family: var(--font-tech); font-size: 0.7rem; color: #666; display: flex; justify-content: space-between; }
+        .price {
+            font-size: 0.9rem; color: #aaa; margin-left: 10px; font-family: var(--font-tech);
+            background: #222; padding: 2px 6px; border-radius: 4px;
+        }
+        .role-label {
+            font-family: var(--font-tech); font-size: 0.6rem; color: #000;
+            background: var(--accent-go); padding: 4px 8px; border-radius: 4px;
+            width: fit-content; margin-bottom: 15px; font-weight: bold;
+        }
+
+        .nav-hint {
+            margin-top: 30px; padding-top: 20px; border-top: 1px solid #333;
+            font-family: var(--font-tech); font-size: 0.7rem; color: #666;
+            display: flex; justify-content: space-between;
+        }
 
         /* UI COMPONENTS */
         .verdict-container { display: flex; flex-direction: column; height: 100%; justify-content: center; }
+        .choice-header { font-family: var(--font-tech); color: #666; font-size: 0.8rem; margin-bottom: 20px; text-transform: uppercase; text-align: center; }
         .input-group { border: 1px solid #333; background: #111; padding: 20px; border-radius: 8px; margin-bottom: 20px; min-height: 100px; max-height: 40vh; overflow-y: auto; }
         .input-row { display: flex; justify-content: space-between; border-bottom: 1px dashed #333; padding: 10px 0; font-family: var(--font-tech); font-size: 0.8rem; }
         .input-key { color: #888; text-transform: uppercase; }
@@ -98,7 +166,10 @@
 </head>
 <body>
 
-<div id="gyro-status">TRINITY ENGINE READY</div>
+<div id="gyro-status" class="status-pill">GYRO ACTIVE</div>
+<div id="eye-status" class="status-pill">EYE TRACKING ACTIVE</div>
+<div id="gaze-dot"></div>
+
 <div id="master-container"></div>
 <div id="depth-fill"></div>
 <div id="toast" class="toast-msg"></div>
@@ -114,13 +185,14 @@
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyBMwKxq92U0dptKMdEHvUCXPS9AjExHtxHjcRmfh2JFjCSn9Zd82bzp34xLg6X0a7L9g/exec";
     const SHARE_LINK_TEXT = "food-decider | swipe OS";
     let SENSORS_ENABLED = false;
+    let GAZE_ENABLED = false;
 
-    // --- PHYSICS CONFIG (Kinetic) ---
+    // --- PHYSICS CONFIG ---
     const BALL_WEIGHT = 0.08;
     const SPHERE_RADIUS_PX = 1000; 
     const CLICK_ANGLE_DEG = 15; 
 
-    // --- NETWORK & MENU ---
+    // --- NETWORK ---
     const NET_STATE = { online: navigator.onLine };
     window.addEventListener("online", () => { NET_STATE.online = true; showToast("ONLINE · SYNC ENABLED"); fetchVoiceConfig(); });
     window.addEventListener("offline", () => { NET_STATE.online = false; showToast("OFFLINE · USING SAVED DATA"); });
@@ -137,18 +209,63 @@
     };
 
     /* =========================================
-       2. PHYSICS CONTROLLER (Touch + Gyro)
+       2. INPUT CONTROLLERS (Touch, Gyro, Gaze)
        ========================================= */
+    
+    // --- 👁️ EYE TRACKING ENGINE ---
+    class GazeController {
+        constructor() {
+            this.active = false;
+            this.lastTrigger = 0;
+            this.triggerDelay = 1500;
+        }
+
+        start() {
+            if(this.active) return;
+            this.active = true;
+            document.getElementById('eye-status').classList.add('active-pill');
+            document.getElementById('gaze-dot').style.display = 'block';
+            
+            webgazer.setGazeListener((data, elapsed) => {
+                if (data == null) return;
+                const x = data.x;
+                const y = data.y;
+                const w = window.innerWidth;
+                const h = window.innerHeight;
+                const now = Date.now();
+
+                const dot = document.getElementById('gaze-dot');
+                dot.style.left = x + 'px';
+                dot.style.top = y + 'px';
+
+                if (now - this.lastTrigger > this.triggerDelay) {
+                    if (y < h * 0.2) { this.trigger("UP"); } 
+                    else if (x < w * 0.2) { this.trigger("LEFT"); } 
+                    else if (x > w * 0.8) { this.trigger("RIGHT"); } 
+                }
+            }).begin();
+        }
+
+        trigger(dir) {
+            this.lastTrigger = Date.now();
+            showToast("EYE: " + dir);
+            const dot = document.getElementById('gaze-dot');
+            dot.style.transform = "translate(-50%, -50%) scale(2)";
+            setTimeout(() => dot.style.transform = "translate(-50%, -50%) scale(1)", 200);
+
+            if(dir === "UP") executeAction("SELECT");
+            if(dir === "LEFT") executeAction("SKIP");
+            if(dir === "RIGHT") executeAction("BROWSE");
+        }
+    }
+    const gazeEngine = new GazeController();
+
+    // --- 📱 PHYSICS ENGINE (Touch + Gyro) ---
     class PhysicsController {
         constructor(el, cbs, active = true) {
-            this.el = el; 
-            this.cbs = cbs; 
-            this.active = false; 
-            this.locked = false;
-            this.current = {x:0, y:0}; 
-            this.target = {x:0, y:0};  
+            this.el = el; this.cbs = cbs; this.active = false; this.locked = false;
+            this.current = {x:0, y:0}; this.target = {x:0, y:0};  
             
-            // Touch/Mouse Handlers
             const s = e => this.startDrag(e.touches?e.touches[0]:e); 
             const m = e => this.move(e.touches?e.touches[0]:e); 
             const e2 = () => this.end();
@@ -156,7 +273,6 @@
             el.addEventListener("mousedown",s); window.addEventListener("mousemove",m); window.addEventListener("mouseup",e2);
             el.addEventListener("touchstart",s,{passive:false}); el.addEventListener("touchmove",ev=>{if(this.active)ev.preventDefault();m(ev)},{passive:false}); el.addEventListener("touchend",e2);
 
-            // Gyro Handlers
             if(SENSORS_ENABLED && active) {
                 this.handleOrientation = this.handleOrientation.bind(this);
                 if(window.DeviceOrientationEvent) window.addEventListener("deviceorientation", this.handleOrientation);
@@ -164,18 +280,12 @@
                 this.raf = requestAnimationFrame(this.loop);
             }
         }
-
-        cleanup() {
-            cancelAnimationFrame(this.raf);
-            window.removeEventListener("deviceorientation", this.handleOrientation);
-        }
-
+        cleanup() { cancelAnimationFrame(this.raf); window.removeEventListener("deviceorientation", this.handleOrientation); }
         loop() {
             if(this.active || this.locked) return; 
             this.current.x += (this.target.x - this.current.x) * BALL_WEIGHT;
             this.current.y += (this.target.y - this.current.y) * BALL_WEIGHT;
             this.updateVisuals(this.current.x, this.current.y);
-
             if(SENSORS_ENABLED) {
                 const clickThresh = SPHERE_RADIUS_PX * Math.tan(CLICK_ANGLE_DEG * Math.PI / 180);
                 if(Math.abs(this.current.x) > clickThresh) this.commit(Math.sign(this.current.x)*100, 0);
@@ -183,21 +293,15 @@
             }
             this.raf = requestAnimationFrame(this.loop);
         }
-
         handleOrientation(event) {
             if(this.active || this.locked) return;
-            let g = event.gamma; 
-            let b = event.beta - 45; 
-            let radX = (g * Math.PI) / 180;
-            let radY = (b * Math.PI) / 180;
+            let g = event.gamma; let b = event.beta - 45; 
+            let radX = (g * Math.PI) / 180; let radY = (b * Math.PI) / 180;
             const MAX_RAD = 20 * Math.PI / 180;
-            radX = Math.max(-MAX_RAD, Math.min(MAX_RAD, radX));
-            radY = Math.max(-MAX_RAD, Math.min(MAX_RAD, radY));
-
+            radX = Math.max(-MAX_RAD, Math.min(MAX_RAD, radX)); radY = Math.max(-MAX_RAD, Math.min(MAX_RAD, radY));
             if(Math.abs(g) > 1) this.target.x = SPHERE_RADIUS_PX * Math.tan(radX); else this.target.x = 0;
             if(Math.abs(b) > 1) this.target.y = SPHERE_RADIUS_PX * Math.tan(radY); else this.target.y = 0;
         }
-
         startDrag(p){ this.active=true; this.start={x:p.clientX, y:p.clientY}; this.el.style.transition="none"; }
         move(p){ if(!this.active) return; this.updateVisuals(p.clientX - this.start.x, p.clientY - this.start.y); }
         end(){
@@ -206,7 +310,6 @@
             if(Math.hypot(m.m41, m.m42) > 80) this.commit(m.m41, m.m42);
             else { this.el.style.transition="0.3s cubic-bezier(0.2,0.8,0.2,1)"; this.el.style.transform="translate(0,0) rotate(0deg)"; }
         }
-
         commit(dx, dy) {
             this.locked = true;
             const dir = this.dir(dx, dy);
@@ -216,7 +319,6 @@
             this.el.style.opacity = "0";
             setTimeout(() => { this.cleanup(); this.cbs.onCommit(dir); }, 300);
         }
-
         updateVisuals(dx, dy) { this.el.style.transform = `translate(${dx}px, ${dy}px) rotate(${dx/20}deg)`; }
         dir(dx, dy){
             const a = (Math.atan2(-dy, dx) * 180 / Math.PI + 360) % 360;
@@ -241,7 +343,7 @@
         container.innerHTML = "";
         const section = document.createElement('section'); section.className = "main-slide active"; section.id = "lobby";
         section.innerHTML = `
-        <div class="slide-header"><span class="header-title">SWIPE-OS v12.0</span></div>
+        <div class="slide-header"><span class="header-title">SWIPE-OS v13.0 (TRINITY)</span></div>
         <div class="lobby-container">
             <h1 style="text-align:center; margin-bottom:40px;">AAJ KYA MANGVAAYEGE!</h1>
             <div id="cuisine-grid" style="display:grid; gap:15px;">
@@ -251,17 +353,26 @@
                 <button class="cuisine-btn" onclick="toggleCuisine('snacks', this)">NASTA PANI</button>
             </div>
             <button class="btn hunt-btn" onclick="startHunt()">HUNT &rarr;</button>
-            <button class="btn" style="background:#222; margin-top:10px; font-size:0.7rem" onclick="requestSensorAccess()">ENABLE GYRO TILT</button>
+            <div style="display:flex; gap:10px; margin-top:15px;">
+                <button class="btn" style="background:#222; font-size:0.7rem; flex:1;" onclick="requestSensorAccess()">ENABLE GYRO</button>
+                <button class="btn" style="background:#222; font-size:0.7rem; flex:1;" onclick="requestGazeAccess()">ENABLE EYES</button>
+            </div>
         </div>`;
         container.appendChild(section); slideElements = [section]; currentIdx = 0;
         if(ENGINE_STATE.cuisines_detected) ENGINE_STATE.cuisines_detected.forEach(c => { const btn = document.querySelector(`button[onclick*='${c}']`); if(btn) btn.classList.add('selected'); });
     }
 
     function requestSensorAccess() {
-        SENSORS_ENABLED = true; document.getElementById('gyro-status').classList.add('active');
+        SENSORS_ENABLED = true; document.getElementById('gyro-status').classList.add('active-pill');
         if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-            DeviceOrientationEvent.requestPermission().then(state => { if (state === 'granted') showToast("SENSORS: ACTIVE"); else showToast("SENSORS: BLOCKED"); }).catch(() => showToast("MOUSE MODE"));
+            DeviceOrientationEvent.requestPermission().then(state => { if (state === 'granted') showToast("SENSORS: ACTIVE"); }).catch(() => showToast("MOUSE MODE"));
         } else { showToast("SENSORS: ACTIVE"); }
+    }
+
+    function requestGazeAccess() {
+        GAZE_ENABLED = true;
+        gazeEngine.start();
+        showToast("GAZE: CALIBRATING...");
     }
 
     // --- EXECUTE & BUILD ---
@@ -336,7 +447,7 @@
                 cfg.items.forEach((item, i) => {
                     html += `<div class="sub-slide ${i===0 ? 'opt-active' : 'opt-hidden'}" data-opt-idx="${i}" data-val="${item.name}">
                         <div class="role-label">${cfg.title.split('·')[0].trim()}</div><h1>${item.name}${item.price ? `<span class="price">₹${item.price}</span>` : ""}</h1>
-                        <div class="primary-question">Swipe Right to Browse</div>
+                        <div class="primary-question">Swipe / Tilt / Voice / Gaze</div>
                         <div class="nav-hint"><span style="flex:1; color:var(--accent-skip); font-weight:bold;">&larr; SKIP</span><span style="flex:2; text-align:center; color:var(--accent-go); font-weight:bold;">&uarr; SELECT</span><span style="flex:1; text-align:right;">BROWSE &rarr;</span></div>
                     </div>`;
                 });
@@ -364,7 +475,7 @@
     function saveLocalState(){ localStorage.setItem("ENGINE_STATE_CACHE", JSON.stringify(ENGINE_STATE)); }
     function loadLocalState(){ const cached = localStorage.getItem("ENGINE_STATE_CACHE"); if(cached) ENGINE_STATE = JSON.parse(cached); }
     function windowToggleCuisine(id, btn) { if(ENGINE_STATE.cuisines_detected.includes(id)) { engineUpdate("REMOVE_CUISINE", id); btn.classList.remove('selected'); } else { engineUpdate("ADD_CUISINE", id); btn.classList.add('selected'); } }
-    window.toggleCuisine = windowToggleCuisine; // Fix scoping
+    window.toggleCuisine = windowToggleCuisine; 
     async function fetchMenuData() { try { const res = await fetch(GOOGLE_SCRIPT_URL + "?type=menu", { cache: "no-store" }); const json = await res.json(); if(json.data && Object.keys(json.data).length > 0) { RAW_DATA = json.data; localStorage.setItem("MENU_CACHE", JSON.stringify(json)); } else throw new Error("Empty"); } catch(e) { console.log("Using Offline Menu"); } }
     function fetchVoiceConfig() { fetch(GOOGLE_SCRIPT_URL + "?type=voice_config").then(res => res.json()).then(data => { if(data && !data.error) { Object.assign(VOICE_INTENTS, data); localStorage.setItem("VOICE_INTENTS_CACHE", JSON.stringify(VOICE_INTENTS)); } }); }
     async function checkMenuVersion() { try { const res = await fetch(GOOGLE_SCRIPT_URL + "?type=menu_version"); const { version } = await res.json(); if (version !== localStorage.getItem(SERVER_VERSION_KEY)) { localStorage.setItem(SERVER_VERSION_KEY, version); await fetchMenuData(); } } catch(e){} }
@@ -395,7 +506,23 @@
     function speak(text) { window.speechSynthesis.speak(new SpeechSynthesisUtterance(text)); }
     function buildCartSearchQuery() { const cart = ENGINE_STATE.items_detected; if(Object.keys(cart).length === 0) return ""; let query = []; for(let [k, v] of Object.entries(cart)) { query.push(`${k} x${v.qty}`); } return encodeURIComponent(query.join(", ")); }
     function buildWhatsappMessage() { const cart = ENGINE_STATE.items_detected; let msg = "📋 *NEW ORDER*\n----------------\n"; let total = 0; let i = 1; for(let [k, v] of Object.entries(cart)) { let lineTotal = v.price * v.qty; total += lineTotal; msg += `${i}. ${k} (x${v.qty}) - ₹${lineTotal}\n`; i++; } msg += "----------------\n"; msg += `💰 *Est. Total: ₹${total}*\n`; msg += `📍 Location: Gandhidham`; return encodeURIComponent(msg); }
-    function copyAndRedirect(platform) { if(!NET_STATE.online){ showToast("COPIED — OPEN APP MANUALLY"); autoCopy(); return; } const query = buildCartSearchQuery(); if(!query) { showToast("CART IS EMPTY"); return; } showToast("OPENING " + platform.toUpperCase()); const links = { zomato: `https://www.zomato.com/search?q=${query}`, swiggy: `https://www.swiggy.com/search?query=${query}`, blinkit: `https://blinkit.com/s/?q=${query}` }; if (links[platform]) { window.open(links[platform], '_blank'); } }
+    
+    // --- 🔗 FIXED: DEEP LINKS & REDIRECTS ---
+    function copyAndRedirect(platform) { 
+        if(!NET_STATE.online){ showToast("COPIED — OPEN APP MANUALLY"); autoCopy(); return; } 
+        const query = buildCartSearchQuery(); 
+        if(!query) { showToast("CART IS EMPTY"); return; } 
+        showToast("OPENING " + platform.toUpperCase()); 
+        
+        // FIXED URL SCHEMAS
+        const links = { 
+            zomato: `https://www.zomato.com/search?q=${query}`, 
+            swiggy: `https://www.swiggy.com/search?query=${query}`, // Fixed query param
+            blinkit: `https://blinkit.com/s/?q=${query}` 
+        }; 
+        if (links[platform]) { window.open(links[platform], '_blank'); } 
+    }
+    
     function sendWhatsapp() { const msg = buildWhatsappMessage(); window.open(`https://wa.me/916351537770?text=${msg}`, '_blank'); }
     function saveToCloud() { if(!NET_STATE.online) { showToast("OFFLINE"); return; } showToast("SAVING..."); fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(ENGINE_STATE) }).then(() => { showToast("SAVED ✅"); speak("Order saved"); }); }
     function autoCopy() { let str = ""; let total = 0; for(let [k,v] of Object.entries(ENGINE_STATE.items_detected)) { str += `${k} (x${v.qty}), `; total += v.price * v.qty; } navigator.clipboard.writeText(str + ` | TOTAL: ₹${total}`); showToast("COPIED"); }
