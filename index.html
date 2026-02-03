@@ -301,7 +301,6 @@
         };
         rec.onend = () => { if(document.getElementById('mic-toggle').classList.contains('listening')) rec.start(); };
     }
-
     function toggleListenMode() {
         if(!rec) initVoice();
         const m = document.getElementById('mic-toggle');
