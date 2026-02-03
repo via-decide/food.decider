@@ -69,12 +69,12 @@
         .input-row { display: flex; justify-content: space-between; border-bottom: 1px dashed #333; padding: 10px 0; font-family: var(--mono); font-size: 0.8rem; }
         .input-key { color: #888; text-transform: uppercase; } .input-val { color: var(--go); font-weight: bold; text-align: right; }
         
+        /* IMAGE CSS */
+        .food-img{ width:100%; max-height:35vh; object-fit:cover; border-radius:12px; margin-bottom:15px; display:none; }
+        .food-img.show{ display:block; }
+
         .biz-card { background: linear-gradient(145deg, #111, #050505); border: 1px solid var(--orange); padding: 30px; border-radius: 12px; text-align: center; }
         .biz-tagline { font-family: var(--mono); color: var(--orange); font-size: 0.7rem; margin-bottom: 10px; display: block; } .biz-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 20px; color: #fff; }
-
-        /* IMAGE CSS */
-        .food-img{ width:100%; max-height:45vh; object-fit:cover; border-radius:12px; margin-bottom:15px; display:none; }
-        .food-img.show{ display:block; }
 
         #depth-fill { position: fixed; right: 0; top: 0; bottom: 0; width: 4px; background: #333; z-index: 900; height: 0%; transition: height 0.05s linear; }
 
@@ -97,6 +97,9 @@
 </div>
 
 <script>
+    // --- 1. CONFIG & DATA ---
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyBMwKxq92U0dptKMdEHvUCXPS9AjExHtxHjcRmfh2JFjCSn9Zd82bzp34xLg6X0a7L9g/exec";
+    
     const ITEM_IMAGES = {
       "Butter Naan": "img/naan.jpg",
       "Garlic Naan": "img/garlic-naan.jpg",
@@ -106,19 +109,9 @@
       "Pepperoni": "img/pepperoni.jpg",
       "Burger": "img/burger.jpg",
       "Samosa": "img/samosa.jpg",
-      "Coke": "img/coke.jpg",
-      "Thums Up": "img/coke.jpg",
-      "Chips": "img/chips.jpg",
-      "Kurkure": "img/chips.jpg",
-      "Veg Crystal Dumpling": "img/momos.jpg",
-      "Pork Siu Mai": "img/momos.jpg",
-      "Har Gao": "img/momos.jpg",
-      "Shahi Paneer": "img/pbm.jpg",
-      "Butter Chicken": "img/dal.jpg"
+      "Coke": "img/coke.jpg"
     };
 
-    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyBMwKxq92U0dptKMdEHvUCXPS9AjExHtxHjcRmfh2JFjCSn9Zd82bzp34xLg6X0a7L9g/exec";
-    
     const RAW_DATA = {
         "punjabi": {
           "label": "PUNJABI",
@@ -152,6 +145,7 @@
     let container = document.getElementById('master-container');
     let slideElements = [], currentIdx = 0, rec;
 
+    // --- 2. BACKEND SYNC ---
     async function fetchLastOrder() {
         try {
             const res = await fetch(GOOGLE_SCRIPT_URL + "?type=last_order", { cache: "no-store" });
@@ -205,10 +199,9 @@
                 let h = `<div class="slide-header"><span class="header-title">${cat.label}</span></div><div class="carousel-viewport">`;
                 cat.items.forEach((item, i) => {
                     const imgUrl = ITEM_IMAGES[item.name] || "";
-                    const hasImg = imgUrl !== "";
                     h += `<div class="sub-slide ${i===0?'opt-active':'opt-hidden'}" data-val="${item.name}">
                             <div class="role-label">${cat.label}</div>
-                            <img class="food-img ${hasImg?'show':''}" src="${imgUrl}">
+                            <img class="food-img ${imgUrl?'show':''}" src="${imgUrl}">
                             <h1>${item.name} ${item.price?`<span class="price">₹${item.price}</span>`:""}</h1>
                             <div class="primary-question">Swipe Right to Browse</div>
                             <div class="nav-hint"><span>SKIP</span><span>SELECT</span><span>BROWSE</span></div>
@@ -221,7 +214,8 @@
         final.innerHTML = `<div class="sub-slide static"><div class="verdict-container"><div class="choice-header">FINAL ORDER</div><div class="input-group" id="final-list"></div><div class="final-actions"><button class="btn btn-zomato" onclick="link('zomato')">ZOMATO</button><button class="btn btn-swiggy" onclick="link('swiggy')">SWIGGY</button><button class="btn btn-blinkit" onclick="link('blinkit')">BLINKIT</button><button class="btn btn-cloud" onclick="saveToCloud()">SAVE CLOUD</button><button class="btn btn-wa" style="background:#25D366" onclick="goToSlide(currentIdx+1)">WHATSAPP &rarr;</button></div></div></div>`;
         container.appendChild(final);
         const biz = document.createElement('section'); biz.className = 'main-slide next'; biz.id = 'business';
-        biz.innerHTML = `<div class="sub-slide static"><div class="biz-card">
+        biz.innerHTML = `<div class="sub-slide static">
+        <div class="biz-card">
           <span class="biz-tagline">POWERED BY KUTCH AUTOMATION</span>
           <div class="biz-title">BUILD YOUR OWN ENGINE</div>
           <div class="biz-desc" style="margin:12px 0 24px 0; color:#aaa; font-size:0.85rem; line-height:1.4;">
@@ -315,7 +309,7 @@
     function sendWa() {
         let total = 0, msg = "📋 *NEW ORDER*\n----------------\n", i = 1;
         for(let [k,v] of Object.entries(ENGINE_STATE.items_detected)) { const line = v.price * v.qty; total += line; msg += `${i}. ${k} (x${v.qty}) - ₹${line}\n`; i++; }
-        msg += "----------------\n💰 *Est. Total: ₹${total}*\n📍 Location: Gandhidham\n“You decide once. We handle the rest.”\n --------------------\nget customized PRE-loaded -- inquiry ,\n like this for your business/personal need with support of log - management\n";
+        msg += "----------------\n💰 *Est. Total: ₹${total}*\n📍 Location: Gandhidham\n“You decide once. We handle the rest.”\n --------------------\nget customized PRE-loaded inquiry like this for your needs";
         window.open(`https://wa.me/916351537770?text=${encodeURIComponent(msg)}`, '_blank');
     }
 
@@ -329,6 +323,7 @@
     function showToast(msg) { const t = document.getElementById('toast'); t.innerText = msg; t.classList.add('visible'); setTimeout(() => t.classList.remove('visible'), 2000); }
     function speak(text) { if(!window.speechSynthesis) return; window.speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text); u.lang = "en-IN"; window.speechSynthesis.speak(u); }
 
+    // --- 3. UNIVERSAL VOICE COMMANDER ---
     function initVoice() {
         if (!window.SpeechRecognition && !window.webkitSpeechRecognition) return;
         const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -349,7 +344,6 @@
         rec.onresult = e => {
             const t = e.results[e.results.length - 1][0].transcript.toLowerCase();
             showToast(`Voice: ${t}`);
-
             if (t.includes("zomato")) return link("zomato");
             if (t.includes("swiggy")) return link("swiggy");
             if (t.includes("blinkit")) return link("blinkit");
@@ -357,10 +351,9 @@
             if (t.includes("save")) return saveToCloud();
             if (t.includes("browse")) return executeAction("BROWSE");
             if (t.includes("skip")) return executeAction("SKIP");
-            if (t.includes("next")) goToSlide(currentIdx + 1);
+            if (t.includes("next")) return goToSlide(currentIdx + 1);
 
             const qty = extractQty(t); const foundItem = extractItem(t);
-
             if (t.includes("remove") && foundItem) { updateCart("REMOVE", foundItem); speak(`Removed ${foundItem}`); return; }
             if (t.includes("double") && foundItem) { updateCart("DOUBLE", foundItem); speak(`Doubled ${foundItem}`); return; }
             if (t.includes("half") && foundItem) { updateCart("HALF", foundItem); speak(`Halved ${foundItem}`); return; }
@@ -371,7 +364,6 @@
                 if (item) { updateCart("ADD", item, qty); speak(`Added ${qty > 1 ? qty : ""} ${item}`); }
             }
         };
-
         rec.onend = () => { if (document.getElementById("mic-toggle").classList.contains("listening")) rec.start(); };
     }
 
