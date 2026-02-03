@@ -343,40 +343,78 @@ get customized "PRE-loaded"-- inquiry like above for your business/personal need
     function showToast(msg) { const t = document.getElementById('toast'); t.innerText = msg; t.classList.add('visible'); setTimeout(() => t.classList.remove('visible'), 2000); }  
   
     // --- 5. VOICE ---  
-    function toggleListenMode() {   
-        if(!rec) initVoice();  
-        const m = document.getElementById('mic-toggle');  
-        if(m.classList.contains('listening')) { rec.stop(); m.classList.remove('listening'); } else { rec.start(); m.classList.add('listening'); }  
-    }  
-    let rec;  
-    function initVoice() {  
-        if(!window.SpeechRecognition && !window.webkitSpeechRecognition) return;  
-        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;  
-        rec = new SR(); rec.lang = "en-IN"; rec.continuous = true;  
-        rec.onresult = e => {  
-            const t = e.results[e.results.length-1][0].transcript.toLowerCase();  
-            showToast(t);  
-            if(t.includes("zomato")) link('zomato');  
-            else if(t.includes("swiggy")) link('swiggy');  
-            else if(t.includes("whatsapp")) sendWa();  
-            else if(t.includes("select") || t.includes("add")) executeAction("SELECT");  
-            else if(t.includes("skip") || t.includes("next")) executeAction("SKIP");  
-            else if(t.includes("browse") || t.includes("show")) executeAction("BROWSE");  
-            else {  
-                const nums = {"one":1,"two":2,"three":3,"1":1,"2":2,"3":3};  
-                for(let k in nums) if(t.includes(k)) {   
-                    const s = slideElements[currentIdx];  
-                    if(s && s.dataset.mode === 'options') {  
-                         const val = s.querySelector('.opt-active').dataset.val;  
-                         ENGINE_STATE.items_detected[val] = { qty: nums[k], price: getPrice(val) };  
-                         showToast(`ADDED ${nums[k]} ${val}`);  
-                         nextSlide();  
-                    }  
-                }  
-            }  
-        };  
-        rec.start();  
-    }  
+    
+    let rec = null;
+let MIC_ENABLED = false;
+let MIC_RUNNING = false;
+
+    function toggleListenMode() {
+  initVoice();
+  if (!rec) return;
+
+  const mic = document.getElementById("mic-toggle");
+
+  if (MIC_ENABLED) {
+    MIC_ENABLED = false;
+    mic.classList.remove("listening");
+    try { rec.stop(); } catch(e){}
+    MIC_RUNNING = false;
+  } else {
+    MIC_ENABLED = true;
+    mic.classList.add("listening");
+    if (!MIC_RUNNING) {
+      try {
+        MIC_RUNNING = true;
+        rec.start();
+      } catch(e){}
+    }
+  }
+    }
+    
+function initVoice() {
+  if (rec) return;
+
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    showToast("VOICE NOT SUPPORTED");
+    return;
+  }
+
+  rec = new SR();
+  rec.lang = "en-IN";
+  rec.continuous = false;
+  rec.interimResults = false;
+
+  rec.onresult = e => {
+    MIC_RUNNING = false;
+    const t = e.results[0][0].transcript.toLowerCase().trim();
+    showToast(t);
+
+    if (t.includes("zomato")) return link("zomato");
+    if (t.includes("swiggy")) return link("swiggy");
+    if (t.includes("whatsapp")) return sendWa();
+    if (t.includes("select") || t.includes("add")) return executeAction("SELECT");
+    if (t.includes("skip") || t.includes("next")) return executeAction("SKIP");
+    if (t.includes("browse") || t.includes("show")) return executeAction("BROWSE");
+  };
+
+  rec.onend = () => {
+    MIC_RUNNING = false;
+    if (MIC_ENABLED) {
+      setTimeout(() => {
+        try {
+          MIC_RUNNING = true;
+          rec.start();
+        } catch(e){}
+      }, 300);
+    }
+  };
+
+  rec.onerror = () => {
+    MIC_RUNNING = false;
+  };
+}
+    
   
     boot();  
 </script>  </body>  
