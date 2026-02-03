@@ -206,7 +206,8 @@ slide.addEventListener("touchend", e => {
                 });  
             }  
         });  
-  
+
+        
         const final = document.createElement('section'); final.className = 'main-slide next'; final.id = 'final';  
         final.innerHTML = `<div class="sub-slide static"><div class="verdict-container"><div class="choice-header">FINAL ORDER</div><div class="input-group" id="final-list"></div><div class="final-actions"><button class="btn btn-zomato" onclick="link('zomato')">ZOMATO</button><button class="btn btn-swiggy" onclick="link('swiggy')">SWIGGY</button><button class="btn btn-blinkit" onclick="link('blinkit')">BLINKIT</button><button class="btn btn-cloud" onclick="saveToCloud()">SAVE</button><button class="btn btn-wa" onclick="goToSlide(currentIdx+1)">WHATSAPP &rarr;</button></div></div></div>`;  
         container.appendChild(final);  
@@ -222,6 +223,8 @@ slide.addEventListener("touchend", e => {
   renderCart();
 }  
     }  
+  attachEvents();   // swipe
+// do NOT start voice here
   
     // --- 3. PHYSICS & TOUCH ---  
     function nextSlide() {  
