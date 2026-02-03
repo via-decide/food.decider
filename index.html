@@ -60,7 +60,6 @@
         .final-actions { display: grid; gap: 10px; margin-top: 20px; }
         .btn { background: #222; color: #fff; border: 1px solid #333; padding: 15px; border-radius: 8px; font-weight: 600; text-align: center; font-size: 0.9rem; cursor: pointer; width: 100%; box-sizing: border-box;}
         .btn-wa { background: #25D366; color: #000; border: none; }
-        .btn-cloud { background: #4285F4; border: none; }
         .btn-zomato { background: #cb202d; opacity: 1; border:none;} .btn-swiggy { background: #fc8019; opacity: 1; border:none;} .btn-blinkit { background: #f8cb46; color: #000; opacity: 1; border:none;}
         
         .verdict-container { display: flex; flex-direction: column; height: 100%; justify-content: center; }
@@ -69,10 +68,6 @@
         .input-row { display: flex; justify-content: space-between; border-bottom: 1px dashed #333; padding: 10px 0; font-family: var(--mono); font-size: 0.8rem; }
         .input-key { color: #888; text-transform: uppercase; } .input-val { color: var(--go); font-weight: bold; text-align: right; }
         
-        /* IMAGE CSS */
-        .food-img{ width:100%; max-height:35vh; object-fit:cover; border-radius:12px; margin-bottom:15px; display:none; }
-        .food-img.show{ display:block; }
-
         .biz-card { background: linear-gradient(145deg, #111, #050505); border: 1px solid var(--orange); padding: 30px; border-radius: 12px; text-align: center; }
         .biz-tagline { font-family: var(--mono); color: var(--orange); font-size: 0.7rem; margin-bottom: 10px; display: block; } .biz-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 20px; color: #fff; }
 
@@ -92,26 +87,14 @@
 <div id="depth-fill"></div>
 <div id="toast" class="toast-msg"></div>
 
+
 <div id="mic-toggle" onclick="toggleListenMode()">
     <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
 </div>
 
 <script>
-    // --- 1. CONFIG & DATA ---
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyBMwKxq92U0dptKMdEHvUCXPS9AjExHtxHjcRmfh2JFjCSn9Zd82bzp34xLg6X0a7L9g/exec";
     
-    const ITEM_IMAGES = {
-      "Butter Naan": "img/naan.jpg",
-      "Garlic Naan": "img/garlic-naan.jpg",
-      "Dal Makhani": "img/dal.jpg",
-      "Paneer Butter Masala": "img/pbm.jpg",
-      "Margherita": "img/margherita.jpg",
-      "Pepperoni": "img/pepperoni.jpg",
-      "Burger": "img/burger.jpg",
-      "Samosa": "img/samosa.jpg",
-      "Coke": "img/coke.jpg"
-    };
-
     const RAW_DATA = {
         "punjabi": {
           "label": "PUNJABI",
@@ -124,19 +107,22 @@
           "label": "CHINESE",
           "categories": [
             { "id": "c_dimsum", "label": "Dim Sum", "items": [ { "name": "Veg Crystal Dumpling", "price": 220 }, { "name": "Pork Siu Mai", "price": 260 }, { "name": "Har Gao", "price": 280 } ] },
-            { "id": "c_noodles", "label": "Noodles", "items": [ { "name": "Lo Mein", "price": 220 }, { "name": "Dan Dan Noodles", "price": 260 }, { "name": "Hakka Noodles", "price": 200 } ] }
+            { "id": "c_noodles", "label": "Noodles", "items": [ { "name": "Lo Mein", "price": 220 }, { "name": "Dan Dan Noodles", "price": 260 }, { "name": "Hakka Noodles", "price": 200 } ] },
+            { "id": "c_wok", "label": "Wok Specials", "items": [ { "name": "Kung Pao Chicken", "price": 280 }, { "name": "Mapo Tofu", "price": 240 }, { "name": "Chilli Chicken", "price": 260 } ] }
           ]
         },
         "pizza": {
           "label": "PIZZA",
           "categories": [
-            { "id": "z_classic", "label": "Classic", "items": [ { "name": "Margherita", "price": 350 }, { "name": "Marinara", "price": 330 }, { "name": "Pepperoni", "price": 450 } ] }
+            { "id": "z_classic", "label": "Classic", "items": [ { "name": "Margherita", "price": 350 }, { "name": "Marinara", "price": 330 }, { "name": "Pepperoni", "price": 450 } ] },
+            { "id": "z_gourmet", "label": "Gourmet", "items": [ { "name": "Burrata Pizza", "price": 550 }, { "name": "Truffle Mushroom Pizza", "price": 520 }, { "name": "Wood Fired Chicken Pizza", "price": 480 } ] }
           ]
         },
         "snacks": {
           "label": "NASTA PANI",
           "categories": [
-            { "id": "s_packaged", "label": "Packaged", "items": [ { "name": "Coke", "price": 40 }, { "name": "Thums Up", "price": 40 }, { "name": "Chips", "price": 20 }, { "name": "Kurkure", "price": 20 } ] }
+            { "id": "s_packaged", "label": "Packaged", "items": [ { "name": "Coke", "price": 40 }, { "name": "Thums Up", "price": 40 }, { "name": "Chips", "price": 20 }, { "name": "Kurkure", "price": 20 } ] },
+            { "id": "s_hot", "label": "Hot Snacks", "items": [ { "name": "Samosa", "price": 20 }, { "name": "Veg Puff", "price": 30 }, { "name": "Burger", "price": 60 } ] }
           ]
         }
     };
@@ -145,27 +131,7 @@
     let container = document.getElementById('master-container');
     let slideElements = [], currentIdx = 0, rec;
 
-    // --- 2. BACKEND SYNC ---
-    async function fetchLastOrder() {
-        try {
-            const res = await fetch(GOOGLE_SCRIPT_URL + "?type=last_order", { cache: "no-store" });
-            const json = await res.json();
-            if (json && json.items) {
-                ENGINE_STATE.items_detected = json.items;
-                localStorage.setItem("LAST_ORDER_CACHE", JSON.stringify(json.items));
-                return true;
-            }
-        } catch (e) {
-            const cached = localStorage.getItem("LAST_ORDER_CACHE");
-            if (cached) ENGINE_STATE.items_detected = JSON.parse(cached);
-        }
-        return false;
-    }
-
-    async function boot() { 
-        await fetchLastOrder();
-        renderLobby(); 
-    }
+    async function boot() { renderLobby(); }
 
     function renderLobby() {
         container.innerHTML = `
@@ -198,10 +164,8 @@
                 const s = document.createElement('section'); s.className = 'main-slide next'; s.id = cat.id; s.dataset.mode = 'options';
                 let h = `<div class="slide-header"><span class="header-title">${cat.label}</span></div><div class="carousel-viewport">`;
                 cat.items.forEach((item, i) => {
-                    const imgUrl = ITEM_IMAGES[item.name] || "";
                     h += `<div class="sub-slide ${i===0?'opt-active':'opt-hidden'}" data-val="${item.name}">
                             <div class="role-label">${cat.label}</div>
-                            <img class="food-img ${imgUrl?'show':''}" src="${imgUrl}">
                             <h1>${item.name} ${item.price?`<span class="price">₹${item.price}</span>`:""}</h1>
                             <div class="primary-question">Swipe Right to Browse</div>
                             <div class="nav-hint"><span>SKIP</span><span>SELECT</span><span>BROWSE</span></div>
@@ -211,24 +175,29 @@
             });
         });
         const final = document.createElement('section'); final.className = 'main-slide next'; final.id = 'final';
-        final.innerHTML = `<div class="sub-slide static"><div class="verdict-container"><div class="choice-header">FINAL ORDER</div><div class="input-group" id="final-list"></div><div class="final-actions"><button class="btn btn-zomato" onclick="link('zomato')">ZOMATO</button><button class="btn btn-swiggy" onclick="link('swiggy')">SWIGGY</button><button class="btn btn-blinkit" onclick="link('blinkit')">BLINKIT</button><button class="btn btn-cloud" onclick="saveToCloud()">SAVE CLOUD</button><button class="btn btn-wa" style="background:#25D366" onclick="goToSlide(currentIdx+1)">WHATSAPP &rarr;</button></div></div></div>`;
+        final.innerHTML = `<div class="sub-slide static"><div class="verdict-container"><div class="choice-header">FINAL ORDER</div><div class="input-group" id="final-list"></div><div class="final-actions"><button class="btn btn-zomato" onclick="link('zomato')">ZOMATO</button><button class="btn btn-swiggy" onclick="link('swiggy')">SWIGGY</button><button class="btn btn-blinkit" onclick="link('blinkit')">BLINKIT</button><button class="btn btn-wa" onclick="goToSlide(currentIdx+1)">WHATSAPP &rarr;</button></div></div></div>`;
         container.appendChild(final);
         const biz = document.createElement('section'); biz.className = 'main-slide next'; biz.id = 'business';
         biz.innerHTML = `<div class="sub-slide static">
-        <div class="biz-card">
-          <span class="biz-tagline">POWERED BY KUTCH AUTOMATION</span>
-          <div class="biz-title">BUILD YOUR OWN ENGINE</div>
-          <div class="biz-desc" style="margin:12px 0 24px 0; color:#aaa; font-size:0.85rem; line-height:1.4;">
-            You just used one.<br>This is how decisions move without platforms.
-          </div>
-          <div class="final-actions">
-            <button class="btn btn-wa" onclick="sendWa()">CHAT WITH AI</button>
-            <button class="btn" onclick="location.reload()">RESTART</button>
-          </div>
-        </div></div>`;
+<div class="biz-card">
+  <span class="biz-tagline">POWERED BY KUTCH AUTOMATION</span>
+  <div class="biz-title">BUILD YOUR OWN ENGINE</div>
+
+  <div class="biz-desc" style="margin:12px 0 24px 0; color:#aaa; font-size:0.85rem; line-height:1.4;">
+    You just used one.<br>
+    This is how decisions move without platforms.
+  </div>
+
+  <div class="final-actions">
+    <button class="btn btn-wa" onclick="sendWa()">CHAT WITH AI</button>
+    <button class="btn" onclick="location.reload()">RESTART</button>
+  </div>
+</div></div>`;
         container.appendChild(biz);
         slideElements = Array.from(document.querySelectorAll('.main-slide')); slideElements[0].className = "main-slide active"; currentIdx = 0; attachEvents();
     }
+
+    function nextSlide() { if(currentIdx >= slideElements.length - 1) return; goToSlide(currentIdx + 1); }
 
     function goToSlide(idx) {
         if (idx < 0 || idx >= slideElements.length) return;
@@ -248,7 +217,7 @@
         } else if (action === "REMOVE") { delete ENGINE_STATE.items_detected[name]; }
         else if (action === "DOUBLE") { if(ENGINE_STATE.items_detected[name]) ENGINE_STATE.items_detected[name].qty *= 2; }
         else if (action === "HALF") { if(ENGINE_STATE.items_detected[name]) ENGINE_STATE.items_detected[name].qty = Math.ceil(ENGINE_STATE.items_detected[name].qty / 2); }
-        if(slideElements[currentIdx] && slideElements[currentIdx].id === 'final') renderCart();
+        if(slideElements[currentIdx].id === 'final') renderCart();
     }
 
     function getPrice(name) { for(let c in RAW_DATA) for(let cat of RAW_DATA[c].categories) for(let i of cat.items) if(i.name.toLowerCase() === name.toLowerCase()) return i.price; return 0; }
@@ -267,8 +236,8 @@
         const s = slideElements[currentIdx];
         if(s.dataset.mode === 'options') {
             const val = s.querySelector('.opt-active').dataset.val;
-            if(act === "SELECT") { updateCart("ADD", val); showToast(`ADDED ${val}`); goToSlide(currentIdx + 1); }
-            if(act === "SKIP") { showToast("SKIPPED"); goToSlide(currentIdx + 1); }
+            if(act === "SELECT") { updateCart("ADD", val); showToast(`ADDED ${val}`); nextSlide(); }
+            if(act === "SKIP") { showToast("SKIPPED"); nextSlide(); }
             if(act === "BROWSE") {
                 const view = s.querySelector('.carousel-viewport'); const slides = view.querySelectorAll('.sub-slide'); let curr = 0; 
                 slides.forEach((sl,i) => { if(sl.classList.contains('opt-active')) curr = i; sl.classList.remove('opt-active'); sl.classList.add('opt-hidden'); sl.style.transform=''; sl.style.opacity='1'; });
@@ -289,7 +258,7 @@
             view.addEventListener('touchend', e => {
                 const dx = e.changedTouches[0].clientX - startX; const dy = e.changedTouches[0].clientY - startY;
                 const axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
-                if (axis === 'y') { if (dy < -50) goToSlide(currentIdx - 1); else if (dy > 50) executeAction('SELECT'); }
+                if (axis === 'y') { if (dy < -50) executeAction('PREV'); else if (dy > 50) executeAction('SELECT'); }
                 else if (axis === 'x' && view.closest('.main-slide').dataset.mode === 'options') { if (dx < -50) executeAction('SKIP'); else if (dx > 50) executeAction('BROWSE'); }
                 document.getElementById('depth-fill').style.height = '0%';
             });
@@ -309,62 +278,36 @@
     function sendWa() {
         let total = 0, msg = "📋 *NEW ORDER*\n----------------\n", i = 1;
         for(let [k,v] of Object.entries(ENGINE_STATE.items_detected)) { const line = v.price * v.qty; total += line; msg += `${i}. ${k} (x${v.qty}) - ₹${line}\n`; i++; }
-        msg += "----------------\n💰 *Est. Total: ₹${total}*\n📍 Location: Gandhidham\n“You decide once. We handle the rest.”\n --------------------\nget customized PRE-loaded inquiry like this for your needs";
+        msg += "----------------\n💰 *Est. Total: ₹${total}*\n📍 Location: Gandhidham\n“You decide once. We handle the rest.”\n --------------------\nget customized PRE-loaded -- inquiry ,\n like this for your business/personal need with support of log - management\n";
         window.open(`https://wa.me/916351537770?text=${encodeURIComponent(msg)}`, '_blank');
-    }
-
-    function saveToCloud() { 
-        fetch(GOOGLE_SCRIPT_URL, {method:"POST", body:JSON.stringify(ENGINE_STATE)}); 
-        let text = "ORDER SUMMARY:\n";
-        for(let [k,v] of Object.entries(ENGINE_STATE.items_detected)) { text += `${k} x${v.qty}\n`; }
-        navigator.clipboard.writeText(text).then(() => showToast("SAVED & COPIED"));
     }
 
     function showToast(msg) { const t = document.getElementById('toast'); t.innerText = msg; t.classList.add('visible'); setTimeout(() => t.classList.remove('visible'), 2000); }
     function speak(text) { if(!window.speechSynthesis) return; window.speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text); u.lang = "en-IN"; window.speechSynthesis.speak(u); }
 
-    // --- 3. UNIVERSAL VOICE COMMANDER ---
     function initVoice() {
-        if (!window.SpeechRecognition && !window.webkitSpeechRecognition) return;
+        if(!window.SpeechRecognition && !window.webkitSpeechRecognition) return;
         const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-        rec = new SR(); rec.lang = "en-IN"; rec.continuous = true; rec.interimResults = false;
-
-        const MENU_NAMES = [];
-        for (let c in RAW_DATA) for (let cat of RAW_DATA[c].categories) for (let i of cat.items) MENU_NAMES.push(i.name);
-
-        const numberMap = { one:1, two:2, three:3, four:4, five:5, 1:1, 2:2, 3:3, 4:4, 5:5 };
-        function extractQty(text) {
-            for (let k in numberMap) if (text.includes(k)) return numberMap[k];
-            const m = text.match(/\d+/); return m ? parseInt(m[0],10) : 1;
-        }
-        function extractItem(text) {
-            return MENU_NAMES.find(n => text.includes(n.toLowerCase()) || n.toLowerCase().split(" ").some(w => text.includes(w)));
-        }
-
-        rec.onresult = e => {
-            const t = e.results[e.results.length - 1][0].transcript.toLowerCase();
+        rec = new SR(); rec.lang = "en-IN"; rec.continuous = true; rec.onresult = e => {
+            const t = e.results[e.results.length-1][0].transcript.toLowerCase();
             showToast(`Voice: ${t}`);
-            if (t.includes("zomato")) return link("zomato");
-            if (t.includes("swiggy")) return link("swiggy");
-            if (t.includes("blinkit")) return link("blinkit");
-            if (t.includes("whatsapp")) return sendWa();
-            if (t.includes("save")) return saveToCloud();
-            if (t.includes("browse")) return executeAction("BROWSE");
-            if (t.includes("skip")) return executeAction("SKIP");
-            if (t.includes("next")) return goToSlide(currentIdx + 1);
-
-            const qty = extractQty(t); const foundItem = extractItem(t);
-            if (t.includes("remove") && foundItem) { updateCart("REMOVE", foundItem); speak(`Removed ${foundItem}`); return; }
-            if (t.includes("double") && foundItem) { updateCart("DOUBLE", foundItem); speak(`Doubled ${foundItem}`); return; }
-            if (t.includes("half") && foundItem) { updateCart("HALF", foundItem); speak(`Halved ${foundItem}`); return; }
-
-            if (t.includes("add") || foundItem) {
-                const fallback = (slideElements[currentIdx]?.dataset.mode === "options") ? slideElements[currentIdx].querySelector(".opt-active")?.dataset.val : null;
-                const item = foundItem || fallback;
-                if (item) { updateCart("ADD", item, qty); speak(`Added ${qty > 1 ? qty : ""} ${item}`); }
+            if(t.includes("zomato")) return link('zomato');
+            if(t.includes("whatsapp")) return sendWa();
+            if(t.includes("browse")) return executeAction("BROWSE");
+            if(t.includes("skip")) return executeAction("SKIP");
+            if(t.includes("next")) return nextSlide();
+            const menuNames = []; for(let c in RAW_DATA) for(let cat of RAW_DATA[c].categories) for(let i of cat.items) menuNames.push(i.name);
+            const num = parseInt(t.match(/\d+/) || [1])[0];
+            let foundItem = menuNames.find(n => t.includes(n.toLowerCase()));
+            if (t.includes("remove")) { if(foundItem) { updateCart("REMOVE", foundItem); speak(`Removed ${foundItem}`); } }
+            else if (t.includes("double")) { if(foundItem) { updateCart("DOUBLE", foundItem); speak(`Doubled ${foundItem}`); } }
+            else if (t.includes("half")) { if(foundItem) { updateCart("HALF", foundItem); speak(`Halved ${foundItem}`); } }
+            else if (t.includes("add") || foundItem) {
+                const itemToAdd = foundItem || (slideElements[currentIdx].dataset.mode === 'options' ? slideElements[currentIdx].querySelector('.opt-active').dataset.val : null);
+                if(itemToAdd) { updateCart("ADD", itemToAdd, num); speak(`Added ${num > 1 ? num : ''} ${itemToAdd}`); }
             }
         };
-        rec.onend = () => { if (document.getElementById("mic-toggle").classList.contains("listening")) rec.start(); };
+        rec.onend = () => { if(document.getElementById('mic-toggle').classList.contains('listening')) rec.start(); };
     }
 
     function toggleListenMode() {
@@ -382,3 +325,4 @@
 </script>
 </body>
 </html>
+
