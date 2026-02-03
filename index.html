@@ -241,8 +241,11 @@
         const list = document.getElementById('final-list');
         let h = "", total = 0;
         for(let [k,v] of Object.entries(ENGINE_STATE.items_detected)) {
-            h += `<div class="input-row"><span class="input-key">${name}</span><span class="input-val">x${v.qty} · ₹${v.price*v.qty}</span></div>`;
-            total += v.price*v.qty;
+            html += `
+<div class="input-row" style="border-top:1px solid #444; margin-top:12px; padding-top:12px;">
+  <span class="input-key" style="color:#aaa; letter-spacing:1px;">TOTAL</span>
+  <span class="input-val" style="font-size:0.95rem;">₹${total}</span>
+</div>`;
         }
         h += `<div class="input-row" style="border-top:1px solid #444;margin-top:10px"><span>TOTAL</span><span>₹${total}</span></div>`;
         list.innerHTML = h;
