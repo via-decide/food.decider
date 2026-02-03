@@ -27,7 +27,7 @@
 
     <style>
         /* =========================================
-           CORE SYSTEM
+           CORE VISUAL SYSTEM
            ========================================= */
         :root {
             --brand-orange: #ff671f;
@@ -55,7 +55,7 @@
             height: 100vh; width: 100vw; position: relative; overflow: hidden;
         }
 
-        /* STATUS PILLS */
+        /* SENSOR STATUS PILLS */
         .status-pill {
             position: fixed; left: 50%; transform: translateX(-50%);
             font-family: var(--font-tech); font-size: 0.6rem; color: #444;
@@ -66,14 +66,14 @@
         #eye-status { top: 40px; }
         .active-pill { opacity: 1 !important; color: var(--accent-go) !important; border-color: var(--accent-go) !important; }
 
-        /* GAZE CURSOR */
+        /* GAZE CURSOR (Red Dot) */
         #gaze-dot {
             position: fixed; width: 10px; height: 10px; background: var(--brand-orange); border-radius: 50%;
             z-index: 9999; pointer-events: none; display: none; transform: translate(-50%, -50%);
             box-shadow: 0 0 10px var(--brand-orange);
         }
 
-        /* SLIDES */
+        /* SLIDES & ANIMATION */
         .main-slide {
             height: 100vh; width: 100vw; position: absolute; top: 0; left: 0;
             display: flex; flex-direction: column; background: var(--brand-bg);
@@ -128,10 +128,14 @@
             display: flex; justify-content: space-between;
         }
 
-        /* UI COMPONENTS */
+        /* FINAL ORDER & ACTIONS */
         .verdict-container { display: flex; flex-direction: column; height: 100%; justify-content: center; }
         .choice-header { font-family: var(--font-tech); color: #666; font-size: 0.8rem; margin-bottom: 20px; text-transform: uppercase; text-align: center; }
-        .input-group { border: 1px solid #333; background: #111; padding: 20px; border-radius: 8px; margin-bottom: 20px; min-height: 100px; max-height: 40vh; overflow-y: auto; }
+        
+        .input-group { 
+            border: 1px solid #333; background: #111; padding: 20px; border-radius: 8px; 
+            margin-bottom: 20px; min-height: 100px; max-height: 40vh; overflow-y: auto; 
+        }
         .input-row { display: flex; justify-content: space-between; border-bottom: 1px dashed #333; padding: 10px 0; font-family: var(--font-tech); font-size: 0.8rem; }
         .input-key { color: #888; text-transform: uppercase; }
         .input-val { color: var(--accent-go); font-weight: bold; text-align: right; }
@@ -143,22 +147,53 @@
         .btn-swiggy { background: var(--accent-swiggy); border: none; opacity: 0.5; }
         .btn-blinkit { background: var(--accent-blinkit); color: #000; border: none; opacity: 0.5; }
         .btn-cloud { background: #4285F4; border: none; opacity: 1; }
+        
         .btn-zomato.active, .btn-swiggy.active, .btn-blinkit.active { opacity: 1; box-shadow: 0 0 10px rgba(255,255,255,0.2); }
 
-        .biz-card { background: linear-gradient(145deg, #111, #050505); border: 1px solid var(--brand-orange); padding: 30px; border-radius: 12px; text-align: center; }
+        .biz-card {
+            background: linear-gradient(145deg, #111, #050505);
+            border: 1px solid var(--brand-orange);
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+        }
         .biz-tagline { font-family: var(--font-tech); color: var(--brand-orange); font-size: 0.7rem; margin-bottom: 10px; display: block; }
         .biz-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 20px; color: #fff; }
 
-        .lobby-container { display: flex; flex-direction: column; gap: 15px; padding: 30px; height: 100%; justify-content: center; }
-        .cuisine-btn { background: #222; border: 1px solid #444; color: #888; padding: 20px; font-size: 1.2rem; font-weight: bold; text-transform: uppercase; border-radius: 12px; transition: all 0.2s; }
-        .cuisine-btn.selected { background: var(--brand-orange); color: #000; border-color: var(--brand-orange); box-shadow: 0 0 15px rgba(255, 103, 31, 0.4); }
-        .hunt-btn { background: #fff; color: #000; font-weight: 900; margin-top: 30px; letter-spacing: 2px; }
+        .lobby-container {
+            display: flex; flex-direction: column; gap: 15px; padding: 30px;
+            height: 100%; justify-content: center;
+        }
+        .cuisine-btn {
+            background: #222; border: 1px solid #444; color: #888;
+            padding: 20px; font-size: 1.2rem; font-weight: bold;
+            text-transform: uppercase; border-radius: 12px;
+            transition: all 0.2s;
+        }
+        .cuisine-btn.selected {
+            background: var(--brand-orange); color: #000; border-color: var(--brand-orange);
+            box-shadow: 0 0 15px rgba(255, 103, 31, 0.4);
+        }
+        .hunt-btn {
+            background: #fff; color: #000; font-weight: 900; margin-top: 30px;
+            letter-spacing: 2px;
+        }
 
         #depth-fill { position: fixed; right: 0; top: 0; bottom: 0; width: 4px; background: #333; z-index: 900; height: 0%; transition: height 0.05s linear; }
-        .toast-msg { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: #222; color: #00e676; padding: 10px 20px; border: 1px solid #00e676; border-radius: 20px; font-size: 0.8rem; opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 3000; white-space: nowrap; font-family: var(--font-tech); }
+        
+        .toast-msg {
+            position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
+            background: #222; color: #00e676; padding: 10px 20px; border: 1px solid #00e676;
+            border-radius: 20px; font-size: 0.8rem; opacity: 0; pointer-events: none;
+            transition: opacity 0.3s; z-index: 3000; white-space: nowrap; font-family: var(--font-tech);
+        }
         .toast-msg.visible { opacity: 1; }
 
-        #mic-toggle { position: fixed; bottom: 20px; left: 20px; width: 50px; height: 50px; background: #111; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid #444; z-index: 2000; cursor: pointer; transition: all 0.3s; }
+        #mic-toggle {
+            position: fixed; bottom: 20px; left: 20px; width: 50px; height: 50px;
+            background: #111; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            border: 1px solid #444; z-index: 2000; cursor: pointer; transition: all 0.3s;
+        }
         #mic-toggle svg { width: 24px; height: 24px; fill: #666; }
         #mic-toggle.listening { border-color: var(--accent-go); box-shadow: 0 0 15px rgba(0,230,118,0.3); }
         #mic-toggle.listening svg { fill: var(--accent-go); }
@@ -180,24 +215,38 @@
 
 <script>
     /* =========================================
-       1. CONFIG & STATE
+       1. SYSTEM CONFIGURATION
        ========================================= */
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyBMwKxq92U0dptKMdEHvUCXPS9AjExHtxHjcRmfh2JFjCSn9Zd82bzp34xLg6X0a7L9g/exec";
     const SHARE_LINK_TEXT = "food-decider | swipe OS";
+    
+    // Feature Flags
     let SENSORS_ENABLED = false;
     let GAZE_ENABLED = false;
 
-    // --- PHYSICS CONFIG ---
+    // Physics Tuning
     const BALL_WEIGHT = 0.08;
     const SPHERE_RADIUS_PX = 1000; 
     const CLICK_ANGLE_DEG = 15; 
 
-    // --- NETWORK ---
+    // Connectivity State
     const NET_STATE = { online: navigator.onLine };
     window.addEventListener("online", () => { NET_STATE.online = true; showToast("ONLINE · SYNC ENABLED"); fetchVoiceConfig(); });
     window.addEventListener("offline", () => { NET_STATE.online = false; showToast("OFFLINE · USING SAVED DATA"); });
 
-    const FALLBACK_MENU = { version: "offline-v1", data: { punjabi: { label: "PUNJABI", categories: [] } } };
+    // Fallback Data
+    const FALLBACK_MENU = {
+        version: "offline-v1",
+        data: {
+            punjabi: {
+                label: "PUNJABI",
+                categories: [
+                    { id: "p_breads", label: "Breads", items: [{name:"Butter Naan", price:40}, {name:"Tandoori Roti", price:25}] },
+                    { id: "p_mains", label: "Mains", items: [{name:"Dal Makhani", price:220}, {name:"Butter Chicken", price:280}] }
+                ]
+            }
+        }
+    };
     let RAW_DATA = FALLBACK_MENU.data; 
 
     let ENGINE_STATE = {
@@ -209,15 +258,15 @@
     };
 
     /* =========================================
-       2. INPUT CONTROLLERS (Touch, Gyro, Gaze)
+       2. INPUT ENGINES (Gaze & Physics)
        ========================================= */
     
-    // --- 👁️ EYE TRACKING ENGINE ---
+    // --- 👁️ EYE TRACKING CONTROLLER ---
     class GazeController {
         constructor() {
             this.active = false;
             this.lastTrigger = 0;
-            this.triggerDelay = 1500;
+            this.triggerDelay = 1500; // 1.5s cooldown
         }
 
         start() {
@@ -228,20 +277,23 @@
             
             webgazer.setGazeListener((data, elapsed) => {
                 if (data == null) return;
+                
                 const x = data.x;
                 const y = data.y;
                 const w = window.innerWidth;
                 const h = window.innerHeight;
                 const now = Date.now();
 
+                // Visual Feedback
                 const dot = document.getElementById('gaze-dot');
                 dot.style.left = x + 'px';
                 dot.style.top = y + 'px';
 
+                // Trigger Zones
                 if (now - this.lastTrigger > this.triggerDelay) {
-                    if (y < h * 0.2) { this.trigger("UP"); } 
-                    else if (x < w * 0.2) { this.trigger("LEFT"); } 
-                    else if (x > w * 0.8) { this.trigger("RIGHT"); } 
+                    if (y < h * 0.2) { this.trigger("UP"); }        // Top 20% = Select
+                    else if (x < w * 0.2) { this.trigger("LEFT"); } // Left 20% = Skip
+                    else if (x > w * 0.8) { this.trigger("RIGHT"); } // Right 20% = Browse
                 }
             }).begin();
         }
@@ -249,6 +301,8 @@
         trigger(dir) {
             this.lastTrigger = Date.now();
             showToast("EYE: " + dir);
+            
+            // Pulse Effect
             const dot = document.getElementById('gaze-dot');
             dot.style.transform = "translate(-50%, -50%) scale(2)";
             setTimeout(() => dot.style.transform = "translate(-50%, -50%) scale(1)", 200);
@@ -260,12 +314,17 @@
     }
     const gazeEngine = new GazeController();
 
-    // --- 📱 PHYSICS ENGINE (Touch + Gyro) ---
+    // --- 📱 PHYSICS CONTROLLER (Touch + Gyro) ---
     class PhysicsController {
         constructor(el, cbs, active = true) {
-            this.el = el; this.cbs = cbs; this.active = false; this.locked = false;
-            this.current = {x:0, y:0}; this.target = {x:0, y:0};  
+            this.el = el; 
+            this.cbs = cbs; 
+            this.active = false; 
+            this.locked = false;
+            this.current = {x:0, y:0}; 
+            this.target = {x:0, y:0};  
             
+            // Mouse/Touch Listeners
             const s = e => this.startDrag(e.touches?e.touches[0]:e); 
             const m = e => this.move(e.touches?e.touches[0]:e); 
             const e2 = () => this.end();
@@ -273,6 +332,7 @@
             el.addEventListener("mousedown",s); window.addEventListener("mousemove",m); window.addEventListener("mouseup",e2);
             el.addEventListener("touchstart",s,{passive:false}); el.addEventListener("touchmove",ev=>{if(this.active)ev.preventDefault();m(ev)},{passive:false}); el.addEventListener("touchend",e2);
 
+            // Gyro Listeners
             if(SENSORS_ENABLED && active) {
                 this.handleOrientation = this.handleOrientation.bind(this);
                 if(window.DeviceOrientationEvent) window.addEventListener("deviceorientation", this.handleOrientation);
@@ -280,54 +340,93 @@
                 this.raf = requestAnimationFrame(this.loop);
             }
         }
-        cleanup() { cancelAnimationFrame(this.raf); window.removeEventListener("deviceorientation", this.handleOrientation); }
+
+        cleanup() {
+            cancelAnimationFrame(this.raf);
+            window.removeEventListener("deviceorientation", this.handleOrientation);
+        }
+
+        // The Physics Loop
         loop() {
             if(this.active || this.locked) return; 
+            
+            // Lerp towards target
             this.current.x += (this.target.x - this.current.x) * BALL_WEIGHT;
             this.current.y += (this.target.y - this.current.y) * BALL_WEIGHT;
+            
             this.updateVisuals(this.current.x, this.current.y);
+
+            // Threshold Check
             if(SENSORS_ENABLED) {
                 const clickThresh = SPHERE_RADIUS_PX * Math.tan(CLICK_ANGLE_DEG * Math.PI / 180);
-                if(Math.abs(this.current.x) > clickThresh) this.commit(Math.sign(this.current.x)*100, 0);
-                else if(Math.abs(this.current.y) > clickThresh) this.commit(0, Math.sign(this.current.y)*100);
+                
+                // Horizontal Trigger (Skip/Browse)
+                if(Math.abs(this.current.x) > clickThresh) {
+                    this.commit(Math.sign(this.current.x)*100, 0);
+                } 
+                // Vertical Trigger (Select)
+                else if(Math.abs(this.current.y) > clickThresh) {
+                    this.commit(0, Math.sign(this.current.y)*100);
+                }
             }
             this.raf = requestAnimationFrame(this.loop);
         }
+
         handleOrientation(event) {
             if(this.active || this.locked) return;
-            let g = event.gamma; let b = event.beta - 45; 
-            let radX = (g * Math.PI) / 180; let radY = (b * Math.PI) / 180;
+            let g = event.gamma; // Left/Right tilt
+            let b = event.beta - 45; // Front/Back tilt (adjusted for holding angle)
+            
+            let radX = (g * Math.PI) / 180;
+            let radY = (b * Math.PI) / 180;
+            
             const MAX_RAD = 20 * Math.PI / 180;
-            radX = Math.max(-MAX_RAD, Math.min(MAX_RAD, radX)); radY = Math.max(-MAX_RAD, Math.min(MAX_RAD, radY));
+            radX = Math.max(-MAX_RAD, Math.min(MAX_RAD, radX));
+            radY = Math.max(-MAX_RAD, Math.min(MAX_RAD, radY));
+
+            // Deadzone
             if(Math.abs(g) > 1) this.target.x = SPHERE_RADIUS_PX * Math.tan(radX); else this.target.x = 0;
             if(Math.abs(b) > 1) this.target.y = SPHERE_RADIUS_PX * Math.tan(radY); else this.target.y = 0;
         }
+
         startDrag(p){ this.active=true; this.start={x:p.clientX, y:p.clientY}; this.el.style.transition="none"; }
         move(p){ if(!this.active) return; this.updateVisuals(p.clientX - this.start.x, p.clientY - this.start.y); }
         end(){
             if(!this.active) return; this.active=false;
             const m = new WebKitCSSMatrix(getComputedStyle(this.el).transform);
+            // Swipe Threshold
             if(Math.hypot(m.m41, m.m42) > 80) this.commit(m.m41, m.m42);
             else { this.el.style.transition="0.3s cubic-bezier(0.2,0.8,0.2,1)"; this.el.style.transform="translate(0,0) rotate(0deg)"; }
         }
+
         commit(dx, dy) {
             this.locked = true;
             const dir = this.dir(dx, dy);
+            // Animate card off-screen
             const flyX = dx * 4; const flyY = dy * 4;
             this.el.style.transition = "0.4s ease";
             this.el.style.transform = `translate(${flyX}px, ${flyY}px) rotate(${flyX/10}deg)`;
             this.el.style.opacity = "0";
-            setTimeout(() => { this.cleanup(); this.cbs.onCommit(dir); }, 300);
+            
+            setTimeout(() => { 
+                this.cleanup(); 
+                this.cbs.onCommit(dir); 
+            }, 300);
         }
+
         updateVisuals(dx, dy) { this.el.style.transform = `translate(${dx}px, ${dy}px) rotate(${dx/20}deg)`; }
+        
         dir(dx, dy){
             const a = (Math.atan2(-dy, dx) * 180 / Math.PI + 360) % 360;
-            if(a>45 && a<135) return "UP"; if(a>135 && a<225) return "LEFT"; if(a>225 && a<315) return "DOWN"; return "RIGHT";
+            if(a>45 && a<135) return "UP";    // Select
+            if(a>135 && a<225) return "LEFT"; // Skip
+            if(a>225 && a<315) return "DOWN"; // (Ignored)
+            return "RIGHT";                   // Browse
         }
     }
 
     /* =========================================
-       3. APP ENGINE (Builder & Router)
+       3. APP LOGIC (UI & Routing)
        ========================================= */
     const container = document.getElementById('master-container');
     let slideElements = [];
@@ -335,15 +434,21 @@
     let activePhysics = null;
 
     async function boot() {
-        renderLobby(); loadLocalState(); initVoice();
-        await fetchMenuData(); fetchVoiceConfig(); setTimeout(checkMenuVersion, 3000);
+        renderLobby(); 
+        loadLocalState(); 
+        initVoice();
+        await fetchMenuData(); 
+        fetchVoiceConfig(); 
+        setTimeout(checkMenuVersion, 3000);
     }
 
     function renderLobby() {
         container.innerHTML = "";
-        const section = document.createElement('section'); section.className = "main-slide active"; section.id = "lobby";
+        const section = document.createElement('section'); 
+        section.className = "main-slide active"; 
+        section.id = "lobby";
         section.innerHTML = `
-        <div class="slide-header"><span class="header-title">SWIPE-OS v13.0 (TRINITY)</span></div>
+        <div class="slide-header"><span class="header-title">SWIPE-OS v13.0 (OMNI)</span></div>
         <div class="lobby-container">
             <h1 style="text-align:center; margin-bottom:40px;">AAJ KYA MANGVAAYEGE!</h1>
             <div id="cuisine-grid" style="display:grid; gap:15px;">
@@ -358,46 +463,74 @@
                 <button class="btn" style="background:#222; font-size:0.7rem; flex:1;" onclick="requestGazeAccess()">ENABLE EYES</button>
             </div>
         </div>`;
-        container.appendChild(section); slideElements = [section]; currentIdx = 0;
-        if(ENGINE_STATE.cuisines_detected) ENGINE_STATE.cuisines_detected.forEach(c => { const btn = document.querySelector(`button[onclick*='${c}']`); if(btn) btn.classList.add('selected'); });
+        container.appendChild(section); 
+        slideElements = [section]; 
+        currentIdx = 0;
+        
+        if(ENGINE_STATE.cuisines_detected) {
+            ENGINE_STATE.cuisines_detected.forEach(c => { 
+                const btn = document.querySelector(`button[onclick*='${c}']`); 
+                if(btn) btn.classList.add('selected'); 
+            });
+        }
     }
 
     function requestSensorAccess() {
-        SENSORS_ENABLED = true; document.getElementById('gyro-status').classList.add('active-pill');
+        SENSORS_ENABLED = true; 
+        document.getElementById('gyro-status').classList.add('active-pill');
         if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-            DeviceOrientationEvent.requestPermission().then(state => { if (state === 'granted') showToast("SENSORS: ACTIVE"); }).catch(() => showToast("MOUSE MODE"));
+            DeviceOrientationEvent.requestPermission()
+                .then(state => { if (state === 'granted') showToast("SENSORS: ACTIVE"); })
+                .catch(() => showToast("MOUSE MODE"));
         } else { showToast("SENSORS: ACTIVE"); }
     }
 
     function requestGazeAccess() {
         GAZE_ENABLED = true;
         gazeEngine.start();
-        showToast("GAZE: CALIBRATING...");
+        showToast("GAZE: CALIBRATING... FOLLOW CURSOR");
     }
 
-    // --- EXECUTE & BUILD ---
+    // --- CENTRAL ACTION HANDLER (Used by Touch, Voice, Gyro, Eye) ---
     function executeAction(action) {
         const currSlide = slideElements[currentIdx];
         const mode = currSlide.dataset.mode;
         
         if(mode === 'options') {
+            // Food Card Interaction
             const view = currSlide.querySelector('.carousel-viewport');
             const val = view.querySelectorAll('.sub-slide')[view._currOpt || 0].dataset.val;
             
             if(action === "SELECT" || action === "UP") {
-                engineUpdate("ADD_ITEM", val); showToast(`ADDED: ${val}`); goToSlide(currentIdx + 1);
-            } else if(action === "SKIP" || action === "LEFT") {
-                showToast("SKIPPED"); goToSlide(currentIdx + 1);
-            } else if(action === "BROWSE" || action === "RIGHT") {
+                engineUpdate("ADD_ITEM", val); 
+                showToast(`ADDED: ${val}`); 
+                goToSlide(currentIdx + 1);
+            } 
+            else if(action === "SKIP" || action === "LEFT") {
+                showToast("SKIPPED"); 
+                goToSlide(currentIdx + 1);
+            } 
+            else if(action === "BROWSE" || action === "RIGHT") {
+                // Next Option in same category
                 const slides = view.querySelectorAll('.sub-slide');
                 let curr = view._currOpt || 0;
-                slides[curr].classList.remove('opt-active'); slides[curr].classList.add('opt-hidden');
-                curr = (curr + 1) % slides.length; view._currOpt = curr;
+                // Animate old out
+                slides[curr].classList.remove('opt-active'); 
+                slides[curr].classList.add('opt-hidden');
+                
+                curr = (curr + 1) % slides.length; 
+                view._currOpt = curr;
+                
+                // Animate new in
                 const next = slides[curr];
-                next.classList.remove('opt-hidden'); next.classList.add('opt-active');
+                next.classList.remove('opt-hidden'); 
+                next.classList.add('opt-active');
+                
+                // Re-attach Physics to new card
                 attachPhysicsToCard(next);
             }
         } else {
+            // Static Slide Navigation (Lobby/Final)
             if(action === "NEXT") goToSlide(currentIdx + 1);
             if(action === "PREV") goToSlide(currentIdx - 1);
         }
@@ -407,107 +540,373 @@
         if(activePhysics) activePhysics.cleanup();
         activePhysics = new PhysicsController(el, {
             onCommit: (dir) => {
+                // Map Physics Direction to Action
                 if(dir === "UP") executeAction("SELECT");
                 if(dir === "LEFT") executeAction("SKIP");
                 if(dir === "RIGHT") executeAction("BROWSE");
-                if(dir === "DOWN") { el.style.transform = ""; el.style.opacity = "1"; }
+                if(dir === "DOWN") { 
+                    // Reset if dragged down (cancel)
+                    el.style.transform = ""; 
+                    el.style.opacity = "1"; 
+                }
             }
         }, true);
     }
 
     function goToSlide(idx) {
         if (idx < 0 || idx >= slideElements.length) return;
-        const curr = slideElements[currentIdx]; curr.classList.remove('active');
-        if (idx > currentIdx) { curr.classList.add('prev'); curr.classList.remove('next'); } else { curr.classList.add('next'); curr.classList.remove('prev'); }
+        
+        const curr = slideElements[currentIdx]; 
+        curr.classList.remove('active');
+        if (idx > currentIdx) { curr.classList.add('prev'); curr.classList.remove('next'); } 
+        else { curr.classList.add('next'); curr.classList.remove('prev'); }
+        
         currentIdx = idx;
         const next = slideElements[currentIdx];
-        next.classList.remove('prev', 'next'); next.classList.add('active');
+        next.classList.remove('prev', 'next'); 
+        next.classList.add('active');
+        
         if(next.id === 'final') updateResult();
         
+        // Setup Physics for the new slide if it has options
         if(next.dataset.mode === 'options') {
             const view = next.querySelector('.carousel-viewport');
             const activeOpt = view.querySelectorAll('.sub-slide')[view._currOpt || 0];
             if(activeOpt) attachPhysicsToCard(activeOpt);
-        } else { if(activePhysics) activePhysics.cleanup(); }
+        } else { 
+            if(activePhysics) activePhysics.cleanup(); 
+        }
     }
 
     function buildGameDeck() {
         container.innerHTML = ""; slideElements = [];
         let slides = [];
         ENGINE_STATE.cuisines_detected.forEach(cId => {
-            if(RAW_DATA[cId]) RAW_DATA[cId].categories.forEach(cat => slides.push({ id: cat.id, type: 'selector', title: `${RAW_DATA[cId].label} · ${cat.label.toUpperCase()}`, items: cat.items }));
+            if(RAW_DATA[cId]) {
+                RAW_DATA[cId].categories.forEach(cat => {
+                    slides.push({ id: cat.id, type: 'selector', title: `${RAW_DATA[cId].label} · ${cat.label.toUpperCase()}`, items: cat.items });
+                });
+            }
         });
         slides.push({ id: "final", type: "final", title: "FINAL ORDER" });
         
         slides.forEach((cfg, idx) => {
-            const section = document.createElement('section'); section.className = `main-slide ${idx === 0 ? 'active' : 'next'}`;
-            section.id = cfg.id; section.dataset.mode = cfg.type === 'selector' ? 'options' : 'static';
+            const section = document.createElement('section'); 
+            section.className = `main-slide ${idx === 0 ? 'active' : 'next'}`;
+            section.id = cfg.id; 
+            section.dataset.mode = cfg.type === 'selector' ? 'options' : 'static';
+            
             let html = `<div class="slide-header"><span class="header-title">${cfg.title}</span></div><div class="carousel-viewport" data-id="${cfg.id}">`;
+            
             if (cfg.type === 'selector') {
                 cfg.items.forEach((item, i) => {
-                    html += `<div class="sub-slide ${i===0 ? 'opt-active' : 'opt-hidden'}" data-opt-idx="${i}" data-val="${item.name}">
-                        <div class="role-label">${cfg.title.split('·')[0].trim()}</div><h1>${item.name}${item.price ? `<span class="price">₹${item.price}</span>` : ""}</h1>
+                    html += `
+                    <div class="sub-slide ${i===0 ? 'opt-active' : 'opt-hidden'}" data-opt-idx="${i}" data-val="${item.name}">
+                        <div class="role-label">${cfg.title.split('·')[0].trim()}</div>
+                        <h1>${item.name}${item.price ? `<span class="price">₹${item.price}</span>` : ""}</h1>
                         <div class="primary-question">Swipe / Tilt / Voice / Gaze</div>
-                        <div class="nav-hint"><span style="flex:1; color:var(--accent-skip); font-weight:bold;">&larr; SKIP</span><span style="flex:2; text-align:center; color:var(--accent-go); font-weight:bold;">&uarr; SELECT</span><span style="flex:1; text-align:right;">BROWSE &rarr;</span></div>
+                        <div class="nav-hint">
+                            <span style="flex:1; color:var(--accent-skip); font-weight:bold;">&larr; SKIP</span>
+                            <span style="flex:2; text-align:center; color:var(--accent-go); font-weight:bold;">&uarr; SELECT</span>
+                            <span style="flex:1; text-align:right;">BROWSE &rarr;</span>
+                        </div>
                     </div>`;
                 });
             } else if (cfg.type === 'final') {
-                html += `<div class="sub-slide static"><div class="verdict-container"><div class="choice-header">WHAT YOU CHOSE</div><div class="input-group" id="final-list"></div><div class="final-actions"><button class="btn btn-zomato" id="btn-zomato" onclick="copyAndRedirect('zomato')">ZOMATO</button><button class="btn btn-swiggy" id="btn-swiggy" onclick="copyAndRedirect('swiggy')">SWIGGY</button><button class="btn btn-blinkit" id="btn-blinkit" onclick="copyAndRedirect('blinkit')">BLINKIT</button><button class="btn btn-cloud" onclick="saveToCloud()">SAVE TO CLOUD</button><button class="btn btn-wa" onclick="sendWhatsapp()">WHATSAPP</button></div></div></div>`;
+                html += `
+                <div class="sub-slide static">
+                    <div class="verdict-container">
+                        <div class="choice-header">WHAT YOU CHOSE</div>
+                        <div class="input-group" id="final-list"></div>
+                        <div class="final-actions">
+                            <button class="btn btn-zomato" id="btn-zomato" onclick="copyAndRedirect('zomato')">ZOMATO</button>
+                            <button class="btn btn-swiggy" id="btn-swiggy" onclick="copyAndRedirect('swiggy')">SWIGGY</button>
+                            <button class="btn btn-blinkit" id="btn-blinkit" onclick="copyAndRedirect('blinkit')">BLINKIT</button>
+                            <button class="btn btn-cloud" onclick="saveToCloud()">SAVE TO CLOUD</button>
+                            <button class="btn btn-wa" onclick="sendWhatsapp()">WHATSAPP</button>
+                        </div>
+                    </div>
+                </div>`;
             }
             html += `</div>`; section.innerHTML = html; container.appendChild(section);
         });
-        slideElements = Array.from(document.querySelectorAll('.main-slide')); currentIdx = 0;
-        if(slideElements[0].dataset.mode === 'options') attachPhysicsToCard(slideElements[0].querySelector('.sub-slide'));
+        
+        slideElements = Array.from(document.querySelectorAll('.main-slide')); 
+        currentIdx = 0;
+        
+        // Init Physics for First Card
+        if(slideElements[0].dataset.mode === 'options') {
+            attachPhysicsToCard(slideElements[0].querySelector('.sub-slide'));
+        }
     }
 
-    // --- DATA LOGIC ---
-    function findItemPrice(name) { if (!RAW_DATA) return 0; for (let c in RAW_DATA) { for (let cat of RAW_DATA[c].categories) { for (let item of cat.items) { if (item.name.toLowerCase() === name.toLowerCase()) return item.price || 0; } } } return 0; }
+    /* =========================================
+       4. DATA & STATE MANAGEMENT
+       ========================================= */
+    function findItemPrice(name) { 
+        if (!RAW_DATA) return 0; 
+        for (let c in RAW_DATA) { 
+            for (let cat of RAW_DATA[c].categories) { 
+                for (let item of cat.items) { 
+                    if (item.name.toLowerCase() === name.toLowerCase()) return item.price || 0; 
+                } 
+            } 
+        } 
+        return 0; 
+    }
+
     function engineUpdate(patchType, payload) {
         if (patchType === "ADD_CUISINE") if(!ENGINE_STATE.cuisines_detected.includes(payload)) ENGINE_STATE.cuisines_detected.push(payload);
         if (patchType === "REMOVE_CUISINE") ENGINE_STATE.cuisines_detected = ENGINE_STATE.cuisines_detected.filter(c => c !== payload);
-        if (patchType === "ADD_ITEM") { const qty = ENGINE_STATE.items_detected[payload] ? ENGINE_STATE.items_detected[payload].qty + 1 : 1; ENGINE_STATE.items_detected[payload] = { qty: qty, price: findItemPrice(payload), added_at: Date.now() }; recalcStrategy(); }
+        if (patchType === "ADD_ITEM") { 
+            const qty = ENGINE_STATE.items_detected[payload] ? ENGINE_STATE.items_detected[payload].qty + 1 : 1; 
+            ENGINE_STATE.items_detected[payload] = { qty: qty, price: findItemPrice(payload), added_at: Date.now() }; 
+            recalcStrategy(); 
+        }
         if (patchType === "REMOVE_ITEM") { delete ENGINE_STATE.items_detected[payload]; recalcStrategy(); }
         if (patchType === "RESET") { ENGINE_STATE.items_detected = {}; ENGINE_STATE.cuisines_detected = []; recalcStrategy(); }
-        if (patchType === "QUANTITY") for(let key in ENGINE_STATE.items_detected) if(key.toLowerCase().includes(payload.target.toLowerCase())) { let q = ENGINE_STATE.items_detected[key].qty; if(payload.mod === "double") q *= 2; if(payload.mod === "half") q = Math.max(1, Math.ceil(q/2)); ENGINE_STATE.items_detected[key].qty = q; }
+        if (patchType === "QUANTITY") {
+            for(let key in ENGINE_STATE.items_detected) {
+                if(key.toLowerCase().includes(payload.target.toLowerCase())) { 
+                    let q = ENGINE_STATE.items_detected[key].qty; 
+                    if(payload.mod === "double") q *= 2; 
+                    if(payload.mod === "half") q = Math.max(1, Math.ceil(q/2)); 
+                    ENGINE_STATE.items_detected[key].qty = q; 
+                } 
+            }
+        }
         saveLocalState(); 
     }
-    function recalcStrategy() { const items = Object.keys(ENGINE_STATE.items_detected); const cuisines = ENGINE_STATE.cuisines_detected; let platforms = new Set(["zomato", "swiggy"]); if(cuisines.includes('snacks') || items.some(i => i.match(/coke|chips|thumbs|water/i))) platforms.add("blinkit"); ENGINE_STATE.platform_strategy.fulfillment = Array.from(platforms); updateResult(); }
+
+    function recalcStrategy() { 
+        const items = Object.keys(ENGINE_STATE.items_detected); 
+        const cuisines = ENGINE_STATE.cuisines_detected; 
+        let platforms = new Set(["zomato", "swiggy"]); 
+        if(cuisines.includes('snacks') || items.some(i => i.match(/coke|chips|thumbs|water/i))) platforms.add("blinkit"); 
+        ENGINE_STATE.platform_strategy.fulfillment = Array.from(platforms); 
+        updateResult(); 
+    }
+
     function saveLocalState(){ localStorage.setItem("ENGINE_STATE_CACHE", JSON.stringify(ENGINE_STATE)); }
     function loadLocalState(){ const cached = localStorage.getItem("ENGINE_STATE_CACHE"); if(cached) ENGINE_STATE = JSON.parse(cached); }
-    function windowToggleCuisine(id, btn) { if(ENGINE_STATE.cuisines_detected.includes(id)) { engineUpdate("REMOVE_CUISINE", id); btn.classList.remove('selected'); } else { engineUpdate("ADD_CUISINE", id); btn.classList.add('selected'); } }
+    
+    function windowToggleCuisine(id, btn) { 
+        if(ENGINE_STATE.cuisines_detected.includes(id)) { engineUpdate("REMOVE_CUISINE", id); btn.classList.remove('selected'); } 
+        else { engineUpdate("ADD_CUISINE", id); btn.classList.add('selected'); } 
+    }
     window.toggleCuisine = windowToggleCuisine; 
-    async function fetchMenuData() { try { const res = await fetch(GOOGLE_SCRIPT_URL + "?type=menu", { cache: "no-store" }); const json = await res.json(); if(json.data && Object.keys(json.data).length > 0) { RAW_DATA = json.data; localStorage.setItem("MENU_CACHE", JSON.stringify(json)); } else throw new Error("Empty"); } catch(e) { console.log("Using Offline Menu"); } }
-    function fetchVoiceConfig() { fetch(GOOGLE_SCRIPT_URL + "?type=voice_config").then(res => res.json()).then(data => { if(data && !data.error) { Object.assign(VOICE_INTENTS, data); localStorage.setItem("VOICE_INTENTS_CACHE", JSON.stringify(VOICE_INTENTS)); } }); }
-    async function checkMenuVersion() { try { const res = await fetch(GOOGLE_SCRIPT_URL + "?type=menu_version"); const { version } = await res.json(); if (version !== localStorage.getItem(SERVER_VERSION_KEY)) { localStorage.setItem(SERVER_VERSION_KEY, version); await fetchMenuData(); } } catch(e){} }
+
+    async function fetchMenuData() { 
+        try { 
+            const res = await fetch(GOOGLE_SCRIPT_URL + "?type=menu", { cache: "no-store" }); 
+            const json = await res.json(); 
+            if(json.data && Object.keys(json.data).length > 0) { 
+                RAW_DATA = json.data; 
+                localStorage.setItem("MENU_CACHE", JSON.stringify(json)); 
+                console.log("MENU: LIVE UPDATED");
+            } else throw new Error("Empty"); 
+        } catch(e) { console.log("Using Offline Menu"); } 
+    }
+
+    function fetchVoiceConfig() { 
+        fetch(GOOGLE_SCRIPT_URL + "?type=voice_config").then(res => res.json()).then(data => { 
+            if(data && !data.error) { 
+                Object.assign(VOICE_INTENTS, data); 
+                localStorage.setItem("VOICE_INTENTS_CACHE", JSON.stringify(VOICE_INTENTS)); 
+            } 
+        }); 
+    }
+
+    async function checkMenuVersion() { 
+        try { 
+            const res = await fetch(GOOGLE_SCRIPT_URL + "?type=menu_version"); 
+            const { version } = await res.json(); 
+            if (version !== localStorage.getItem(SERVER_VERSION_KEY)) { 
+                localStorage.setItem(SERVER_VERSION_KEY, version); 
+                await fetchMenuData(); 
+            } 
+        } catch(e){} 
+    }
+
     function updateResult() {
         const list = document.getElementById('final-list'); if(!list) return;
         const cart = ENGINE_STATE.items_detected; const strategies = ENGINE_STATE.platform_strategy.fulfillment;
-        ['zomato','swiggy','blinkit'].forEach(p => { const btn = document.getElementById(`btn-${p}`); if(btn) { if(strategies.includes(p)) btn.classList.add('active'); else btn.classList.remove('active'); } });
+        
+        ['zomato','swiggy','blinkit'].forEach(p => { 
+            const btn = document.getElementById(`btn-${p}`); 
+            if(btn) { 
+                if(strategies.includes(p)) btn.classList.add('active'); 
+                else btn.classList.remove('active'); 
+            } 
+        });
+
         let html = ''; let total = 0;
         if (Object.keys(cart).length === 0) html = '<div style="text-align:center;color:#666;margin-top:20px;">No items selected.</div>';
-        else { for (const [name, data] of Object.entries(cart)) { const price = data.price || 0; total += price * data.qty; html += `<div class="input-row"><span class="input-key">${name}</span><span class="input-val">x${data.qty} · ₹${price * data.qty}</span></div>`; } html += `<div class="input-row" style="border-top:1px solid #444; margin-top:10px;"><span class="input-key">TOTAL</span><span class="input-val">₹${total}</span></div>`; }
+        else { 
+            for (const [name, data] of Object.entries(cart)) { 
+                const price = data.price || 0; 
+                total += price * data.qty; 
+                html += `<div class="input-row"><span class="input-key">${name}</span><span class="input-val">x${data.qty} · ₹${price * data.qty}</span></div>`; 
+            } 
+            html += `<div class="input-row" style="border-top:1px solid #444; margin-top:10px;"><span class="input-key">TOTAL</span><span class="input-val">₹${total}</span></div>`; 
+        }
         list.innerHTML = html;
     }
 
-    // --- VOICE & INTEGRATION ---
-    const VOICE_INTENTS = { NAV: { next: ["next","continue"], prev: ["back"], jump: ["go to","open"] }, ACTION: { select: ["select","choose"], skip: ["skip"], browse: ["browse"] }, CART: { add: ["add"], remove: ["remove"], reset: ["clear cart","reset order"], read: ["read cart"] }, QUANTITY: { double: ["double"], half: ["half"] }, PLATFORM: { zomato: ["zomato"], swiggy: ["swiggy"], blinkit: ["blinkit"], whatsapp: ["whatsapp"] }, SYSTEM: { help: ["help"], copy: ["copy"], save: ["save"] } };
+    /* =========================================
+       5. VOICE RECOGNITION SYSTEM
+       ========================================= */
+    const VOICE_INTENTS = { 
+        NAV: { next: ["next","continue"], prev: ["back"], jump: ["go to","open"] }, 
+        ACTION: { select: ["select","choose"], skip: ["skip"], browse: ["browse"] }, 
+        CART: { add: ["add"], remove: ["remove"], reset: ["clear cart","reset order"], read: ["read cart"] }, 
+        QUANTITY: { double: ["double"], half: ["half"] }, 
+        PLATFORM: { zomato: ["zomato"], swiggy: ["swiggy"], blinkit: ["blinkit"], whatsapp: ["whatsapp"] }, 
+        SYSTEM: { help: ["help"], copy: ["copy"], save: ["save"] } 
+    };
+
     const NUMBER_MAP = { "zero":0, "one":1, "won":1, "two":2, "to":2, "three":3, "four":4, "five":5, "six":6, "seven":7, "eight":8, "nine":9, "ten":10 };
-    function extractNumber(text) { text = text.toLowerCase(); const digit = text.match(/\b\d+\b/); if (digit) return parseInt(digit[0], 10); for (let word in NUMBER_MAP) { if (new RegExp(`\\b${word}\\b`, 'i').test(text)) return NUMBER_MAP[word]; } return null; }
+
+    function extractNumber(text) { 
+        text = text.toLowerCase(); 
+        const digit = text.match(/\b\d+\b/); 
+        if (digit) return parseInt(digit[0], 10); 
+        for (let word in NUMBER_MAP) { 
+            if (new RegExp(`\\b${word}\\b`, 'i').test(text)) return NUMBER_MAP[word]; 
+        } 
+        return null; 
+    }
     
-    // 🧠 FIXED PARSE VOICE (Prioritize Platform)
-    function parseVoice(text){ const t = text.toLowerCase(); if(VOICE_INTENTS.PLATFORM) { for (const [key, words] of Object.entries(VOICE_INTENTS.PLATFORM)) { if (words.some(w => t.includes(w))) return { group: "PLATFORM", key, raw: t }; } } for (const [group, intents] of Object.entries(VOICE_INTENTS)) { if (group === "PLATFORM") continue; for (const [key, words] of Object.entries(intents)) { if (words.some(w => t.includes(w))) return { group, key, raw: t }; } } return null; }
+    // PRIORITY PARSER: Checks Platforms First to avoid "Open Zomato" -> Jump to 2
+    function parseVoice(text){ 
+        const t = text.toLowerCase(); 
+        if(VOICE_INTENTS.PLATFORM) { 
+            for (const [key, words] of Object.entries(VOICE_INTENTS.PLATFORM)) { 
+                if (words.some(w => t.includes(w))) return { group: "PLATFORM", key, raw: t }; 
+            } 
+        } 
+        for (const [group, intents] of Object.entries(VOICE_INTENTS)) { 
+            if (group === "PLATFORM") continue; 
+            for (const [key, words] of Object.entries(intents)) { 
+                if (words.some(w => t.includes(w))) return { group, key, raw: t }; 
+            } 
+        } 
+        return null; 
+    }
     
-    function dispatchVoice(cmd){ if(!cmd) return; if(document.getElementById('lobby')) { if(cmd.group === 'CART' && cmd.key === 'add') { const map = {'punjabi': 'punjabi', 'chinese': 'chinese', 'pizza': 'pizza', 'nasta': 'snacks'}; for(let k in map) if(cmd.raw.includes(k)) toggleCuisine(map[k], document.querySelector(`button[onclick*='${map[k]}']`)); } if(cmd.key === 'next' || cmd.key === 'jump') startHunt(); return; } if (cmd.group === "NAV" && cmd.key === "jump") { const n = extractNumber(cmd.raw); if (n !== null && slideElements[n - 1]) { goToSlide(n - 1); speak(`Jumping to slide ${n}`); return; } } switch(cmd.group){ case "NAV": if(cmd.key==="next") executeAction("NEXT"); if(cmd.key==="prev") executeAction("PREV"); break; case "ACTION": if(cmd.key==="select") executeAction("SELECT"); if(cmd.key==="skip") executeAction("SKIP"); if(cmd.key==="browse") executeAction("BROWSE"); break; case "CART": if(cmd.key==="add") handleGlobalAdd(cmd.raw); if(cmd.key==="remove") handleGlobalRemove(cmd.raw); if(cmd.key==="reset") engineUpdate("RESET"); if(cmd.key==="read") readCart(); break; case "QUANTITY": for(let item in ENGINE_STATE.items_detected) { if(cmd.raw.includes(item.toLowerCase())) engineUpdate("QUANTITY", { target: item, mod: cmd.key }); } speak("Updated quantity"); updateResult(); break; case "PLATFORM": if(cmd.key === "whatsapp") sendWhatsapp(); else copyAndRedirect(cmd.key); break; case "SYSTEM": if(cmd.key==="help") speak("Commands: Select, Skip, Add Item, Zomato."); if(cmd.key==="copy") autoCopy(); if(cmd.key==="save") saveToCloud(); break; } }
+    function dispatchVoice(cmd){ 
+        if(!cmd) return; 
+        
+        // Lobby Commands
+        if(document.getElementById('lobby')) { 
+            if(cmd.group === 'CART' && cmd.key === 'add') { 
+                const map = {'punjabi': 'punjabi', 'chinese': 'chinese', 'pizza': 'pizza', 'nasta': 'snacks'}; 
+                for(let k in map) if(cmd.raw.includes(k)) toggleCuisine(map[k], document.querySelector(`button[onclick*='${map[k]}']`)); 
+            } 
+            if(cmd.key === 'next' || cmd.key === 'jump') startHunt(); 
+            return; 
+        } 
+        
+        // Jump Commands (if number present)
+        if (cmd.group === "NAV" && cmd.key === "jump") { 
+            const n = extractNumber(cmd.raw); 
+            if (n !== null && slideElements[n - 1]) { 
+                goToSlide(n - 1); 
+                speak(`Jumping to slide ${n}`); 
+                return; 
+            } 
+        } 
+
+        switch(cmd.group){ 
+            case "NAV": if(cmd.key==="next") executeAction("NEXT"); if(cmd.key==="prev") executeAction("PREV"); break; 
+            case "ACTION": if(cmd.key==="select") executeAction("SELECT"); if(cmd.key==="skip") executeAction("SKIP"); if(cmd.key==="browse") executeAction("BROWSE"); break; 
+            case "CART": if(cmd.key==="add") handleGlobalAdd(cmd.raw); if(cmd.key==="remove") handleGlobalRemove(cmd.raw); if(cmd.key==="reset") engineUpdate("RESET"); if(cmd.key==="read") readCart(); break; 
+            case "QUANTITY": 
+                for(let item in ENGINE_STATE.items_detected) { 
+                    if(cmd.raw.includes(item.toLowerCase())) engineUpdate("QUANTITY", { target: item, mod: cmd.key }); 
+                } 
+                speak("Updated quantity"); updateResult(); 
+                break; 
+            case "PLATFORM": 
+                if(cmd.key === "whatsapp") sendWhatsapp(); else copyAndRedirect(cmd.key); 
+                break; 
+            case "SYSTEM": 
+                if(cmd.key==="help") speak("Commands: Select, Skip, Add Item, Zomato."); 
+                if(cmd.key==="copy") autoCopy(); 
+                if(cmd.key==="save") saveToCloud(); 
+                break; 
+        } 
+    }
     
-    // --- CONNECTIVITY ---
-    function handleGlobalAdd(txt) { let qty = extractNumber(txt) || 1; let found = false; if(RAW_DATA) Object.keys(RAW_DATA).forEach(cId => RAW_DATA[cId].categories.forEach(cat => cat.items.forEach(item => { if (!found && txt.includes(item.name.toLowerCase())) { const currentQty = ENGINE_STATE.items_detected[item.name]?.qty || 0; ENGINE_STATE.items_detected[item.name] = { qty: currentQty + qty, price: item.price || 0, added_at: Date.now() }; found = true; recalcStrategy(); showToast(`ADDED ${qty} × ${item.name}`); if (slideElements[currentIdx] && slideElements[currentIdx].id === 'final') updateResult(); } }))); if(!found) showToast("ITEM NOT FOUND"); }
-    function handleGlobalRemove(txt) { const qty = extractNumber(txt) || 1; for (const item in ENGINE_STATE.items_detected) { if (txt.includes(item.toLowerCase())) { ENGINE_STATE.items_detected[item].qty -= qty; if (ENGINE_STATE.items_detected[item].qty <= 0) { delete ENGINE_STATE.items_detected[item]; showToast(`REMOVED ${item}`); } else { showToast(`REDUCED ${item} ×${qty}`); } recalcStrategy(); if (slideElements[currentIdx] && slideElements[currentIdx].id === 'final') updateResult(); return; } } }
-    function readCart(){ const items = ENGINE_STATE.items_detected; if(!Object.keys(items).length){ speak("Cart is empty"); return; } let sentence = "You have "; Object.entries(items).forEach(([k,v]) => { sentence += `${v.qty} ${k}, `; }); speak(sentence.slice(0, -2)); }
+    /* =========================================
+       6. CONNECTIVITY (Deep Links & Helpers)
+       ========================================= */
+    function handleGlobalAdd(txt) { 
+        let qty = extractNumber(txt) || 1; 
+        let found = false; 
+        if(RAW_DATA) Object.keys(RAW_DATA).forEach(cId => RAW_DATA[cId].categories.forEach(cat => cat.items.forEach(item => { 
+            if (!found && txt.includes(item.name.toLowerCase())) { 
+                const currentQty = ENGINE_STATE.items_detected[item.name]?.qty || 0; 
+                ENGINE_STATE.items_detected[item.name] = { qty: currentQty + qty, price: item.price || 0, added_at: Date.now() }; 
+                found = true; 
+                recalcStrategy(); 
+                showToast(`ADDED ${qty} × ${item.name}`); 
+                if (slideElements[currentIdx] && slideElements[currentIdx].id === 'final') updateResult(); 
+            } 
+        }))); 
+        if(!found) showToast("ITEM NOT FOUND"); 
+    }
+
+    function handleGlobalRemove(txt) { 
+        const qty = extractNumber(txt) || 1; 
+        for (const item in ENGINE_STATE.items_detected) { 
+            if (txt.includes(item.toLowerCase())) { 
+                ENGINE_STATE.items_detected[item].qty -= qty; 
+                if (ENGINE_STATE.items_detected[item].qty <= 0) { 
+                    delete ENGINE_STATE.items_detected[item]; 
+                    showToast(`REMOVED ${item}`); 
+                } else { showToast(`REDUCED ${item} ×${qty}`); } 
+                recalcStrategy(); 
+                if (slideElements[currentIdx] && slideElements[currentIdx].id === 'final') updateResult(); 
+                return; 
+            } 
+        } 
+    }
+
+    function readCart(){ 
+        const items = ENGINE_STATE.items_detected; 
+        if(!Object.keys(items).length){ speak("Cart is empty"); return; } 
+        let sentence = "You have "; 
+        Object.entries(items).forEach(([k,v]) => { sentence += `${v.qty} ${k}, `; }); 
+        speak(sentence.slice(0, -2)); 
+    }
+
     function speak(text) { window.speechSynthesis.speak(new SpeechSynthesisUtterance(text)); }
-    function buildCartSearchQuery() { const cart = ENGINE_STATE.items_detected; if(Object.keys(cart).length === 0) return ""; let query = []; for(let [k, v] of Object.entries(cart)) { query.push(`${k} x${v.qty}`); } return encodeURIComponent(query.join(", ")); }
-    function buildWhatsappMessage() { const cart = ENGINE_STATE.items_detected; let msg = "📋 *NEW ORDER*\n----------------\n"; let total = 0; let i = 1; for(let [k, v] of Object.entries(cart)) { let lineTotal = v.price * v.qty; total += lineTotal; msg += `${i}. ${k} (x${v.qty}) - ₹${lineTotal}\n`; i++; } msg += "----------------\n"; msg += `💰 *Est. Total: ₹${total}*\n`; msg += `📍 Location: Gandhidham`; return encodeURIComponent(msg); }
     
-    // --- 🔗 FIXED: DEEP LINKS & REDIRECTS ---
+    function buildCartSearchQuery() { 
+        const cart = ENGINE_STATE.items_detected; 
+        if(Object.keys(cart).length === 0) return ""; 
+        let query = []; 
+        for(let [k, v] of Object.entries(cart)) { query.push(`${k} x${v.qty}`); } 
+        return encodeURIComponent(query.join(", ")); 
+    }
+
+    function buildWhatsappMessage() { 
+        const cart = ENGINE_STATE.items_detected; 
+        let msg = "📋 *NEW ORDER*\n----------------\n"; 
+        let total = 0; let i = 1; 
+        for(let [k, v] of Object.entries(cart)) { 
+            let lineTotal = v.price * v.qty; 
+            total += lineTotal; 
+            msg += `${i}. ${k} (x${v.qty}) - ₹${lineTotal}\n`; 
+            i++; 
+        } 
+        msg += "----------------\n"; 
+        msg += `💰 *Est. Total: ₹${total}*\n`; 
+        msg += `📍 Location: Gandhidham`; 
+        return encodeURIComponent(msg); 
+    }
+    
     function copyAndRedirect(platform) { 
         if(!NET_STATE.online){ showToast("COPIED — OPEN APP MANUALLY"); autoCopy(); return; } 
         const query = buildCartSearchQuery(); 
@@ -517,18 +916,72 @@
         // FIXED URL SCHEMAS
         const links = { 
             zomato: `https://www.zomato.com/search?q=${query}`, 
-            swiggy: `https://www.swiggy.com/search?query=${query}`, // Fixed query param
+            swiggy: `https://www.swiggy.com/search?query=${query}`, 
             blinkit: `https://blinkit.com/s/?q=${query}` 
         }; 
         if (links[platform]) { window.open(links[platform], '_blank'); } 
     }
     
     function sendWhatsapp() { const msg = buildWhatsappMessage(); window.open(`https://wa.me/916351537770?text=${msg}`, '_blank'); }
-    function saveToCloud() { if(!NET_STATE.online) { showToast("OFFLINE"); return; } showToast("SAVING..."); fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(ENGINE_STATE) }).then(() => { showToast("SAVED ✅"); speak("Order saved"); }); }
-    function autoCopy() { let str = ""; let total = 0; for(let [k,v] of Object.entries(ENGINE_STATE.items_detected)) { str += `${k} (x${v.qty}), `; total += v.price * v.qty; } navigator.clipboard.writeText(str + ` | TOTAL: ₹${total}`); showToast("COPIED"); }
-    function showToast(msg) { const t = document.getElementById('toast'); t.innerText = msg; t.classList.add('visible'); setTimeout(() => t.classList.remove('visible'), 2000); }
-    function toggleListenMode() { const mic = document.getElementById('mic-toggle'); if(mic.classList.contains('listening')) { rec.stop(); mic.classList.remove('listening'); } else { try { rec.start(); } catch(e) {} mic.classList.add('listening'); } }
-    let rec; function initVoice() { const SR = window.SpeechRecognition || window.webkitSpeechRecognition; if (!SR) { showToast("VOICE NOT SUPPORTED"); return; } rec = new SR(); rec.lang = "en-IN"; rec.continuous = true; rec.interimResults = false; rec.onresult = e => { const txt = e.results[e.results.length - 1][0].transcript; showToast(`Heard: "${txt}"`); const intent = parseVoice(txt); if (intent) { dispatchVoice(intent); } else { const num = extractNumber(txt); if (num !== null) handleGlobalAdd(txt); } }; rec.onerror = e => { showToast("VOICE RETRY"); }; rec.onend = () => { const mic = document.getElementById('mic-toggle'); if (mic && mic.classList.contains('listening')) setTimeout(() => { try { rec.start(); } catch(e) {} }, 300); }; }
+    
+    function saveToCloud() { 
+        if(!NET_STATE.online) { showToast("OFFLINE"); return; } 
+        showToast("SAVING..."); 
+        fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(ENGINE_STATE) })
+            .then(() => { showToast("SAVED ✅"); speak("Order saved"); }); 
+    }
+    
+    function autoCopy() { 
+        let str = ""; let total = 0; 
+        for(let [k,v] of Object.entries(ENGINE_STATE.items_detected)) { 
+            str += `${k} (x${v.qty}), `; 
+            total += v.price * v.qty; 
+        } 
+        navigator.clipboard.writeText(str + ` | TOTAL: ₹${total}`); 
+        showToast("COPIED"); 
+    }
+
+    function showToast(msg) { 
+        const t = document.getElementById('toast'); 
+        t.innerText = msg; t.classList.add('visible'); 
+        setTimeout(() => t.classList.remove('visible'), 2000); 
+    }
+
+    function toggleListenMode() { 
+        const mic = document.getElementById('mic-toggle'); 
+        if(mic.classList.contains('listening')) { rec.stop(); mic.classList.remove('listening'); } 
+        else { try { rec.start(); } catch(e) {} mic.classList.add('listening'); } 
+    }
+
+    // --- VOICE INIT ---
+    let rec; 
+    function initVoice() { 
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition; 
+        if (!SR) { showToast("VOICE NOT SUPPORTED"); return; } 
+        rec = new SR(); 
+        rec.lang = "en-IN"; 
+        rec.continuous = true; 
+        rec.interimResults = false; 
+        
+        rec.onresult = e => { 
+            const txt = e.results[e.results.length - 1][0].transcript; 
+            showToast(`Heard: "${txt}"`); 
+            const intent = parseVoice(txt); 
+            if (intent) { 
+                dispatchVoice(intent); 
+            } else { 
+                // Implicit Number Fallback ("Two Cokes")
+                const num = extractNumber(txt); 
+                if (num !== null) handleGlobalAdd(txt); 
+            } 
+        }; 
+        
+        rec.onerror = e => { showToast("VOICE RETRY"); }; 
+        rec.onend = () => { 
+            const mic = document.getElementById('mic-toggle'); 
+            if (mic && mic.classList.contains('listening')) setTimeout(() => { try { rec.start(); } catch(e) {} }, 300); 
+        }; 
+    }
 
     boot();
 </script>
