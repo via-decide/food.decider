@@ -348,28 +348,7 @@ get customized "PRE-loaded"-- inquiry like above for your business/personal need
 let MIC_ENABLED = false;
 let MIC_RUNNING = false;
 
-    function toggleListenMode() {
-  initVoice();
-  if (!rec) return;
-
-  const mic = document.getElementById("mic-toggle");
-
-  if (MIC_ENABLED) {
-    MIC_ENABLED = false;
-    mic.classList.remove("listening");
-    try { rec.stop(); } catch(e){}
-    MIC_RUNNING = false;
-  } else {
-    MIC_ENABLED = true;
-    mic.classList.add("listening");
-    if (!MIC_RUNNING) {
-      try {
-        MIC_RUNNING = true;
-        rec.start();
-      } catch(e){}
-    }
-  }
-    }
+    
     
 function initVoice() {
   if (rec) return;
@@ -414,7 +393,28 @@ function initVoice() {
     MIC_RUNNING = false;
   };
 }
-    
+    function toggleListenMode() {
+  initVoice();
+  if (!rec) return;
+
+  const mic = document.getElementById("mic-toggle");
+
+  if (MIC_ENABLED) {
+    MIC_ENABLED = false;
+    mic.classList.remove("listening");
+    try { rec.stop(); } catch(e){}
+    MIC_RUNNING = false;
+  } else {
+    MIC_ENABLED = true;
+    mic.classList.add("listening");
+    if (!MIC_RUNNING) {
+      try {
+        MIC_RUNNING = true;
+        rec.start();
+      } catch(e){}
+    }
+  }
+    }
   
     boot();  
 </script>  </body>  
