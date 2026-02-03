@@ -218,8 +218,13 @@
     /* =========================================
        0. CONFIGURATION
        ========================================= */
-    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyBMwKxq92U0dptKMdEHvUCXPS9AjExHtxHjcRmfh2JFjCSn9Zd82bzp34xLg6X0a7L9g/exec";
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyU29SJRKCV4vSMg6-amvyjiMZcb5WN_Sz1GcMhIyykZ1PdLOVgxzje0SjKaNpOYPgVnA/exec";
     const SHARE_LINK_TEXT = "food-decider | swipe OS";
+
+    /* PATCH 1: OFFLINE NETWORK DETECTION */
+    const NET_STATE = { online: navigator.onLine };
+    window.addEventListener("online", () => { NET_STATE.online = true; showToast("ONLINE MODE"); fetchVoiceConfig(); });
+    window.addEventListener("offline", () => { NET_STATE.online = false; showToast("OFFLINE MODE"); });
 
     const RAW_DATA = {
         punjabi: {
@@ -263,21 +268,12 @@
     let ENGINE_STATE = {
         session_id: "auto-" + Date.now(),
         cuisines_detected: [],
-        items_detected: {}, // { "Pizza": { qty: 2, cat: "main" } }
-        constraints: {
-            exclusions: []
-        },
-        platform_strategy: {
-            discover: ["zomato", "swiggy"], // Default
-            fulfillment: ["zomato", "swiggy"] 
-        },
-        cart_state: {
-            items: [],
-            total: 0
-        }
+        items_detected: {}, 
+        constraints: { exclusions: [] },
+        platform_strategy: { discover: ["zomato", "swiggy"], fulfillment: ["zomato", "swiggy"] },
+        cart_state: { items: [], total: 0 }
     };
 
-    /* LOGIC MERGER: Update State */
     function engineUpdate(patchType, payload) {
         if (patchType === "ADD_CUISINE") {
             if(!ENGINE_STATE.cuisines_detected.includes(payload)) ENGINE_STATE.cuisines_detected.push(payload);
@@ -300,7 +296,6 @@
             recalcStrategy();
         }
         if (patchType === "QUANTITY") {
-            // Apply modifiers (double/half)
             for(let key in ENGINE_STATE.items_detected) {
                 if(key.toLowerCase().includes(payload.target.toLowerCase())) {
                     let q = ENGINE_STATE.items_detected[key].qty;
@@ -310,24 +305,25 @@
                 }
             }
         }
+        saveLocalState(); // PATCH 3: PERSISTENCE
     }
 
-    /* STRATEGY RESOLVER: Deterministic Add-ons & Platforms */
     function recalcStrategy() {
         const items = Object.keys(ENGINE_STATE.items_detected);
         const cuisines = ENGINE_STATE.cuisines_detected;
-        
-        let platforms = new Set(["zomato", "swiggy"]); // Baseline
-        
-        // Rule: Snacks/Drinks favor Blinkit
+        let platforms = new Set(["zomato", "swiggy"]); 
         if(cuisines.includes('snacks') || items.some(i => i.match(/coke|chips|thumbs|water/i))) {
             platforms.add("blinkit");
         }
-        
         ENGINE_STATE.platform_strategy.fulfillment = Array.from(platforms);
-        
-        // Sync to legacy UI structure for compatibility
         updateResult();
+    }
+
+    /* PATCH 3: LOCAL STATE MGR */
+    function saveLocalState(){ localStorage.setItem("ENGINE_STATE_CACHE", JSON.stringify(ENGINE_STATE)); }
+    function loadLocalState(){
+        const cached = localStorage.getItem("ENGINE_STATE_CACHE");
+        if(cached) { ENGINE_STATE = JSON.parse(cached); updateResult(); }
     }
 
     /* =========================================
@@ -338,8 +334,10 @@
     let currentIdx = 0;
 
     function init() {
+        loadLocalState(); // PATCH 3
         renderLobby();
         initVoice();
+        fetchVoiceConfig();
     }
 
     function renderLobby() {
@@ -349,7 +347,7 @@
         section.id = "lobby";
         
         let html = `
-        <div class="slide-header"><span class="header-title">SWIPE-OS v9.2</span></div>
+        <div class="slide-header"><span class="header-title">SWIPE-OS v9.5</span></div>
         <div class="lobby-container">
             <h1 style="text-align:center; margin-bottom:40px;">AAJ KYA MANGVAAYEGE!</h1>
             <div id="cuisine-grid" style="display:grid; gap:15px;">
@@ -365,6 +363,12 @@
         container.appendChild(section);
         slideElements = [section];
         currentIdx = 0;
+        
+        // Restore active buttons
+        ENGINE_STATE.cuisines_detected.forEach(c => {
+            const btn = document.querySelector(`button[onclick*='${c}']`);
+            if(btn) btn.classList.add('selected');
+        });
     }
 
     window.toggleCuisine = (id, btn) => {
@@ -390,7 +394,6 @@
         container.innerHTML = ""; 
         let slides = [];
 
-        // 1. Merge Categories based on Intent Engine
         ENGINE_STATE.cuisines_detected.forEach(cId => {
             RAW_DATA[cId].categories.forEach(cat => {
                 slides.push({
@@ -402,11 +405,9 @@
             });
         });
 
-        // 2. Terminals
         slides.push({ id: "final", type: "final", title: "FINAL ORDER" });
         slides.push({ id: "business", type: "business", title: "KUTCH AUTOMATION" });
 
-        // 3. Render Loop
         slides.forEach((cfg, idx) => {
             const section = document.createElement('section');
             section.className = `main-slide ${idx === 0 ? 'active' : 'next'}`;
@@ -475,7 +476,7 @@
         slideElements = Array.from(document.querySelectorAll('.main-slide'));
         currentIdx = 0;
         attachEvents(); 
-        updateResult(); // Initial state check
+        updateResult();
     }
 
     /* =========================================
@@ -500,7 +501,6 @@
         document.getElementById('depth-fill').style.height = '0%';
     }
 
-    // Engine to UI Sync
     function updateResult() {
         const list = document.getElementById('final-list');
         if(!list) return;
@@ -508,7 +508,7 @@
         const cart = ENGINE_STATE.items_detected;
         const strategies = ENGINE_STATE.platform_strategy.fulfillment;
 
-        // 1. Update Platform Buttons Logic (Platform Strategy)
+        // 1. Update Platform Buttons Logic
         ['zomato','swiggy','blinkit'].forEach(p => {
             const btn = document.getElementById(`btn-${p}`);
             if(btn) {
@@ -572,10 +572,8 @@
         let startX = 0, startY = 0;
         document.querySelectorAll('.carousel-viewport').forEach(view => {
             view._currOpt = 0;
-            let isDragging = false;
-            view.addEventListener('touchstart', e => { startX = e.touches[0].clientX; startY = e.touches[0].clientY; isDragging = true; }, {passive: true});
+            view.addEventListener('touchstart', e => { startX = e.touches[0].clientX; startY = e.touches[0].clientY; }, {passive: true});
             view.addEventListener('touchmove', e => {
-                if(!isDragging) return;
                 const dx = e.touches[0].clientX - startX;
                 const dy = e.touches[0].clientY - startY;
                 const axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
@@ -586,7 +584,6 @@
                 }
             }, {passive: false});
             view.addEventListener('touchend', e => {
-                if(!isDragging) return; isDragging = false;
                 const dx = e.changedTouches[0].clientX - startX;
                 const dy = e.changedTouches[0].clientY - startY;
                 const axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
@@ -606,38 +603,43 @@
        4. MASTER VOICE ROUTER (PATCH V1)
        ========================================= */
     const VOICE_INTENTS = {
-      NAV: {
-        next: ["next","continue","go ahead"],
-        prev: ["back","previous","go back"],
-        jump: ["go to","open","show me"]
-      },
-      ACTION: {
-        select: ["select","choose","pick"],
-        skip: ["skip","ignore"],
-        browse: ["browse","show","next option"]
-      },
-      CART: {
-        add: ["add","include"],
-        remove: ["remove","delete"],
-        reset: ["clear cart","start over","reset order"],
-        read: ["read cart","what did i choose","list items"]
-      },
-      QUANTITY: {
-        double: ["double","two portions","make it two"],
-        half: ["half","less","small portion"]
-      },
-      PLATFORM: {
-        zomato: ["zomato"],
-        swiggy: ["swiggy"],
-        blinkit: ["blinkit"],
-        whatsapp: ["whatsapp"]
-      },
-      SYSTEM: {
-        help: ["help","what can i say","commands"],
-        copy: ["copy","clipboard","phone"],
-        save: ["save","cloud"]
-      }
+      NAV: { next: ["next","continue","go ahead"], prev: ["back","previous","go back"], jump: ["go to","open","show me"] },
+      ACTION: { select: ["select","choose","pick"], skip: ["skip","ignore"], browse: ["browse","show","next option"] },
+      CART: { add: ["add","include"], remove: ["remove","delete"], reset: ["clear cart","start over","reset order"], read: ["read cart","what did i choose","list items"] },
+      QUANTITY: { double: ["double","two portions","make it two"], half: ["half","less","small portion"] },
+      PLATFORM: { zomato: ["zomato"], swiggy: ["swiggy"], blinkit: ["blinkit"], whatsapp: ["whatsapp"] },
+      SYSTEM: { help: ["help","what can i say","commands"], copy: ["copy","clipboard","phone"], save: ["save","cloud"] }
     };
+
+    /* PATCH 2: OFFLINE-SAFE FETCH */
+    function fetchVoiceConfig() {
+        if(!NET_STATE.online){
+            const cached = localStorage.getItem("VOICE_INTENTS_CACHE");
+            if(cached){
+                const data = JSON.parse(cached);
+                for(let grp in data) {
+                    if(!VOICE_INTENTS[grp]) VOICE_INTENTS[grp] = {};
+                    Object.assign(VOICE_INTENTS[grp], data[grp]);
+                }
+                console.log("Voice Config Loaded (Offline Cache)");
+            }
+            return;
+        }
+
+        fetch(GOOGLE_SCRIPT_URL + "?type=voice_config")
+        .then(res => res.json())
+        .then(data => {
+            if(data && !data.error) {
+                for(let grp in data) {
+                    if(!VOICE_INTENTS[grp]) VOICE_INTENTS[grp] = {};
+                    Object.assign(VOICE_INTENTS[grp], data[grp]);
+                }
+                localStorage.setItem("VOICE_INTENTS_CACHE", JSON.stringify(VOICE_INTENTS));
+                console.log("Voice Config Synced + Cached");
+            }
+        })
+        .catch(e => console.log("Voice Config Fetch Failed — Using Cache"));
+    }
 
     function parseVoice(text){
       const t = text.toLowerCase();
@@ -652,7 +654,7 @@
     function dispatchVoice(cmd){
       if(!cmd) return;
       
-      // Lobby Logic Overrides
+      // Lobby Logic
       if(document.getElementById('lobby')) {
           if(cmd.group === 'CART' && cmd.key === 'add') {
              const map = {'punjabi': 'punjabi', 'chinese': 'chinese', 'pizza': 'pizza', 'nasta': 'snacks', 'snacks': 'snacks'};
@@ -679,8 +681,6 @@
           if(cmd.key==="read") readCart();
           break;
         case "QUANTITY": 
-          // Extract target from raw text if possible, else default to last added
-          // Simplified: Search all items for matches in voice string
           for(let item in ENGINE_STATE.items_detected) {
               if(cmd.raw.includes(item.toLowerCase())) engineUpdate("QUANTITY", { target: item, mod: cmd.key });
           }
@@ -696,16 +696,15 @@
       }
     }
 
-    /* =========================================
-       5. VOICE & CONNECTIVITY
-       ========================================= */
+    /* PATCH 4: OFFLINE-SAFE VOICE ENGINE */
     let rec;
     function initVoice() {
         const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SR) return;
+        if (!SR) { showToast("VOICE NOT SUPPORTED"); return; }
         rec = new SR();
         rec.lang = "en-IN";
         rec.continuous = true;
+        rec.interimResults = false;
 
         rec.onresult = e => {
             const txt = e.results[e.results.length - 1][0].transcript;
@@ -714,10 +713,12 @@
             if (intent) dispatchVoice(intent);
         };
 
+        rec.onerror = e => { showToast("VOICE TEMP UNAVAILABLE"); };
+
         rec.onend = () => {
             const mic = document.getElementById('mic-toggle');
             if (mic && mic.classList.contains('listening')) {
-                setTimeout(() => { try { rec.start(); } catch(e) {} }, 120);
+                setTimeout(() => { try { rec.start(); } catch(e) {} }, 300);
             }
         };
 
@@ -731,8 +732,16 @@
         };
     }
 
+    /* =========================================
+       5. VOICE & CONNECTIVITY
+       ========================================= */
+    function readCart(){
+        const items = Object.keys(ENGINE_STATE.items_detected);
+        if(!items.length){ speak("Cart is empty"); return; }
+        speak("You have " + items.join(", "));
+    }
+
     function handleGlobalAdd(txt) {
-        // Universal Search (Patch: Check all raw data)
         let found = false;
         Object.keys(RAW_DATA).forEach(cId => {
             RAW_DATA[cId].categories.forEach(cat => {
@@ -759,12 +768,6 @@
         }
     }
 
-    function readCart(){
-        const items = Object.keys(ENGINE_STATE.items_detected);
-        if(!items.length){ speak("Cart is empty"); return; }
-        speak("You have " + items.join(", "));
-    }
-
     function speak(text) { window.speechSynthesis.speak(new SpeechSynthesisUtterance(text)); }
     
     function buildCartText() { 
@@ -774,8 +777,8 @@
     }
 
     function saveToCloud() {
+        if(!NET_STATE.online) { showToast("OFFLINE - SAVED LOCALLY"); return; }
         showToast("SAVING...");
-        // Send Full Intent Schema
         fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(ENGINE_STATE) })
         .then(() => { showToast("SAVED ✅"); speak("Order saved"); });
     }
@@ -787,7 +790,14 @@
         speak("Order copied");
     }
 
+    /* PATCH 5: OFFLINE PLATFORM GUARD */
     function copyAndRedirect(platform) {
+        if(!NET_STATE.online){
+            showToast("COPIED — OPEN APP MANUALLY");
+            speak("Order copied. Open app manually.");
+            autoCopy();
+            return;
+        }
         const text = buildCartText();
         navigator.clipboard.writeText(text).then(() => showToast("COPIED! OPENING " + platform.toUpperCase()));
         const links = {
@@ -816,3 +826,131 @@
 </script>
 </body>
 </html>
+
+### **Part 2: The Backend (Apps Script)**
+Here is the accompanying backend logic for `Code.gs`. This needs to be deployed to generate the final functional URL.
+
+```javascript
+/* =========================================
+   | food.decide | BACKEND ENGINE v9.5
+   ========================================= */
+
+// ⚠️ REPLACE WITH YOUR GOOGLE SHEET ID
+const SHEET_ID = "YOUR_GOOGLE_SHEET_ID_HERE"; 
+
+/* 1. HTTP GET HANDLER 
+   - Serves the App UI (index.html)
+   - Serves the Voice Config API
+*/
+function doGet(e) {
+  // 🛡️ SAFETY CHECK: Handle manual execution (Run button) gracefully
+  if (!e || !e.parameter) {
+    return serveApp();
+  }
+
+  // API Mode: Fetch Voice Configuration
+  if (e.parameter.type === "voice_config") {
+    return getVoiceConfig();
+  }
+
+  // Default: Serve the HTML App
+  return serveApp();
+}
+
+function serveApp() {
+  return HtmlService.createHtmlOutputFromFile('index')
+      .setTitle("| food.decide |")
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
+      .addMetaTag('viewport', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
+}
+
+/* 2. HTTP POST HANDLER
+   - Receives Order Data (Engine State)
+   - Logs to 'Orders' Sheet
+*/
+function doPost(e) {
+  try {
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    let sheet = ss.getSheetByName("Orders");
+    
+    // Auto-create Orders tab if missing
+    if (!sheet) {
+      sheet = ss.insertSheet("Orders");
+      sheet.appendRow(["Timestamp", "Session ID", "Cuisines Selected", "Items (JSON)", "Total Items"]);
+    }
+
+    const payload = JSON.parse(e.postData.contents);
+    
+    // Extract Data from Intent Engine Schema
+    const timestamp = new Date();
+    const session = payload.session_id || "unknown";
+    const cuisines = payload.cuisines_detected ? payload.cuisines_detected.join(", ") : "";
+    const items = payload.items_detected ? JSON.stringify(payload.items_detected) : "{}";
+    const totalQty = Object.keys(payload.items_detected || {}).length;
+
+    // Log to Sheet
+    sheet.appendRow([timestamp, session, cuisines, items, totalQty]);
+
+    return ContentService.createTextOutput(JSON.stringify({ status: "success", message: "Order Logged" }))
+      .setMimeType(ContentService.MimeType.JSON);
+
+  } catch (error) {
+    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: error.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+/* 3. VOICE CONFIG CACHE ENGINE
+   - Reads 'VoiceConfig' tab
+   - Caches result for 6 hours for speed
+*/
+function getVoiceConfig() {
+  const cache = CacheService.getScriptCache();
+  const cachedData = cache.get("voice_intents_v9");
+
+  // Return Cache if available (Super fast)
+  if (cachedData != null) {
+    return ContentService.createTextOutput(cachedData)
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // If no cache, read Sheet
+  try {
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    const sheet = ss.getSheetByName("VoiceConfig");
+    
+    if (!sheet) return createError("VoiceConfig tab not found");
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data.shift(); // Remove header row
+    
+    let intentMap = {};
+
+    // Expected Columns: [Group, Key, Synonyms]
+    data.forEach(row => {
+      let group = row[0].toString().trim();
+      let key = row[1].toString().trim();
+      let synonyms = row[2].toString().split(",").map(s => s.trim().toLowerCase()).filter(s => s);
+
+      if(group && key) {
+        if(!intentMap[group]) intentMap[group] = {};
+        // Ensure the key itself is a synonym
+        if(!synonyms.includes(key)) synonyms.push(key);
+        intentMap[group][key] = synonyms;
+      }
+    });
+
+    const jsonOutput = JSON.stringify(intentMap);
+    cache.put("voice_intents_v9", jsonOutput, 21600); // Cache for 6 hours
+
+    return ContentService.createTextOutput(jsonOutput).setMimeType(ContentService.MimeType.JSON);
+
+  } catch (err) {
+    return createError(err.toString());
+  }
+}
+
+function createError(msg) {
+  return ContentService.createTextOutput(JSON.stringify({ error: msg }))
+    .setMimeType(ContentService.MimeType.JSON);
+}
