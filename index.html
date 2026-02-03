@@ -193,7 +193,9 @@
         slideElements = Array.from(document.querySelectorAll('.main-slide'));  
         slideElements[0].className = "main-slide active";  
         currentIdx = 0;  
-        attachEvents(); updateResult();  
+        function updateResult() {
+  renderCart();
+}  
     }  
   
     // --- 3. PHYSICS & TOUCH ---  
@@ -364,8 +366,18 @@ function readCart() {
   if (!items.length) return speakSafe("Your cart is empty");  
   speakSafe("You have " + items.join(", "));  
 }  
-  
-    // --- 5. VOICE ---  
+  function toggleListenMode() {
+  const m = document.getElementById("mic-toggle");
+  if (!rec) return;
+
+  if (m.classList.contains("listening")) {
+    rec.stop();
+    m.classList.remove("listening");
+  } else {
+    rec.start();
+    m.classList.add("listening");
+  }
+}    // --- 5. VOICE ---  
    function initVoice() {
   if (!window.SpeechRecognition && !window.webkitSpeechRecognition) return;
 
