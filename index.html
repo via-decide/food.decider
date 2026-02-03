@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>| food.decide | v16.5 Final</title>
+    <title>| food.decide |</title>
 
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0a0a0a">
@@ -140,12 +140,12 @@
     let container = document.getElementById('master-container');
     let slideElements = [], currentIdx = 0;
 
-    async function boot() { renderLobby(); initVoice(); }
+    async function boot() { renderLobby(); } // FIX: Removed initVoice() auto-call
 
     function renderLobby() {
         container.innerHTML = `
         <section class="main-slide active" id="lobby">
-            <div class="slide-header"><span class="header-title">SWIPE-OS v16.5</span></div>
+            <div class="slide-header"><span class="header-title">SWIPE-OS v16.6</span></div>
             <div class="lobby-container">
                 <h1>AAJ KYA MANGVAAYEGE!</h1>
                 <div id="cuisine-grid" style="display:grid; gap:15px;">
@@ -323,8 +323,8 @@
         msg += "----------------\n";
         msg += `💰 *Est. Total: ₹${total}*\n`;
         msg += `📍 Location: Gandhidham\n`;
-msg += `“-------------------”\n`;
-msg += `“get customized "PRE-loaded"-- inquiry like above for your business/personal need with support of log - management ”\n`;
+        msg += `“-------------------”\n`;
+        msg += `“get customized "PRE-loaded"-- inquiry like above for your business/personal need with support of log - management ”\n`;
         msg += `“You decide once. We handle the rest.”\n`;
 
         window.open(`https://wa.me/916351537770?text=${encodeURIComponent(msg)}`, '_blank');
@@ -340,12 +340,26 @@ msg += `“get customized "PRE-loaded"-- inquiry like above for your business/pe
 
     function showToast(msg) { const t = document.getElementById('toast'); t.innerText = msg; t.classList.add('visible'); setTimeout(() => t.classList.remove('visible'), 2000); }
 
-    // --- 5. VOICE ---
+    // --- 5. VOICE FIX ---
     function toggleListenMode() { 
+        // Only initialize on user gesture if not ready
         if(!rec) initVoice();
+        
         const m = document.getElementById('mic-toggle');
-        if(m.classList.contains('listening')) { rec.stop(); m.classList.remove('listening'); } else { rec.start(); m.classList.add('listening'); }
+        if(m.classList.contains('listening')) { 
+            rec.stop(); 
+            m.classList.remove('listening'); 
+        } else { 
+            try {
+                rec.start(); 
+                m.classList.add('listening');
+            } catch(e) {
+                console.log("Mic Start Error", e);
+                m.classList.remove('listening');
+            }
+        }
     }
+    
     let rec;
     function initVoice() {
         if(!window.SpeechRecognition && !window.webkitSpeechRecognition) return;
@@ -373,7 +387,12 @@ msg += `“get customized "PRE-loaded"-- inquiry like above for your business/pe
                 }
             }
         };
-        rec.start();
+        // FIX: Handle end event to restart only if still listening
+        rec.onend = () => {
+            const m = document.getElementById('mic-toggle');
+            if(m.classList.contains('listening')) rec.start();
+        };
+        // FIX: Removed auto-start
     }
 
     boot();
