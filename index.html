@@ -3,111 +3,166 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>| food.decide | Final</title>
+    <title>| food.decide | Ultimate</title>
 
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0a0a0a">
     <meta name="background-color" content="#0a0a0a">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="food.decide">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <meta name="mobile-web-app-capable" content="yes">
 
     <script src="https://webgazer.cs.brown.edu/webgazer.js" async></script>
 
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('./service-worker.js').catch(() => {});
+          navigator.serviceWorker.register('./service-worker.js').catch(e => console.log('SW Fail:', e));
         });
       }
     </script>
 
     <style>
-        :root { --orange: #ff671f; --bg: #0a0a0a; --text: #f0f0f0; --go: #00e676; --red: #ff3333; --blue: #4285F4; --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; --mono: 'Courier New', monospace; }
-        
-        html, body { margin:0; padding:0; height:100%; width:100%; background:var(--bg); color:var(--text); font-family:var(--font); overflow:hidden; touch-action:none; }
+        /* =========================================
+           CORE SYSTEM (v11.0 UI PRESERVED)
+           ========================================= */
+        :root {
+            --brand-orange: #ff671f;
+            --brand-bg: #0a0a0a;
+            --text-main: #f0f0f0;
+            --accent-go: #00e676; 
+            --accent-skip: #ff3333;
+            --accent-zomato: #cb202d;
+            --accent-swiggy: #fc8019;
+            --accent-blinkit: #f8cb46;
+            --font-tech: 'Courier New', monospace;
+            --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        html, body {
+            margin: 0; padding: 0; height: 100%; width: 100%;
+            background-color: var(--brand-bg);
+            color: var(--text-main);
+            font-family: var(--font-ui);
+            overflow: hidden;
+            touch-action: none; 
+        }
+
         #master-container { height: 100vh; width: 100vw; position: relative; overflow: hidden; }
 
-        /* SENSOR STATUS */
-        .status-pill { position: fixed; left: 50%; transform: translateX(-50%); font-family: var(--mono); font-size: 0.6rem; color: #444; border: 1px solid #333; padding: 4px 8px; border-radius: 4px; opacity: 0; transition: opacity 0.5s; z-index: 1000; pointer-events: none; background: #000; }
-        #gyro-status { top: 15px; } #eye-status { top: 40px; }
-        .active-pill { opacity: 1 !important; color: var(--go) !important; border-color: var(--go) !important; }
-        #gaze-dot { position: fixed; width: 10px; height: 10px; background: var(--orange); border-radius: 50%; z-index: 9999; pointer-events: none; display: none; transform: translate(-50%, -50%); box-shadow: 0 0 10px var(--orange); }
-
-        /* SLIDES */
-        .main-slide { height: 100vh; width: 100vw; position: absolute; top: 0; left: 0; display: flex; flex-direction: column; background: var(--bg); transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1); will-change: transform; }
-        .main-slide.prev { transform: translateY(-100%); } .main-slide.active { transform: translateY(0); z-index: 10; } .main-slide.next { transform: translateY(100%); z-index: 20; }
-
-        .slide-header { padding: 20px; border-left: 3px solid var(--orange); height: 70px; flex-shrink: 0; z-index: 10; display: flex; align-items: center; }
-        .header-title { font-family: var(--mono); font-size: 0.75rem; color: var(--orange); letter-spacing: 1px; font-weight: 700; text-transform: uppercase; }
+        /* --- SENSOR STATUS PILLS --- */
+        .status-pill {
+            position: fixed; left: 50%; transform: translateX(-50%);
+            font-family: var(--font-tech); font-size: 0.6rem; color: #444;
+            border: 1px solid #333; padding: 4px 8px; border-radius: 4px;
+            opacity: 0; transition: opacity 0.5s; z-index: 1000; pointer-events: none; background: #000;
+        }
+        #gyro-status { top: 15px; } 
+        #eye-status { top: 40px; }
+        .active-pill { opacity: 1 !important; color: var(--accent-go) !important; border-color: var(--accent-go) !important; }
         
+        #gaze-dot { 
+            position: fixed; width: 10px; height: 10px; background: var(--brand-orange); border-radius: 50%; 
+            z-index: 9999; pointer-events: none; display: none; transform: translate(-50%, -50%); 
+            box-shadow: 0 0 10px var(--brand-orange); 
+        }
+
+        /* --- SLIDES --- */
+        .main-slide {
+            height: 100vh; width: 100vw; position: absolute; top: 0; left: 0;
+            display: flex; flex-direction: column; background: var(--brand-bg);
+            transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+            will-change: transform;
+        }
+        .main-slide.prev { transform: translateY(-100%); }
+        .main-slide.active { transform: translateY(0); z-index: 10; }
+        .main-slide.next { transform: translateY(100%); z-index: 20; }
+
+        .slide-header {
+            padding: 20px; border-left: 3px solid var(--brand-orange); height: 70px;
+            flex-shrink: 0; z-index: 10; display: flex; align-items: center;
+        }
+        .header-title {
+            font-family: var(--font-tech); font-size: 0.75rem; color: var(--brand-orange);
+            letter-spacing: 1px; font-weight: 700; text-transform: uppercase;
+        }
+
         .carousel-viewport { position: relative; flex-grow: 1; width: 100%; height: 100%; }
-        
-        .sub-slide { 
-            position: absolute; inset: 0; padding: 25px; display: flex; flex-direction: column; justify-content: center; 
-            opacity: 0; pointer-events: none; background: var(--bg); border-radius: 12px; 
-            transform-origin: 50% 150%; 
-            transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s; 
-            will-change: transform; 
-            overflow: hidden; 
+
+        .sub-slide {
+            position: absolute; inset: 0; padding: 25px;
+            display: flex; flex-direction: column; justify-content: center;
+            opacity: 0; pointer-events: none;
+            /* v11 Style: Simple translate */
+            transform: translateX(20px);
+            transition: transform 0.3s ease, opacity 0.3s ease;
+            overflow: hidden; /* For Overlays */
         }
         .sub-slide.opt-active { z-index: 30; opacity: 1; pointer-events: auto; transform: translateX(0); }
-        .sub-slide.opt-hidden { z-index: 0; opacity: 0; pointer-events: none; transform: scale(0.9); }
+        .sub-slide.opt-hidden { z-index: 0; opacity: 0; pointer-events: none; }
         .sub-slide.static { z-index: 30; opacity: 1; pointer-events: auto; transform: none; }
 
-        /* GYRO OVERLAYS */
+        /* --- GYRO OVERLAYS (Visual Feedback) --- */
         .overlay-label {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             display: flex; align-items: center; justify-content: center;
-            font-family: var(--mono); font-size: 2.5rem; font-weight: 900; letter-spacing: 2px; text-transform: uppercase;
-            opacity: 0; pointer-events: none; z-index: 50; transition: opacity 0.05s linear;
+            font-family: var(--font-tech); font-size: 4rem; font-weight: 900;
+            opacity: 0; pointer-events: none; z-index: 50;
+            transition: opacity 0.05s linear;
         }
-        .overlay-skip { background: rgba(255, 51, 51, 0.15); color: var(--red); transform: rotate(-10deg); }
-        .overlay-browse { background: rgba(66, 133, 244, 0.15); color: var(--blue); transform: rotate(10deg); }
-        .overlay-select { background: rgba(0, 230, 118, 0.15); color: var(--go); flex-direction: column; justify-content: flex-end; padding-bottom: 100px; }
+        .overlay-skip { color: var(--accent-skip); justify-content: flex-start; padding-left: 30px; background: linear-gradient(to right, rgba(255,51,51,0.1), transparent); }
+        .overlay-browse { color: #4285F4; justify-content: flex-end; padding-right: 30px; background: linear-gradient(to left, rgba(66,133,244,0.1), transparent); }
+        .overlay-select { color: var(--accent-go); align-items: flex-end; padding-bottom: 80px; background: linear-gradient(to top, rgba(0,230,118,0.1), transparent); }
 
-        /* UI ELEMENTS */
-        h1 { font-size: 1.8rem; margin: 0 0 15px 0; line-height: 1; letter-spacing: -1px; color: var(--orange); position: relative; z-index: 10; }
-        .primary-question { font-size: 1.1rem; color: #fff; margin-bottom: 25px; font-weight: 600; position: relative; z-index: 10; }
-        .price { font-size: 0.9rem; color: #aaa; margin-left: 10px; font-family: var(--mono); background: #222; padding: 2px 6px; border-radius: 4px; }
-        .role-label { font-family: var(--mono); font-size: 0.6rem; color: #000; background: var(--go); padding: 4px 8px; border-radius: 4px; width: fit-content; margin-bottom: 15px; font-weight: bold; position: relative; z-index: 10; }
-        .nav-hint { margin-top: 30px; padding-top: 20px; border-top: 1px solid #333; font-family: var(--mono); font-size: 0.7rem; color: #666; display: flex; justify-content: space-between; position: relative; z-index: 10; }
+        h1 { font-size: 1.8rem; margin: 0 0 15px 0; line-height: 1; letter-spacing: -1px; color: var(--brand-orange); position: relative; z-index: 20; }
+        .primary-question { font-size: 1.1rem; color: #fff; margin-bottom: 25px; line-height: 1.4; font-weight: 600; position: relative; z-index: 20; }
+        
+        .price { font-size: 0.9rem; color: #aaa; margin-left: 10px; font-family: var(--font-tech); background: #222; padding: 2px 6px; border-radius: 4px; }
+        .role-label { font-family: var(--font-tech); font-size: 0.6rem; color: #000; background: var(--accent-go); padding: 4px 8px; border-radius: 4px; width: fit-content; margin-bottom: 15px; font-weight: bold; position: relative; z-index: 20; }
+
+        .nav-hint { margin-top: 30px; padding-top: 20px; border-top: 1px solid #333; font-family: var(--font-tech); font-size: 0.7rem; color: #666; display: flex; justify-content: space-between; position: relative; z-index: 20; }
+
+        .verdict-container { display: flex; flex-direction: column; height: 100%; justify-content: center; }
+        .choice-header { font-family: var(--font-tech); color: #666; font-size: 0.8rem; margin-bottom: 20px; text-transform: uppercase; text-align: center; }
+        
+        .input-group { border: 1px solid #333; background: #111; padding: 20px; border-radius: 8px; margin-bottom: 20px; min-height: 100px; max-height: 40vh; overflow-y: auto; }
+        .input-row { display: flex; justify-content: space-between; border-bottom: 1px dashed #333; padding: 10px 0; font-family: var(--font-tech); font-size: 0.8rem; }
+        .input-key { color: #888; text-transform: uppercase; }
+        .input-val { color: var(--accent-go); font-weight: bold; text-align: right; }
+        
+        .final-actions { display: grid; gap: 10px; margin-top: 20px; }
+        .btn { background: #222; color: #fff; border: 1px solid #333; padding: 15px; border-radius: 8px; font-weight: 600; text-align: center; font-size: 0.9rem; cursor: pointer; display: block; width: 100%; box-sizing: border-box;}
+        .btn-wa { background: #25D366; color: #000; border: none; }
+        .btn-zomato { background: var(--accent-zomato); border: none; opacity: 0.5; }
+        .btn-swiggy { background: var(--accent-swiggy); border: none; opacity: 0.5; }
+        .btn-blinkit { background: var(--accent-blinkit); color: #000; border: none; opacity: 0.5; }
+        .btn-cloud { background: #4285F4; border: none; opacity: 1; }
+        
+        .btn-zomato.active, .btn-swiggy.active, .btn-blinkit.active { opacity: 1; box-shadow: 0 0 10px rgba(255,255,255,0.2); }
+
+        .biz-card { background: linear-gradient(145deg, #111, #050505); border: 1px solid var(--brand-orange); padding: 30px; border-radius: 12px; text-align: center; }
+        .biz-tagline { font-family: var(--font-tech); color: var(--brand-orange); font-size: 0.7rem; margin-bottom: 10px; display: block; }
+        .biz-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 20px; color: #fff; }
 
         .lobby-container { display: flex; flex-direction: column; gap: 15px; padding: 30px; height: 100%; justify-content: center; }
         .cuisine-btn { background: #222; border: 1px solid #444; color: #888; padding: 20px; font-size: 1.2rem; font-weight: bold; text-transform: uppercase; border-radius: 12px; transition: all 0.2s; }
-        .cuisine-btn.selected { background: var(--orange); color: #000; border-color: var(--orange); box-shadow: 0 0 15px rgba(255, 103, 31, 0.4); }
-        .hunt-btn { background: #fff; color: #000; font-weight: 900; margin-top: 30px; letter-spacing: 2px; padding: 15px; border-radius: 8px; border: none; cursor: pointer;}
+        .cuisine-btn.selected { background: var(--brand-orange); color: #000; border-color: var(--brand-orange); box-shadow: 0 0 15px rgba(255, 103, 31, 0.4); }
+        .hunt-btn { background: #fff; color: #000; font-weight: 900; margin-top: 30px; letter-spacing: 2px; }
         
-        .toggle-btn {
-            background: transparent; border: 1px solid #666; color: #ccc; font-family: var(--mono); font-size: 0.7rem; font-weight: bold;
-            flex: 1; padding: 15px; border-radius: 8px; transition: all 0.3s; cursor: pointer;
-        }
-        .toggle-btn.active { border-color: var(--go); color: var(--go); background: rgba(0, 230, 118, 0.1); box-shadow: 0 0 15px rgba(0, 230, 118, 0.2); }
+        /* VISIBLE TOGGLE BUTTONS */
+        .toggle-btn { background: transparent; border: 1px solid #666; color: #ccc; font-family: var(--font-tech); font-size: 0.7rem; font-weight: bold; flex: 1; padding: 15px; border-radius: 8px; transition: all 0.3s; cursor: pointer; }
+        .toggle-btn.active { border-color: var(--accent-go); color: var(--accent-go); background: rgba(0, 230, 118, 0.1); box-shadow: 0 0 15px rgba(0, 230, 118, 0.2); }
 
-        .final-actions { display: grid; gap: 10px; margin-top: 20px; }
-        .btn { background: #222; color: #fff; border: 1px solid #333; padding: 15px; border-radius: 8px; font-weight: 600; text-align: center; font-size: 0.9rem; cursor: pointer; width: 100%; box-sizing: border-box;}
-        .btn-zomato { background: #cb202d; opacity: 0.5; border:none;} .btn-swiggy { background: #fc8019; opacity: 0.5; border:none;} .btn-blinkit { background: #f8cb46; color: #000; opacity: 0.5; border:none;}
-        .btn-wa { background: #25D366; color: #000; border: none; } .btn-cloud { background: #4285F4; border: none; }
-        .btn-zomato.active, .btn-swiggy.active, .btn-blinkit.active { opacity: 1; box-shadow: 0 0 10px rgba(255,255,255,0.2); }
-        
-        .verdict-container { display: flex; flex-direction: column; height: 100%; justify-content: center; }
-        .choice-header { font-family: var(--mono); color: #666; font-size: 0.8rem; margin-bottom: 20px; text-transform: uppercase; text-align: center; }
-        .input-group { border: 1px solid #333; background: #111; padding: 20px; border-radius: 8px; margin-bottom: 20px; min-height: 100px; max-height: 40vh; overflow-y: auto; }
-        .input-row { display: flex; justify-content: space-between; border-bottom: 1px dashed #333; padding: 10px 0; font-family: var(--mono); font-size: 0.8rem; }
-        .input-key { color: #888; text-transform: uppercase; } .input-val { color: var(--go); font-weight: bold; text-align: right; }
-        
-        .biz-card { background: linear-gradient(145deg, #111, #050505); border: 1px solid var(--orange); padding: 30px; border-radius: 12px; text-align: center; }
-        .biz-tagline { font-family: var(--mono); color: var(--orange); font-size: 0.7rem; margin-bottom: 10px; display: block; } .biz-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 20px; color: #fff; }
-
-        /* v11 PHYSICS UI */
         #depth-fill { position: fixed; right: 0; top: 0; bottom: 0; width: 4px; background: #333; z-index: 900; height: 0%; transition: height 0.05s linear; }
+        .toast-msg { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: #222; color: #00e676; padding: 10px 20px; border: 1px solid #00e676; border-radius: 20px; font-size: 0.8rem; opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 3000; white-space: nowrap; font-family: var(--font-tech); }
+        .toast-msg.visible { opacity: 1; }
 
         #mic-toggle { position: fixed; bottom: 20px; left: 20px; width: 50px; height: 50px; background: #111; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid #444; z-index: 2000; cursor: pointer; transition: all 0.3s; }
         #mic-toggle svg { width: 24px; height: 24px; fill: #666; }
-        #mic-toggle.listening { border-color: var(--go); box-shadow: 0 0 15px rgba(0,230,118,0.3); }
-        #mic-toggle.listening svg { fill: var(--go); }
-        #toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: #222; color: #00e676; padding: 10px 20px; border: 1px solid #00e676; border-radius: 20px; font-family: var(--mono); font-size: 0.8rem; opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 3000; white-space: nowrap; }
-        #toast.visible { opacity: 1; }
+        #mic-toggle.listening { border-color: var(--accent-go); box-shadow: 0 0 15px rgba(0,230,118,0.3); }
+        #mic-toggle.listening svg { fill: var(--accent-go); }
     </style>
 </head>
 <body>
@@ -115,7 +170,6 @@
 <div id="gyro-status" class="status-pill">GYRO ACTIVE</div>
 <div id="eye-status" class="status-pill">EYE TRACKING</div>
 <div id="gaze-dot"></div>
-
 <div id="master-container"></div>
 <div id="depth-fill"></div>
 <div id="toast" class="toast-msg"></div>
@@ -125,13 +179,17 @@
 </div>
 
 <script>
-    // --- 1. CONFIG & DATA ---
+    /* =========================================
+       1. CONFIGURATION & DATA
+       ========================================= */
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyBMwKxq92U0dptKMdEHvUCXPS9AjExHtxHjcRmfh2JFjCSn9Zd82bzp34xLg6X0a7L9g/exec";
+    const SHARE_LINK_TEXT = "food-decider | swipe OS";
     let SENSORS_ENABLED = false;
     let GAZE_ENABLED = false;
-    
-    // YOUR HARDCODED MENU (Prevents Blank Screen)
-    const RAW_DATA = {
+
+    // --- HARDCODED MENU (Prevent Blank Screen) ---
+    const FALLBACK_MENU = {
+      "data": {
         "punjabi": {
           "label": "PUNJABI",
           "categories": [
@@ -163,8 +221,10 @@
             { "id": "s_hot", "label": "Hot Snacks", "items": [ { "name": "Samosa", "price": 20 }, { "name": "Veg Puff", "price": 30 }, { "name": "Burger", "price": 60 } ] }
           ]
         }
+      }
     };
-    
+
+    let RAW_DATA = FALLBACK_MENU.data;
     let ENGINE_STATE = { session_id: "auto-" + Date.now(), cuisines_detected: [], items_detected: {}, platform_strategy: { fulfillment: [] } };
 
     // --- 2. INPUT ENGINES ---
@@ -182,7 +242,7 @@
             document.getElementById('btn-eye').classList.add('active');
             
             webgazer.setGazeListener((data, elapsed) => {
-                if (data == null || TOUCH_ACTIVE) return;
+                if (data == null || TOUCH_ACTIVE || !GAZE_ENABLED) return;
                 const dot = document.getElementById('gaze-dot');
                 dot.style.left = data.x + 'px'; dot.style.top = data.y + 'px';
                 if (Date.now() - lastInputTs > 1500) {
@@ -219,6 +279,8 @@
             this.current.x += (this.target.x - this.current.x) * 0.08;
             this.current.y += (this.target.y - this.current.y) * 0.08;
             this.updateVisuals(this.current.x, this.current.y);
+            
+            // v11 MAPPING: Positive Y (Down) is SELECT
             if(Math.abs(this.current.x) > 200) this.commit(Math.sign(this.current.x)*100, 0);
             else if(Math.abs(this.current.y) > 200) this.commit(0, Math.sign(this.current.y)*100);
             else requestAnimationFrame(() => this.loop());
@@ -237,7 +299,7 @@
         move(e) { 
             if(!this.active) return; 
             const c = (e.touches?e.touches[0]:e); 
-            // v11 PHYSICS BEHAVIOR: Vertical Drag = Fill Bar
+            // v11 PHYSICS: Vertical Drag fills bar
             const dy = c.clientY - this.startPos.y;
             const dx = c.clientX - this.startPos.x;
             if(Math.abs(dy) > Math.abs(dx)) {
@@ -252,7 +314,7 @@
             const opY = Math.min(Math.abs(dy)/150, 1);
             if(this.oSkip) this.oSkip.style.opacity = (dx < -20) ? opX : 0;
             if(this.oBrowse) this.oBrowse.style.opacity = (dx > 20) ? opX : 0;
-            if(this.oSelect) this.oSelect.style.opacity = (dy > 20) ? opY : 0; // Swipe DOWN to select in v11
+            if(this.oSelect) this.oSelect.style.opacity = (dy > 20) ? opY : 0; // v11: Down is select
         }
         end() { 
             if(!this.active) return; this.active=false; TOUCH_ACTIVE=false;
@@ -270,7 +332,8 @@
         commit(dx, dy) {
             let dir = "RIGHT";
             const a = (Math.atan2(-dy, dx) * 180 / Math.PI + 360) % 360;
-            if(a>45 && a<135) dir = "UP"; else if(a>135 && a<225) dir = "LEFT"; else if(a>225 && a<315) dir = "DOWN"; // Select is Down in v11
+            // v11 LOGIC: 45-135 is UP (PREV), 225-315 is DOWN (SELECT)
+            if(a>45 && a<135) dir = "UP"; else if(a>135 && a<225) dir = "LEFT"; else if(a>225 && a<315) dir = "DOWN"; 
             
             this.el.style.transition = "0.4s ease";
             this.el.style.transform = `translate(${dx*4}px, ${dy*4}px)`;
@@ -288,7 +351,7 @@
     function renderLobby() {
         container.innerHTML = `
         <section class="main-slide active" id="lobby">
-            <div class="slide-header"><span class="header-title">SWIPE-OS v15.3</span></div>
+            <div class="slide-header"><span class="header-title">SWIPE-OS v16.0</span></div>
             <div class="lobby-container">
                 <h1>AAJ KYA MANGVAAYEGE!</h1>
                 <div id="cuisine-grid" style="display:grid; gap:15px;">
@@ -320,7 +383,12 @@
         document.getElementById('btn-gyro').classList.add('active'); 
         showToast("GYRO ACTIVE"); 
     }
-    function reqGaze() { gazeEngine.start(); showToast("EYE TRACKING ON"); }
+    function reqGaze() { 
+        GAZE_ENABLED = true;
+        gazeEngine.start(); 
+        document.getElementById('btn-eye').classList.add('active'); 
+        showToast("EYE TRACKING ON"); 
+    }
 
     function startHunt() {
         if(ENGINE_STATE.cuisines_detected.length === 0) { showToast("SELECT A CUISINE"); return; }
@@ -368,22 +436,20 @@
             const view = slideElements[currentIdx].querySelector('.carousel-viewport');
             const val = el.dataset.val;
             
-            // v11 PHYSICS MAPPING: DOWN = SELECT
+            // v11 PHYSICS: DOWN IS SELECT
             if(dir === "DOWN") { updateCart("ADD", val); showToast("ADDED"); nextSlide(); }
             else if(dir === "LEFT") { showToast("SKIPPED"); nextSlide(); }
             else if(dir === "RIGHT") { 
-                // RIGHT SWIPE FIX
                 const slides = view.querySelectorAll('.sub-slide');
                 let curr = 0; 
                 slides.forEach((s,i) => { 
                     if(s.classList.contains('opt-active')) curr = i; 
-                    s.classList.remove('opt-active'); s.classList.add('opt-hidden');
-                    s.querySelector('.overlay-browse').style.opacity = 0; // clear visual
+                    s.classList.remove('opt-active'); s.classList.add('opt-hidden'); 
                     setTimeout(()=>{ s.style.transform = ''; s.style.opacity = '1'; }, 300);
                 });
                 const next = slides[(curr+1)%slides.length];
                 next.classList.remove('opt-hidden'); next.classList.add('opt-active');
-                next.style.transform = ''; next.style.opacity = '1';
+                next.style.transform = ''; next.style.opacity = '1'; 
                 attachPhysics(next);
             }
             else { el.style.transform = ""; el.style.opacity = "1"; }
@@ -416,14 +482,13 @@
         const list = document.getElementById('final-list');
         let h = "", total = 0;
         for(let [k,v] of Object.entries(ENGINE_STATE.items_detected)) {
-            h += `<div class="input-row"><span>${k}</span><span>x${v.qty} · ₹${v.price*v.qty}</span></div>`;
+            h += `<div class="input-row"><span class="input-key">${name}</span><span class="input-val">x${v.qty} · ₹${v.price*v.qty}</span></div>`;
             total += v.price*v.qty;
         }
         h += `<div class="input-row" style="border-top:1px solid #444;margin-top:10px"><span>TOTAL</span><span>₹${total}</span></div>`;
         list.innerHTML = h;
     }
 
-    // --- ACTIONS ---
     function executeAction(act) {
         if(document.getElementById('lobby')) return;
         const s = slideElements[currentIdx];
@@ -444,7 +509,7 @@
         }
     }
 
-    // --- SMART DEEP LINKS ---
+    // --- DEEP LINK LOGIC ---
     function getCategory(name) {
         for(let c in RAW_DATA) for(let cat of RAW_DATA[c].categories) for(let i of cat.items) if(i.name === name) return cat.id;
         return "";
@@ -484,8 +549,8 @@
     }
     
     function saveToCloud() { fetch(GOOGLE_SCRIPT_URL, {method:"POST", body:JSON.stringify(ENGINE_STATE)}); showToast("SAVED"); }
-    function showToast(m) { const t=document.getElementById('toast'); t.innerText=m; t.classList.add('visible'); setTimeout(()=>t.classList.remove('visible'),2000); }
-    
+    function showToast(msg) { const t = document.getElementById('toast'); t.innerText = msg; t.classList.add('visible'); setTimeout(() => t.classList.remove('visible'), 2000); }
+
     function toggleListenMode() { 
         if(!rec) initVoice();
         const m = document.getElementById('mic-toggle');
@@ -505,7 +570,7 @@
             else if(t.includes("select") || t.includes("add")) executeAction("SELECT");
             else if(t.includes("skip") || t.includes("next")) executeAction("SKIP");
             else if(t.includes("browse") || t.includes("show")) executeAction("BROWSE");
-            else if(t.includes("gyro") || t.includes("tilt")) reqGyro();
+            else if(t.includes("gyro")) reqGyro();
             else {
                 const nums = {"one":1,"two":2,"three":3,"1":1,"2":2,"3":3};
                 for(let k in nums) if(t.includes(k)) { 
@@ -519,7 +584,7 @@
                 }
             }
         };
-        rec.onend = () => { if(document.getElementById('mic-toggle').classList.contains('listening')) rec.start(); };
+        rec.start();
     }
 
     boot();
