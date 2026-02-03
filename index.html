@@ -3,43 +3,101 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>| food.decide | v11.1</title>
+    <title>| food.decide | Unified</title>
 
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0a0a0a">
     <meta name="background-color" content="#0a0a0a">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="food.decide">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
-    <meta name="mobile-web-app-capable" content="yes">
+    
+    <script src="https://webgazer.cs.brown.edu/webgazer.js" async></script>
 
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('./service-worker.js')
-            .catch(err => console.log('SW failed:', err));
+          navigator.serviceWorker.register('./service-worker.js').catch(e=>{});
         });
       }
     </script>
 
     <style>
-        /* CORE SYSTEM - NO CHANGES */
-        :root { --brand-orange: #ff671f; --brand-bg: #0a0a0a; --text-main: #f0f0f0; --accent-go: #00e676; --accent-skip: #ff3333; --accent-zomato: #cb202d; --accent-swiggy: #fc8019; --accent-blinkit: #f8cb46; --font-tech: 'Courier New', monospace; --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        html, body { margin: 0; padding: 0; height: 100%; width: 100%; background-color: var(--brand-bg); color: var(--text-main); font-family: var(--font-ui); overflow: hidden; touch-action: none; }
+        /* =========================================
+           CORE SYSTEM (v11.0 Base)
+           ========================================= */
+        :root {
+            --brand-orange: #ff671f;
+            --brand-bg: #0a0a0a;
+            --text-main: #f0f0f0;
+            --accent-go: #00e676; 
+            --accent-skip: #ff3333;
+            --accent-zomato: #cb202d;
+            --accent-swiggy: #fc8019;
+            --accent-blinkit: #f8cb46;
+            --font-tech: 'Courier New', monospace;
+            --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        html, body {
+            margin: 0; padding: 0; height: 100%; width: 100%;
+            background-color: var(--brand-bg);
+            color: var(--text-main);
+            font-family: var(--font-ui);
+            overflow: hidden;
+            touch-action: none; 
+        }
+
         #master-container { height: 100vh; width: 100vw; position: relative; overflow: hidden; }
-        .main-slide { height: 100vh; width: 100vw; position: absolute; top: 0; left: 0; display: flex; flex-direction: column; background: var(--brand-bg); transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1); will-change: transform; }
-        .main-slide.prev { transform: translateY(-100%); } .main-slide.active { transform: translateY(0); z-index: 10; } .main-slide.next { transform: translateY(100%); z-index: 20; }
+
+        .main-slide {
+            height: 100vh; width: 100vw; position: absolute; top: 0; left: 0;
+            display: flex; flex-direction: column; background: var(--brand-bg);
+            transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+            will-change: transform;
+        }
+        .main-slide.prev { transform: translateY(-100%); }
+        .main-slide.active { transform: translateY(0); z-index: 10; }
+        .main-slide.next { transform: translateY(100%); z-index: 20; }
+
         .slide-header { padding: 20px; border-left: 3px solid var(--brand-orange); height: 70px; flex-shrink: 0; z-index: 10; display: flex; align-items: center; }
         .header-title { font-family: var(--font-tech); font-size: 0.75rem; color: var(--brand-orange); letter-spacing: 1px; font-weight: 700; text-transform: uppercase; }
+
         .carousel-viewport { position: relative; flex-grow: 1; width: 100%; height: 100%; }
-        .sub-slide { position: absolute; inset: 0; padding: 25px; display: flex; flex-direction: column; justify-content: center; opacity: 0; pointer-events: none; transform: translateX(20px); transition: transform 0.3s ease, opacity 0.3s ease; }
-        .sub-slide.opt-active { z-index: 30; opacity: 1; pointer-events: auto; transform: translateX(0); } .sub-slide.opt-hidden { z-index: 0; opacity: 0; pointer-events: none; } .sub-slide.static { z-index: 30; opacity: 1; pointer-events: auto; transform: none; }
-        h1 { font-size: 1.8rem; margin: 0 0 15px 0; line-height: 1; letter-spacing: -1px; color: var(--brand-orange); } .primary-question { font-size: 1.1rem; color: #fff; margin-bottom: 25px; line-height: 1.4; font-weight: 600; }
+
+        .sub-slide {
+            position: absolute; inset: 0; padding: 25px;
+            display: flex; flex-direction: column; justify-content: center;
+            opacity: 0; pointer-events: none;
+            transform: translateX(20px);
+            transition: transform 0.3s ease, opacity 0.3s ease;
+            overflow: hidden; /* For overlays */
+        }
+        .sub-slide.opt-active { z-index: 30; opacity: 1; pointer-events: auto; transform: translateX(0); }
+        .sub-slide.opt-hidden { z-index: 0; opacity: 0; pointer-events: none; }
+        .sub-slide.static { z-index: 30; opacity: 1; pointer-events: auto; transform: none; }
+
+        /* UPGRADE: Gyro Feedback Overlays */
+        .overlay-label {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; align-items: center; justify-content: center;
+            font-family: var(--font-tech); font-size: 3rem; font-weight: 900; 
+            letter-spacing: 4px; text-transform: uppercase;
+            opacity: 0; pointer-events: none; z-index: 50; 
+            transition: opacity 0.1s linear;
+        }
+        .overlay-skip { background: rgba(255, 51, 51, 0.15); color: var(--accent-skip); transform: rotate(-10deg); }
+        .overlay-browse { background: rgba(66, 133, 244, 0.15); color: #4285F4; transform: rotate(10deg); }
+        .overlay-select { background: rgba(0, 230, 118, 0.15); color: var(--accent-go); flex-direction: column; justify-content: flex-end; padding-bottom: 100px; }
+
+        h1 { font-size: 1.8rem; margin: 0 0 15px 0; line-height: 1; letter-spacing: -1px; color: var(--brand-orange); position: relative; z-index: 10; }
+        .primary-question { font-size: 1.1rem; color: #fff; margin-bottom: 25px; line-height: 1.4; font-weight: 600; position: relative; z-index: 10; }
         .price { font-size: 0.9rem; color: #aaa; margin-left: 10px; font-family: var(--font-tech); background: #222; padding: 2px 6px; border-radius: 4px; }
-        .role-label { font-family: var(--font-tech); font-size: 0.6rem; color: #000; background: var(--accent-go); padding: 4px 8px; border-radius: 4px; width: fit-content; margin-bottom: 15px; font-weight: bold; }
-        .nav-hint { margin-top: 30px; padding-top: 20px; border-top: 1px solid #333; font-family: var(--font-tech); font-size: 0.7rem; color: #666; display: flex; justify-content: space-between; }
-        .verdict-container { display: flex; flex-direction: column; height: 100%; justify-content: center; } .choice-header { font-family: var(--font-tech); color: #666; font-size: 0.8rem; margin-bottom: 20px; text-transform: uppercase; text-align: center; }
+        .role-label { font-family: var(--font-tech); font-size: 0.6rem; color: #000; background: var(--accent-go); padding: 4px 8px; border-radius: 4px; width: fit-content; margin-bottom: 15px; font-weight: bold; position: relative; z-index: 10; }
+        .nav-hint { margin-top: 30px; padding-top: 20px; border-top: 1px solid #333; font-family: var(--font-tech); font-size: 0.7rem; color: #666; display: flex; justify-content: space-between; position: relative; z-index: 10; }
+
+        .verdict-container { display: flex; flex-direction: column; height: 100%; justify-content: center; }
+        .choice-header { font-family: var(--font-tech); color: #666; font-size: 0.8rem; margin-bottom: 20px; text-transform: uppercase; text-align: center; }
         .input-group { border: 1px solid #333; background: #111; padding: 20px; border-radius: 8px; margin-bottom: 20px; min-height: 100px; max-height: 40vh; overflow-y: auto; }
         .input-row { display: flex; justify-content: space-between; border-bottom: 1px dashed #333; padding: 10px 0; font-family: var(--font-tech); font-size: 0.8rem; }
         .input-key { color: #888; text-transform: uppercase; } .input-val { color: var(--accent-go); font-weight: bold; text-align: right; }
@@ -49,14 +107,28 @@
         .btn-zomato.active, .btn-swiggy.active, .btn-blinkit.active { opacity: 1; box-shadow: 0 0 10px rgba(255,255,255,0.2); }
         .biz-card { background: linear-gradient(145deg, #111, #050505); border: 1px solid var(--brand-orange); padding: 30px; border-radius: 12px; text-align: center; }
         .biz-tagline { font-family: var(--font-tech); color: var(--brand-orange); font-size: 0.7rem; margin-bottom: 10px; display: block; } .biz-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 20px; color: #fff; }
+
         .lobby-container { display: flex; flex-direction: column; gap: 15px; padding: 30px; height: 100%; justify-content: center; }
-        .cuisine-btn { background: #222; border: 1px solid #444; color: #888; padding: 20px; font-size: 1.2rem; font-weight: bold; text-transform: uppercase; border-radius: 12px; transition: all 0.2s; } .cuisine-btn.selected { background: var(--brand-orange); color: #000; border-color: var(--brand-orange); box-shadow: 0 0 15px rgba(255, 103, 31, 0.4); } .hunt-btn { background: #fff; color: #000; font-weight: 900; margin-top: 30px; letter-spacing: 2px; }
+        .cuisine-btn { background: #222; border: 1px solid #444; color: #888; padding: 20px; font-size: 1.2rem; font-weight: bold; text-transform: uppercase; border-radius: 12px; transition: all 0.2s; }
+        .cuisine-btn.selected { background: var(--brand-orange); color: #000; border-color: var(--brand-orange); box-shadow: 0 0 15px rgba(255, 103, 31, 0.4); }
+        .hunt-btn { background: #fff; color: #000; font-weight: 900; margin-top: 30px; letter-spacing: 2px; padding:15px; border:none; border-radius:8px;}
+
+        /* UPGRADE: STATUS PILLS */
         #depth-fill { position: fixed; right: 0; top: 0; bottom: 0; width: 4px; background: #333; z-index: 900; height: 0%; transition: height 0.05s linear; }
         .toast-msg { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: #222; color: #00e676; padding: 10px 20px; border: 1px solid #00e676; border-radius: 20px; font-size: 0.8rem; opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 3000; white-space: nowrap; font-family: var(--font-tech); } .toast-msg.visible { opacity: 1; }
         #mic-toggle { position: fixed; bottom: 20px; left: 20px; width: 50px; height: 50px; background: #111; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid #444; z-index: 2000; cursor: pointer; transition: all 0.3s; } #mic-toggle svg { width: 24px; height: 24px; fill: #666; } #mic-toggle.listening { border-color: var(--accent-go); box-shadow: 0 0 15px rgba(0,230,118,0.3); } #mic-toggle.listening svg { fill: var(--accent-go); }
+        
+        #gaze-dot { position: fixed; width: 10px; height: 10px; background: var(--brand-orange); border-radius: 50%; z-index: 9999; pointer-events: none; display: none; transform: translate(-50%, -50%); box-shadow: 0 0 10px var(--brand-orange); }
+        .status-pill { position: fixed; left: 50%; transform: translateX(-50%); font-family: var(--font-tech); font-size: 0.6rem; color: #444; border: 1px solid #333; padding: 4px 8px; border-radius: 4px; opacity: 0; transition: opacity 0.5s; z-index: 1000; pointer-events: none; background:#000; }
+        #gyro-status { top: 15px; } #eye-status { top: 40px; }
+        .status-pill.active { opacity: 1; color: var(--accent-go); border-color: var(--accent-go); }
     </style>
 </head>
 <body>
+
+<div id="gyro-status" class="status-pill">GYRO ACTIVE</div>
+<div id="eye-status" class="status-pill">EYE TRACKING</div>
+<div id="gaze-dot"></div>
 
 <div id="master-container"></div>
 <div id="depth-fill"></div>
@@ -77,57 +149,85 @@
         version: "offline-v1",
         data: {
             punjabi: { label: "PUNJABI", categories: [{ id: "p_breads", label: "Breads", items: [{name:"Butter Naan", price:40}, {name:"Tandoori Roti", price:25}] }, { id: "p_mains", label: "Mains", items: [{name:"Dal Makhani", price:220}, {name:"Paneer Butter Masala", price:240}] }] },
-            chinese: { label: "CHINESE", categories: [{ id: "c_noodles", label: "Noodles", items: [{name:"Hakka Noodles", price:200}] }] },
+            chinese: { label: "CHINESE", categories: [{ id: "c_dimsum", label: "Dim Sum", items: [{name:"Veg Crystal Dumpling", price:220}] }, { id: "c_noodles", label: "Noodles", items: [{name:"Hakka Noodles", price:200}] }] },
             pizza: { label: "PIZZA", categories: [{ id: "z_classic", label: "Classic", items: [{name:"Margherita", price:350}] }] },
             snacks: { label: "NASTA PANI", categories: [{ id: "s_hot", label: "Hot Snacks", items: [{name:"Samosa", price:20}] }] }
         }
     };
     let RAW_DATA = FALLBACK_MENU.data; 
 
-    /* PATCH 1: TILT STATE */
+    /* --- 4-INPUT STATE --- */
     let TILT_ENABLED = false;
-    let lastTiltTs = 0;
+    let GAZE_ENABLED = false;
+    let lastInputTs = 0;
     let TOUCH_ACTIVE = false;
 
-    // Input Arbiter
-    document.addEventListener("touchstart", ()=> TOUCH_ACTIVE = true, {passive:true});
-    document.addEventListener("touchend", ()=> TOUCH_ACTIVE = false, {passive:true});
+    // Arbitration: Touch Overrides Everything
+    document.addEventListener("touchstart", ()=> { TOUCH_ACTIVE = true; }, {passive:true});
+    document.addEventListener("touchend", ()=> { TOUCH_ACTIVE = false; }, {passive:true});
 
+    /* --- GYRO ENGINE --- */
+    const TILT = { X_NEXT: 25, X_PREV: -25, Y_SELECT: 30, Y_SKIP: -30, COOLDOWN: 100 };
+    
     function enableTilt() {
       if (typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function") {
-        DeviceOrientationEvent.requestPermission()
-          .then(res => { if (res === "granted") attachTilt(); })
-          .catch(()=>{});
+        DeviceOrientationEvent.requestPermission().then(res => { if (res === "granted") attachTilt(); });
       } else { attachTilt(); }
     }
-
     function attachTilt() {
       window.addEventListener("deviceorientation", handleTilt, { passive: true });
       TILT_ENABLED = true;
-      showToast("TILT ACTIVE");
+      document.getElementById('gyro-status').classList.add('active');
     }
 
-    const TILT = { X_NEXT: 25, X_PREV: -25, Y_SELECT: 30, Y_SKIP: -30, COOLDOWN: 800 };
-
-    /* PATCH 2: TILT LOGIC */
     function handleTilt(e) {
       if (!TILT_ENABLED || TOUCH_ACTIVE) return;
-      
       const currSlide = slideElements[currentIdx];
-      if (!currSlide || currSlide.dataset.mode !== "options") return; // Safety Guard
+      if (!currSlide || currSlide.dataset.mode !== "options") return;
 
+      const x = e.gamma; // Left/Right
+      const y = e.beta;  // Up/Down
+
+      // UPDATE VISUALS (The "Come to Life" Feature)
+      const oSkip = currSlide.querySelector('.overlay-skip');
+      const oBrowse = currSlide.querySelector('.overlay-browse');
+      const oSelect = currSlide.querySelector('.overlay-select');
+      
+      const opX = Math.min(Math.abs(x)/40, 1);
+      const opY = Math.min(Math.abs(y)/40, 1);
+
+      if(oSkip) oSkip.style.opacity = (x < -10) ? opX : 0;
+      if(oBrowse) oBrowse.style.opacity = (x > 10) ? opX : 0;
+      if(oSelect) oSelect.style.opacity = (y < -10) ? opY : 0; // Tilt Up (phone top away) is usually negative beta
+
+      // TRIGGER ACTION
       const now = Date.now();
-      if (now - lastTiltTs < TILT.COOLDOWN) return;
+      if (now - lastInputTs < TILT.COOLDOWN) return;
 
-      const x = e.gamma; 
-      const y = e.beta;
-
-      if (x > TILT.X_NEXT) { executeAction("BROWSE"); lastTiltTs = now; return; }
-      if (x < TILT.X_PREV) { executeAction("SKIP"); lastTiltTs = now; return; }
-      if (y > TILT.Y_SELECT) { executeAction("SELECT"); lastTiltTs = now; return; }
+      if (x > TILT.X_NEXT) { executeAction("BROWSE"); lastInputTs = now; }
+      else if (x < TILT.X_PREV) { executeAction("SKIP"); lastInputTs = now; }
+      else if (y < -TILT.Y_SELECT) { executeAction("SELECT"); lastInputTs = now; } // Fixed direction
     }
 
-    function freezeTilt(ms = 1000) { lastTiltTs = Date.now() + ms; }
+    /* --- EYE TRACKING ENGINE --- */
+    function enableGaze() {
+        if(typeof webgazer === 'undefined') return;
+        GAZE_ENABLED = true;
+        document.getElementById('eye-status').classList.add('active');
+        document.getElementById('gaze-dot').style.display = 'block';
+        
+        webgazer.setGazeListener((data, elapsed) => {
+            if (data == null || TOUCH_ACTIVE || !GAZE_ENABLED) return;
+            const dot = document.getElementById('gaze-dot');
+            dot.style.left = data.x + 'px'; dot.style.top = data.y + 'px';
+            
+            if (Date.now() - lastInputTs > 1500) { // Slower cadence for eyes
+                if (data.y < window.innerHeight * 0.2) { executeAction("SELECT"); lastInputTs = Date.now(); }
+                else if (data.x < window.innerWidth * 0.2) { executeAction("SKIP"); lastInputTs = Date.now(); }
+                else if (data.x > window.innerWidth * 0.8) { executeAction("BROWSE"); lastInputTs = Date.now(); }
+            }
+        }).begin();
+    }
 
     async function fetchMenuData() {
         const timeout = new Promise((_, reject) => setTimeout(() => reject("Timeout"), 3000));
@@ -136,9 +236,7 @@
             const res = await Promise.race([fetcher, timeout]);
             const json = await res.json();
             if (json.data) RAW_DATA = json.data;
-        } catch (e) {
-            console.warn("MENU: USING BACKUP");
-        }
+        } catch (e) { console.warn("MENU: USING BACKUP"); }
     }
 
     let ENGINE_STATE = { session_id: "auto-" + Date.now(), cuisines_detected: [], items_detected: {}, platform_strategy: { fulfillment: [] } };
@@ -181,7 +279,7 @@
         const section = document.createElement('section');
         section.className = "main-slide active"; section.id = "lobby";
         section.innerHTML = `
-        <div class="slide-header"><span class="header-title">SWIPE-OS v11.1</span></div>
+        <div class="slide-header"><span class="header-title">SWIPE-OS v15.0</span></div>
         <div class="lobby-container">
             <h1 style="text-align:center; margin-bottom:40px;">AAJ KYA MANGVAAYEGE!</h1>
             <div id="cuisine-grid" style="display:grid; gap:15px;">
@@ -191,6 +289,10 @@
                 <button class="cuisine-btn" onclick="toggleCuisine('snacks', this)">NASTA PANI</button>
             </div>
             <button class="btn hunt-btn" onclick="startHunt()">HUNT &rarr;</button>
+            <div style="display:flex; gap:10px; margin-top:20px;">
+               <button class="btn" style="flex:1; background:#222; font-size:0.7rem;" onclick="enableTilt()">ENABLE GYRO</button>
+               <button class="btn" style="flex:1; background:#222; font-size:0.7rem;" onclick="enableGaze()">ENABLE EYES</button>
+            </div>
         </div>`;
         container.appendChild(section);
         slideElements = [section]; currentIdx = 0;
@@ -212,15 +314,23 @@
             if(RAW_DATA[cId]) RAW_DATA[cId].categories.forEach(cat => slides.push({ id: cat.id, type: 'selector', title: `${RAW_DATA[cId].label} · ${cat.label.toUpperCase()}`, items: cat.items }));
         });
         slides.push({ id: "final", type: "final", title: "FINAL ORDER" });
+        
         slides.forEach((cfg, idx) => {
             const section = document.createElement('section');
             section.className = `main-slide ${idx === 0 ? 'active' : 'next'}`; section.id = cfg.id; section.dataset.mode = cfg.type === 'selector' ? 'options' : 'static';
             let html = `<div class="slide-header"><span class="header-title">${cfg.title}</span></div><div class="carousel-viewport" data-id="${cfg.id}">`;
+            
             if (cfg.type === 'selector') {
                 cfg.items.forEach((item, i) => {
-                    html += `<div class="sub-slide ${i===0 ? 'opt-active' : 'opt-hidden'}" data-opt-idx="${i}" data-val="${item.name}">
-                        <div class="role-label">${cfg.title.split('·')[0].trim()}</div><h1>${item.name} ${item.price ? `<span class="price">₹${item.price}</span>` : ""}</h1>
-                        <div class="primary-question">Swipe / Tilt to Browse</div>
+                    // 🆕 INJECTING OVERLAYS FOR GYRO FEEDBACK
+                    html += `
+                    <div class="sub-slide ${i===0 ? 'opt-active' : 'opt-hidden'}" data-opt-idx="${i}" data-val="${item.name}">
+                        <div class="overlay-label overlay-skip">SKIP</div>
+                        <div class="overlay-label overlay-browse">BROWSE</div>
+                        <div class="overlay-label overlay-select">SELECT</div>
+                        <div class="role-label">${cfg.title.split('·')[0].trim()}</div>
+                        <h1>${item.name} ${item.price ? `<span class="price">₹${item.price}</span>` : ""}</h1>
+                        <div class="primary-question">Swipe / Tilt / Voice</div>
                         <div class="nav-hint"><span style="flex:1; color:var(--accent-skip); font-weight:bold;">&larr; SKIP</span><span style="flex:2; text-align:center; color:var(--accent-go); font-weight:bold;">&darr; SELECT</span><span style="flex:1; text-align:right;">BROWSE &rarr;</span></div>
                     </div>`;
                 });
@@ -246,9 +356,10 @@
     }
 
     function executeAction(action) {
-        freezeTilt(1500); // Safety Pause
+        lastInputTs = Date.now(); // Reset timers
         const currSlide = slideElements[currentIdx];
         const mode = currSlide.dataset.mode;
+        
         switch(action) {
             case 'NEXT': goToSlide(currentIdx + 1); break;
             case 'PREV': if(currentIdx > 0) goToSlide(currentIdx - 1); break;
@@ -262,8 +373,10 @@
             case 'BROWSE': if(mode === 'options') {
                     const view = currSlide.querySelector('.carousel-viewport');
                     const slides = view.querySelectorAll('.sub-slide');
-                    let curr = view._currOpt || 0; curr = (curr + 1) % slides.length; view._currOpt = curr;
-                    slides.forEach((s, i) => { s.style.transform = ''; if(i === curr) { s.classList.remove('opt-hidden'); s.classList.add('opt-active'); } else { s.classList.remove('opt-active'); s.classList.add('opt-hidden'); } });
+                    let curr = view._currOpt || 0; 
+                    slides[curr].classList.remove('opt-active'); slides[curr].classList.add('opt-hidden');
+                    curr = (curr + 1) % slides.length; view._currOpt = curr;
+                    slides[curr].classList.remove('opt-hidden'); slides[curr].classList.add('opt-active');
                 } break;
         }
     }
@@ -291,7 +404,7 @@
     function dispatchVoice(cmd){
       if(!cmd) return;
       if(document.getElementById('lobby')) { if(cmd.key === 'next' || cmd.key === 'jump') startHunt(); return; }
-      freezeTilt(); // Safety Pause
+      lastInputTs = Date.now();
       switch(cmd.group){
         case "NAV": if(cmd.key==="next") executeAction("NEXT"); if(cmd.key==="prev") executeAction("PREV"); break;
         case "ACTION": if(cmd.key==="select") executeAction("SELECT"); if(cmd.key==="skip") executeAction("SKIP"); if(cmd.key==="browse") executeAction("BROWSE"); break;
@@ -302,7 +415,12 @@
     function copyAndRedirect(platform) {
         const text = "ORDER: " + Object.keys(ENGINE_STATE.items_detected).join(", ");
         if(platform === 'whatsapp') { window.open(`https://wa.me/916351537770?text=${encodeURIComponent(text)}`); return; }
-        const links = { zomato: `https://www.zomato.com/search?q=${text}`, swiggy: `https://www.swiggy.com/search?q=${text}`, blinkit: `https://blinkit.com/s/?q=${text}` };
+        // Fixed URL Deep Linking
+        const links = { 
+            zomato: `https://www.zomato.com/search?q=${text}`, 
+            swiggy: `https://www.swiggy.com/search?query=${text}`, 
+            blinkit: `https://blinkit.com/s/?q=${text}` 
+        };
         window.open(links[platform]);
     }
 
@@ -312,8 +430,8 @@
 
     let rec;
     function initVoice() {
+        if(!window.SpeechRecognition && !window.webkitSpeechRecognition) return;
         const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SR) return;
         rec = new SR(); rec.lang = "en-IN"; rec.continuous = true;
         rec.onresult = e => {
             const txt = e.results[e.results.length - 1][0].transcript.toLowerCase();
@@ -322,6 +440,7 @@
             if (txt.includes("select")) dispatchVoice({group:"ACTION", key:"select"});
             if (txt.includes("skip")) dispatchVoice({group:"ACTION", key:"skip"});
             if (txt.includes("zomato")) dispatchVoice({group:"PLATFORM", key:"zomato"});
+            if (txt.includes("browse")) dispatchVoice({group:"ACTION", key:"browse"});
         };
         rec.start();
     }
