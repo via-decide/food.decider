@@ -335,27 +335,6 @@
                 
     
         
-            const menuNames = [];
-            for(let c in RAW_DATA) for(let cat of RAW_DATA[c].categories) for(let i of cat.items) menuNames.push(i.name);
-
-            const words = t.split(" ");
-            const num = parseInt(t.match(/\d+/) || [1])[0];
-            
-            // Search for item in speech
-            let foundItem = menuNames.find(n => t.includes(n.toLowerCase()));
-
-            if (t.includes("remove") || t.includes("delete")) {
-                if(foundItem) { updateCart("REMOVE", foundItem); speak(`Removed ${foundItem}`); }
-            } else if (t.includes("double")) {
-                if(foundItem) { updateCart("DOUBLE", foundItem); speak(`Doubled ${foundItem}`); }
-            } else if (t.includes("half")) {
-                if(foundItem) { updateCart("HALF", foundItem); speak(`Halved ${foundItem}`); }
-            } else if (t.includes("add") || foundItem) {
-                // Default to add if item mentioned or "add" keyword used
-                const itemToAdd = foundItem || (slideElements[currentIdx].dataset.mode === 'options' ? slideElements[currentIdx].querySelector('.opt-active').dataset.val : null);
-                if(itemToAdd) {
-                    updateCart("ADD", itemToAdd, num);
-                    speak(`Added ${num > 1 ? num : ''} ${itemToAdd}`);
                 }
             }
         };
