@@ -186,8 +186,8 @@
         final.innerHTML = `<div class="sub-slide static"><div class="verdict-container"><div class="choice-header">FINAL ORDER</div><div class="input-group" id="final-list"></div><div class="final-actions"><button class="btn btn-zomato" onclick="link('zomato')">ZOMATO</button><button class="btn btn-swiggy" onclick="link('swiggy')">SWIGGY</button><button class="btn btn-blinkit" onclick="link('blinkit')">BLINKIT</button><button class="btn btn-cloud" onclick="copyOrder()">COPY ORDER</button><button class="btn btn-wa" onclick="goToSlide(currentIdx+1)">WHATSAPP &rarr;</button></div></div></div>`;  
         container.appendChild(final);  
   
-        const biz = document.createElement('section'); biz.className = 'main-slide next'; biz.id = 'business';  
-        biz.innerHTML = `  
+       const biz = document.createElement('section'); biz.className = 'main-slide next'; biz.id = 'business';
+biz.innerHTML = `  
 <div class="sub-slide static">  
   <div class="biz-card">  
     <span class="biz-tagline">POWERED BY KUTCH AUTOMATION</span>  
@@ -200,7 +200,7 @@
   <button class="btn btn-wa" onclick="sendWa()">WHATSAPP →</button>
     </div>  
   </div>  
-</div>`;  
+</div>`;
           
         slideElements = Array.from(document.querySelectorAll('.main-slide'));  
         slideElements[0].className = "main-slide active";  
@@ -314,23 +314,35 @@
         window.open(urls[p], '_blank');  
     }  
   
-    function sendWa() {  
-        let total = 0;  
-        let msg = "📋 *NEW ORDER*\n----------------\n";  
-        let i = 1;  
-        for(let [k,v] of Object.entries(ENGINE_STATE.items_detected)) {  
-            const line = v.price * v.qty;  
-            total += line;  
-            msg += `${i}. ${k} (x${v.qty}) - ₹${line}\n`;  
-            i++;  
-        }  
-        msg += "----------------\n";  
-        msg += `💰 *Est. Total: ₹${total}*\n`;  
-        msg += `📍 Location: Gandhidham\n-------------------\n  
-get customized "PRE-loaded"-- inquiry like above for your business/personal need with support of log - management \n-------------------\n  
-“You decide once. We handle the rest.”`;  
-        window.open(`https://wa.me/916351537770?text=${encodeURIComponent(msg)}`, '_blank');  
-    }  
+   function sendWa() {
+    if (!ENGINE_STATE || !ENGINE_STATE.items_detected) {
+        showToast("NO ITEMS");
+        return;
+    }
+
+    let total = 0;
+    let msg = "NEW ORDER\n";
+    msg += "----------------\n";
+
+    let i = 1;
+    for (let [k, v] of Object.entries(ENGINE_STATE.items_detected)) {
+        const line = v.price * v.qty;
+        total += line;
+        msg += i + ". " + k + " (x" + v.qty + ") - Rs " + line + "\n";
+        i++;
+    }
+
+    msg += "----------------\n";
+    msg += "Total: Rs " + total + "\n";
+    msg += "Location: Gandhidham\n\n";
+    msg += "Decide once. Execute anywhere.";
+
+    const phone = "916351537770"; // keep numeric only
+    const url = "https://wa.me/" + phone + "?text=" + encodeURIComponent(msg);
+
+    // HARD REDIRECT (mobile-safe, PWA-safe)
+    location.href = url;
+}
       
     function copyOrder() {  
         let text = "ORDER SUMMARY:\n";  
