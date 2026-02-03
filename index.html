@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>| food.decide | v16.6 Conversational</title>
+    <title>| food.decide | ( your title here</title>
 
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0a0a0a">
@@ -143,7 +143,7 @@
     function renderLobby() {
         container.innerHTML = `
         <section class="main-slide active" id="lobby">
-            <div class="slide-header"><span class="header-title">SWIPE-OS v16.6</span></div>
+            <div class="slide-header"><span class="header-title">SWIPE-OS v16.7</span></div>
             <div class="lobby-container">
                 <h1>AAJ KYA MANGVAAYEGE!</h1>
                 <div id="cuisine-grid" style="display:grid; gap:15px;">
@@ -189,11 +189,11 @@
         });
 
         const final = document.createElement('section'); final.className = 'main-slide next'; final.id = 'final';
-        final.innerHTML = `<div class="sub-slide static"><div class="verdict-container"><div class="choice-header">FINAL ORDER</div><div class="input-group" id="final-list"></div><div class="final-actions"><button class="btn btn-zomato" onclick="link('zomato')">ZOMATO</button><button class="btn btn-swiggy" onclick="link('swiggy')">SWIGGY</button><button class="btn btn-blinkit" onclick="link('blinkit')">BLINKIT</button><button class="btn btn-cloud" onclick="copyOrder()">COPY ORDER</button><button class="btn btn-wa" onclick="goToSlide(currentIdx+1)">WHATSAPP &rarr;</button></div></div></div>`;
+        final.innerHTML = `<div class="sub-slide static"><div class="verdict-container"><div class="choice-header">FINAL ORDER</div><div class="input-group" id="final-list"></div><div class="final-actions"><button class="btn btn-zomato" onclick="link('zomato')">ZOMATO</button><button class="btn btn-swiggy" onclick="link('swiggy')">SWIGGY</button><button class="btn btn-blinkit" onclick="link('blinkit')">BLINKIT</button><button class="btn btn-cloud" onclick="saveToCloud()">SAVE</button><button class="btn btn-wa" onclick="goToSlide(currentIdx+1)">WHATSAPP &rarr;</button></div></div></div>`;
         container.appendChild(final);
 
         const biz = document.createElement('section'); biz.className = 'main-slide next'; biz.id = 'business';
-        biz.innerHTML = `<div class="sub-slide static"><div class="biz-card"><span class="biz-tagline">POWERED BY KUTCH AUTOMATION</span><div class="biz-title">BUILD YOUR OWN ENGINE</div><div class="final-actions"><button class="btn btn-wa" onclick="sendWa()">CHAT WITH 916351537770</button><button class="btn" onclick="location.reload()">RESTART</button></div></div></div>`;
+        biz.innerHTML = `<div class="sub-slide static"><div class="biz-card"><span class="biz-tagline">POWERED BY KUTCH AUTOMATION</span><div class="biz-title">BUILD YOUR OWN ENGINE</div><div class="final-actions"><button class="btn btn-wa" onclick="sendWa()">WHATSAPP CTA &rarr;</button><button class="btn" style="border:1px solid #333; margin-top:10px;" onclick="location.reload()">RESTART</button></div></div></div>`;
         container.appendChild(biz);
         
         slideElements = Array.from(document.querySelectorAll('.main-slide'));
@@ -331,7 +331,7 @@
         msg += "----------------\n";
         msg += `💰 *Est. Total: ₹${total}*\n`;
         msg += `📍 Location: Gandhidham\n----------------\nI want customized "PRE-loaded"-- inquiry like above for my business/personal need with support of log - management too.\n----------------\ni decide once. \nyou handle the rest.`;
-        window.open(`https://wa.me/916351537770?text=${encodeURIComponent(msg)}`, '_blank');
+         window.open(`https://wa.me/916351537770?text=${encodeURIComponent(msg)}`, '_blank');
     }
     
     function copyOrder() {
