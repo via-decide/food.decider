@@ -269,25 +269,6 @@
     function speak(text) { if(!window.speechSynthesis) return; window.speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text); u.lang = "en-IN"; window.speechSynthesis.speak(u); }
 
     // --- 5. UNIVERSAL VOICE COMMANDER (UVC) ---
-    let rec;
-    function initVoice() {
-        if(!window.SpeechRecognition && !window.webkitSpeechRecognition) return;
-        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-        rec = new SR(); rec.lang = "en-IN"; rec.continuous = true; rec.interimResults = false;
-
-        rec.onresult = e => {
-            const t = e.results[e.results.length-1][0].transcript.toLowerCase();
-            showToast(`Voice: ${t}`);
-
-            // A. PLATFORM CONTROLS (LATE GAME)
-            if(t.includes("zomato")) return link('zomato');
-            if(t.includes("swiggy")) return link('swiggy');
-            if(t.includes("whatsapp")) return sendWa();
-
-            // B. NAVIGATION CONTROLS
-            if(t.includes("browse") || t.includes("next option")) return executeAction("BROWSE");
-            if(t.includes("skip")) return executeAction("SKIP");
-            if(t.includes("next")) return nextSlide();
 
             // C. UNIVERSAL MODIFIERS (ADD/REMOVE/DOUBLE/HALF)
     
