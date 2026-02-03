@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>| food.decide | v16.7 Final</title>
+    <title>| food.decide | v16.9 Fixed</title>
 
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0a0a0a">
@@ -143,7 +143,7 @@
     function renderLobby() {
         container.innerHTML = `
         <section class="main-slide active" id="lobby">
-            <div class="slide-header"><span class="header-title">SWIPE-OS v16.7</span></div>
+            <div class="slide-header"><span class="header-title">SWIPE-OS v16.9</span></div>
             <div class="lobby-container">
                 <h1>AAJ KYA MANGVAAYEGE!</h1>
                 <div id="cuisine-grid" style="display:grid; gap:15px;">
@@ -189,7 +189,7 @@
         });
 
         const final = document.createElement('section'); final.className = 'main-slide next'; final.id = 'final';
-        final.innerHTML = `<div class="sub-slide static"><div class="verdict-container"><div class="choice-header">FINAL ORDER</div><div class="input-group" id="final-list"></div><div class="final-actions"><button class="btn btn-zomato" onclick="link('zomato')">ZOMATO</button><button class="btn btn-swiggy" onclick="link('swiggy')">SWIGGY</button><button class="btn btn-blinkit" onclick="link('blinkit')">BLINKIT</button><button class="btn btn-cloud" onclick="saveToCloud()">SAVE</button><button class="btn btn-wa" onclick="goToSlide(currentIdx+1)">WHATSAPP &rarr;</button></div></div></div>`;
+        final.innerHTML = `<div class="sub-slide static"><div class="verdict-container"><div class="choice-header">FINAL ORDER</div><div class="input-group" id="final-list"></div><div class="final-actions"><button class="btn btn-zomato" onclick="link('zomato')">ZOMATO</button><button class="btn btn-swiggy" onclick="link('swiggy')">SWIGGY</button><button class="btn btn-blinkit" onclick="link('blinkit')">BLINKIT</button><button class="btn btn-cloud" onclick="copyOrder()">COPY ORDER</button><button class="btn btn-wa" onclick="goToSlide(currentIdx+1)">WHATSAPP &rarr;</button></div></div></div>`;
         container.appendChild(final);
 
         const biz = document.createElement('section'); biz.className = 'main-slide next'; biz.id = 'business';
@@ -222,7 +222,6 @@
         document.getElementById('depth-fill').style.height = '0%';
     }
 
-    // UPGRADED TO SUPPORT VOICE OBJECT PAYLOADS
     function updateCart(action, payload) {
         if(action === "ADD" || action === "ADD_ITEM") { 
             let name, qtyToAdd;
@@ -236,6 +235,9 @@
             
             const currentQty = (ENGINE_STATE.items_detected[name]?.qty || 0);
             ENGINE_STATE.items_detected[name] = { qty: currentQty + qtyToAdd, price: getPrice(name) };
+        }
+        if(action === "REMOVE") {
+             // Just triggering save, logic handled in caller
         }
         localStorage.setItem("ENGINE_STATE_CACHE", JSON.stringify(ENGINE_STATE));
     }
@@ -320,17 +322,24 @@
 
     function sendWa() {
         let total = 0;
-        let msg = "📋 *NEW ORDER*\n----------------\n";
+        let cartItems = "";
         let i = 1;
         for(let [k,v] of Object.entries(ENGINE_STATE.items_detected)) {
             const line = v.price * v.qty;
             total += line;
-            msg += `${i}. ${k} (x${v.qty}) - ₹${line}\n`;
+            cartItems += `${i}. ${k} (x${v.qty}) - ₹${line}\n`;
             i++;
         }
-        msg += "----------------\n";
-        msg += `💰 *Est. Total: ₹${total}*\n`;
-        msg += `📍 Location: Gandhidham\n-------------------\nGet customized    "PRE-loaded"-- inquiry like above for your            business/personal need with support of log - management \n                                            “You decide once. We handle the rest.”`;
+        
+        let msg = `📋 *NEW ORDER*
+----------------
+${cartItems}----------------
+💰 *Est. Total: ₹${total}*
+📍 Location: Gandhidham
+“-------------------”
+“get customized "PRE-loaded"-- inquiry like above for your            business/personal need with support of log - management ”
+“You decide once. We handle the rest.”`;
+        
         window.open(`https://wa.me/916351537770?text=${encodeURIComponent(msg)}`, '_blank');
     }
     
