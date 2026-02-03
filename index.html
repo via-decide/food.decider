@@ -3,14 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>| food.decide | Omni</title>
+    <title>| food.decide | Custom</title>
 
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0a0a0a">
     <meta name="background-color" content="#0a0a0a">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="food.decide">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <meta name="mobile-web-app-capable" content="yes">
 
     <script src="https://webgazer.cs.brown.edu/webgazer.js" async></script>
 
@@ -23,17 +25,18 @@
     </script>
 
     <style>
+        /* CORE STYLES */
         :root { --orange: #ff671f; --bg: #0a0a0a; --text: #f0f0f0; --go: #00e676; --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         html, body { margin:0; padding:0; height:100%; width:100%; background:var(--bg); color:var(--text); font-family:var(--font); overflow:hidden; touch-action:none; }
         #master-container { height: 100vh; width: 100vw; position: relative; overflow: hidden; }
 
-        /* STATUS */
+        /* STATUS INDICATORS */
         .status-pill { position: fixed; left: 50%; transform: translateX(-50%); font-size: 0.6rem; color: #444; border: 1px solid #333; padding: 4px 8px; border-radius: 4px; opacity: 0; transition: opacity 0.5s; z-index: 1000; pointer-events: none; background: #000; }
         #gyro-status { top: 15px; } #eye-status { top: 40px; }
         .active-pill { opacity: 1 !important; color: var(--go) !important; border-color: var(--go) !important; }
         #gaze-dot { position: fixed; width: 10px; height: 10px; background: var(--orange); border-radius: 50%; z-index: 9999; pointer-events: none; display: none; transform: translate(-50%, -50%); box-shadow: 0 0 10px var(--orange); }
 
-        /* SLIDES */
+        /* SLIDE ANIMATION */
         .main-slide { height: 100vh; width: 100vw; position: absolute; top: 0; left: 0; display: flex; flex-direction: column; background: var(--bg); transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1); will-change: transform; }
         .main-slide.prev { transform: translateY(-100%); } .main-slide.active { transform: translateY(0); z-index: 10; } .main-slide.next { transform: translateY(100%); z-index: 20; }
 
@@ -52,7 +55,7 @@
         .role-label { font-size: 0.6rem; color: #000; background: var(--go); padding: 4px 8px; border-radius: 4px; width: fit-content; margin-bottom: 15px; font-weight: bold; }
         .nav-hint { margin-top: 30px; padding-top: 20px; border-top: 1px solid #333; font-size: 0.7rem; color: #666; display: flex; justify-content: space-between; }
 
-        /* UI */
+        /* UI ELEMENTS */
         .input-group { border: 1px solid #333; background: #111; padding: 20px; border-radius: 8px; margin-bottom: 20px; min-height: 100px; max-height: 40vh; overflow-y: auto; }
         .input-row { display: flex; justify-content: space-between; border-bottom: 1px dashed #333; padding: 10px 0; font-size: 0.8rem; }
         .final-actions { display: grid; gap: 10px; margin-top: 20px; }
@@ -88,13 +91,147 @@
 <div id="mic-toggle" onclick="toggleListenMode()"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></div>
 
 <script>
+    // --- 1. CONFIGURATION ---
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyBMwKxq92U0dptKMdEHvUCXPS9AjExHtxHjcRmfh2JFjCSn9Zd82bzp34xLg6X0a7L9g/exec";
-    const NET_STATE = { online: navigator.onLine };
     let SENSORS_ENABLED = false;
-    let RAW_DATA = { punjabi: { label: "PUNJABI", categories: [] } };
+    let RAW_DATA = {}; // Will be populated by Fallback or Network
+
+    // --- 2. YOUR CUSTOM DATA (Inserted Here) ---
+    const FALLBACK_MENU = {
+      "version": "custom-v1",
+      "data": {
+        "punjabi": {
+          "label": "PUNJABI",
+          "categories": [
+            {
+              "id": "p_breads",
+              "label": "Breads",
+              "items": [
+                { "name": "Butter Naan", "price": 40 },
+                { "name": "Garlic Naan", "price": 50 },
+                { "name": "Tandoori Roti", "price": 25 },
+                { "name": "Lachha Paratha", "price": 55 }
+              ]
+            },
+            {
+              "id": "p_mains",
+              "label": "Mains",
+              "items": [
+                { "name": "Dal Makhani", "price": 220 },
+                { "name": "Paneer Butter Masala", "price": 240 },
+                { "name": "Shahi Paneer", "price": 250 },
+                { "name": "Butter Chicken", "price": 280 },
+                { "name": "Kadai Paneer", "price": 230 }
+              ]
+            },
+            {
+              "id": "p_rice",
+              "label": "Rice",
+              "items": [
+                { "name": "Jeera Rice", "price": 150 },
+                { "name": "Veg Pulao", "price": 160 },
+                { "name": "Chicken Biryani", "price": 290 }
+              ]
+            },
+            {
+              "id": "p_beverages",
+              "label": "Beverages",
+              "items": [
+                { "name": "Sweet Lassi", "price": 60 },
+                { "name": "Salted Lassi", "price": 50 },
+                { "name": "Masala Chaas", "price": 40 }
+              ]
+            }
+          ]
+        },
+        "chinese": {
+          "label": "CHINESE",
+          "categories": [
+            {
+              "id": "c_dimsum",
+              "label": "Dim Sum",
+              "items": [
+                { "name": "Veg Crystal Dumpling", "price": 220 },
+                { "name": "Pork Siu Mai", "price": 260 },
+                { "name": "Har Gao", "price": 280 }
+              ]
+            },
+            {
+              "id": "c_noodles",
+              "label": "Noodles",
+              "items": [
+                { "name": "Lo Mein", "price": 220 },
+                { "name": "Dan Dan Noodles", "price": 260 },
+                { "name": "Hakka Noodles", "price": 200 }
+              ]
+            },
+            {
+              "id": "c_wok",
+              "label": "Wok Specials",
+              "items": [
+                { "name": "Kung Pao Chicken", "price": 280 },
+                { "name": "Mapo Tofu", "price": 240 },
+                { "name": "Chilli Chicken", "price": 260 }
+              ]
+            }
+          ]
+        },
+        "pizza": {
+          "label": "PIZZA",
+          "categories": [
+            {
+              "id": "z_classic",
+              "label": "Classic",
+              "items": [
+                { "name": "Margherita", "price": 350 },
+                { "name": "Marinara", "price": 330 },
+                { "name": "Pepperoni", "price": 450 }
+              ]
+            },
+            {
+              "id": "z_gourmet",
+              "label": "Gourmet",
+              "items": [
+                { "name": "Burrata Pizza", "price": 550 },
+                { "name": "Truffle Mushroom Pizza", "price": 520 },
+                { "name": "Wood Fired Chicken Pizza", "price": 480 }
+              ]
+            }
+          ]
+        },
+        "snacks": {
+          "label": "NASTA PANI",
+          "categories": [
+            {
+              "id": "s_packaged",
+              "label": "Packaged",
+              "items": [
+                { "name": "Coke", "price": 40 },
+                { "name": "Thums Up", "price": 40 },
+                { "name": "Chips", "price": 20 },
+                { "name": "Kurkure", "price": 20 }
+              ]
+            },
+            {
+              "id": "s_hot",
+              "label": "Hot Snacks",
+              "items": [
+                { "name": "Samosa", "price": 20 },
+                { "name": "Veg Puff", "price": 30 },
+                { "name": "Burger", "price": 60 }
+              ]
+            }
+          ]
+        }
+      }
+    };
+    
+    // Initialize with Fallback IMMEDIATELY so app never fails
+    RAW_DATA = FALLBACK_MENU.data; 
+
     let ENGINE_STATE = { session_id: "auto-" + Date.now(), cuisines_detected: [], items_detected: {}, platform_strategy: { fulfillment: [] } };
 
-    // --- GAZE ENGINE ---
+    // --- 3. INPUT ENGINES ---
     class GazeController {
         constructor() { this.active = false; this.lastTrigger = 0; }
         start() {
@@ -123,7 +260,6 @@
     }
     const gazeEngine = new GazeController();
 
-    // --- PHYSICS ENGINE ---
     class PhysicsController {
         constructor(el, cbs) {
             this.el = el; this.cbs = cbs; this.active = false; this.current = {x:0, y:0}; this.target = {x:0, y:0};
@@ -175,20 +311,18 @@
         }
     }
 
-    // --- APP LOGIC ---
+    // --- 4. APP LOGIC ---
     let container = document.getElementById('master-container');
     let slideElements = [], currentIdx = 0, activePhysics = null;
 
     async function boot() {
-        renderLobby();
-        const cached = localStorage.getItem("ENGINE_STATE_CACHE");
-        if(cached) ENGINE_STATE = JSON.parse(cached);
+        renderLobby(); // Always force lobby first to fix "Direct Final Slide" bug
         initVoice();
-        await fetchMenuData();
+        await fetchMenuData(); 
     }
 
     function renderLobby() {
-        container.innerHTML = `<section class="main-slide active" id="lobby"><div class="slide-header"><span class="header-title">SWIPE-OS v13.1</span></div><div class="lobby-container"><h1>AAJ KYA MANGVAAYEGE!</h1><div id="cuisine-grid" style="display:grid; gap:15px;"><button class="cuisine-btn" onclick="toggleCuisine('punjabi', this)">PUNJABI</button><button class="cuisine-btn" onclick="toggleCuisine('chinese', this)">CHINESE</button><button class="cuisine-btn" onclick="toggleCuisine('pizza', this)">PIZZA</button><button class="cuisine-btn" onclick="toggleCuisine('snacks', this)">NASTA PANI</button></div><button class="btn hunt-btn" onclick="startHunt()">HUNT &rarr;</button><div style="display:flex;gap:10px;margin-top:15px"><button class="btn" style="flex:1" onclick="reqGyro()">GYRO</button><button class="btn" style="flex:1" onclick="reqGaze()">EYES</button></div></div></section>`;
+        container.innerHTML = `<section class="main-slide active" id="lobby"><div class="slide-header"><span class="header-title">SWIPE-OS v14.1</span></div><div class="lobby-container"><h1>AAJ KYA MANGVAAYEGE!</h1><div id="cuisine-grid" style="display:grid; gap:15px;"><button class="cuisine-btn" onclick="toggleCuisine('punjabi', this)">PUNJABI</button><button class="cuisine-btn" onclick="toggleCuisine('chinese', this)">CHINESE</button><button class="cuisine-btn" onclick="toggleCuisine('pizza', this)">PIZZA</button><button class="cuisine-btn" onclick="toggleCuisine('snacks', this)">NASTA PANI</button></div><button class="btn hunt-btn" onclick="startHunt()">HUNT &rarr;</button><div style="display:flex;gap:10px;margin-top:15px"><button class="btn" style="flex:1" onclick="reqGyro()">GYRO</button><button class="btn" style="flex:1" onclick="reqGaze()">EYES</button></div></div></section>`;
         slideElements = [document.getElementById('lobby')];
         if(ENGINE_STATE.cuisines_detected) ENGINE_STATE.cuisines_detected.forEach(c => { const b = document.querySelector(`button[onclick*='${c}']`); if(b) b.classList.add('selected'); });
     }
@@ -204,20 +338,34 @@
 
     function startHunt() {
         if(ENGINE_STATE.cuisines_detected.length === 0) { showToast("SELECT A CUISINE"); return; }
+        
+        // --- GUARD: CHECK IF DATA EXISTS FOR SELECTION ---
+        let hasSlides = false;
         container.innerHTML = ""; slideElements = [];
         ENGINE_STATE.cuisines_detected.forEach(cId => {
-            if(RAW_DATA[cId]) RAW_DATA[cId].categories.forEach(cat => {
-                const s = document.createElement('section'); s.className = 'main-slide next'; s.id = cat.id; s.dataset.mode = 'options';
-                let h = `<div class="slide-header"><span class="header-title">${cat.label}</span></div><div class="carousel-viewport">`;
-                cat.items.forEach((item, i) => {
-                    h += `<div class="sub-slide ${i===0?'opt-active':'opt-hidden'}" data-val="${item.name}"><div class="role-label">${cat.label}</div><h1>${item.name} ${item.price?`<span class="price">₹${item.price}</span>`:""}</h1><div class="primary-question">Swipe / Tilt / Voice</div><div class="nav-hint"><span>SKIP</span><span>SELECT</span><span>BROWSE</span></div></div>`;
+            if(RAW_DATA[cId]) {
+                RAW_DATA[cId].categories.forEach(cat => {
+                    hasSlides = true;
+                    const s = document.createElement('section'); s.className = 'main-slide next'; s.id = cat.id; s.dataset.mode = 'options';
+                    let h = `<div class="slide-header"><span class="header-title">${cat.label}</span></div><div class="carousel-viewport">`;
+                    cat.items.forEach((item, i) => {
+                        h += `<div class="sub-slide ${i===0?'opt-active':'opt-hidden'}" data-val="${item.name}"><div class="role-label">${cat.label}</div><h1>${item.name} ${item.price?`<span class="price">₹${item.price}</span>`:""}</h1><div class="primary-question">Swipe / Tilt / Voice</div><div class="nav-hint"><span>SKIP</span><span>SELECT</span><span>BROWSE</span></div></div>`;
+                    });
+                    s.innerHTML = h + `</div>`; container.appendChild(s);
                 });
-                s.innerHTML = h + `</div>`; container.appendChild(s);
-            });
+            }
         });
+
+        if(!hasSlides) {
+            showToast("DATA LOADING... TRY AGAIN");
+            renderLobby();
+            return;
+        }
+
         const final = document.createElement('section'); final.className = 'main-slide next'; final.id = 'final';
         final.innerHTML = `<div class="sub-slide static"><div class="verdict-container"><div class="choice-header">FINAL ORDER</div><div class="input-group" id="final-list"></div><div class="final-actions"><button class="btn btn-zomato" onclick="link('zomato')">ZOMATO</button><button class="btn btn-swiggy" onclick="link('swiggy')">SWIGGY</button><button class="btn btn-blinkit" onclick="link('blinkit')">BLINKIT</button><button class="btn btn-cloud" onclick="saveToCloud()">SAVE</button><button class="btn btn-wa" onclick="sendWa()">WHATSAPP</button></div></div></div>`;
         container.appendChild(final);
+        
         slideElements = Array.from(document.querySelectorAll('.main-slide'));
         slideElements[0].className = "main-slide active";
         currentIdx = 0;
@@ -275,16 +423,20 @@
         list.innerHTML = h;
     }
 
-    // --- DATA ---
+    // --- 5. ROBUST DATA FETCH ---
     async function fetchMenuData() {
         try {
             const res = await fetch(GOOGLE_SCRIPT_URL + "?type=menu");
             const json = await res.json();
-            if(json.data && Object.keys(json.data).length > 0) RAW_DATA = json.data;
-        } catch(e) { console.log("Offline mode"); }
+            // Validating data before overwriting fallback
+            if(json.data && Object.keys(json.data).length > 0) {
+                RAW_DATA = json.data;
+                console.log("MENU: LIVE UPDATED");
+            }
+        } catch(e) { console.log("Using Robust Fallback Menu"); }
     }
 
-    // --- ACTIONS ---
+    // --- 6. ACTIONS ---
     function executeAction(act) {
         if(document.getElementById('lobby')) return;
         const s = slideElements[currentIdx];
@@ -308,7 +460,7 @@
     function saveToCloud() { fetch(GOOGLE_SCRIPT_URL, {method:"POST", body:JSON.stringify(ENGINE_STATE)}); showToast("SAVED"); }
     function showToast(m) { const t=document.getElementById('toast'); t.innerText=m; t.classList.add('visible'); setTimeout(()=>t.classList.remove('visible'),2000); }
     
-    // --- VOICE ---
+    // --- 7. VOICE ---
     function toggleListenMode() { 
         if(!rec) initVoice();
         const m = document.getElementById('mic-toggle');
@@ -328,10 +480,8 @@
             else if(t.includes("select") || t.includes("add")) executeAction("SELECT");
             else if(t.includes("skip") || t.includes("next")) executeAction("SKIP");
             else {
-                // Number detection
                 const nums = {"one":1,"two":2,"three":3,"1":1,"2":2,"3":3};
                 for(let k in nums) if(t.includes(k)) { 
-                    // Add current item with qty
                     const s = slideElements[currentIdx];
                     if(s && s.dataset.mode === 'options') {
                          const val = s.querySelector('.opt-active').dataset.val;
