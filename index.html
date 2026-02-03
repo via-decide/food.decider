@@ -268,26 +268,47 @@
     // Initialize RAW_DATA with Fallback instantly
     let RAW_DATA = FALLBACK_MENU.data; 
 
-    /* PATCH 2: UNIFIED MENU FETCHER (With Timeout) */
+    /* PATCH 2: SAFER MENU FETCHER (Prevents Empty Slides) */
     async function fetchMenuData() {
-        const timeout = new Promise((_, reject) => setTimeout(() => reject("Timeout"), 2000));
+        const timeout = new Promise((_, reject) => setTimeout(() => reject("Timeout"), 3000));
         
         try {
             const fetcher = fetch(GOOGLE_SCRIPT_URL + "?type=menu", { cache: "no-store" });
             const res = await Promise.race([fetcher, timeout]);
             const json = await res.json();
 
-            RAW_DATA = json.data;
-            localStorage.setItem("MENU_CACHE", JSON.stringify(json));
-            localStorage.setItem("MENU_CACHE_TS", Date.now());
-            console.log("MENU: LIVE UPDATED");
+            // SAFETY CHECK: Does the fetched menu actually have items?
+            let hasItems = false;
+            if (json.data) {
+                for (let k in json.data) {
+                    if (json.data[k].categories && json.data[k].categories.length > 0) {
+                        hasItems = true; 
+                        break;
+                    }
+                }
+            }
+
+            if (hasItems) {
+                RAW_DATA = json.data;
+                localStorage.setItem("MENU_CACHE", JSON.stringify(json));
+                localStorage.setItem("MENU_CACHE_TS", Date.now());
+                console.log("MENU: LIVE UPDATED");
+                return true;
+            } else {
+                throw new Error("Fetched menu was empty"); // Trigger catch block to use Fallback
+            }
+
         } catch (e) {
-            console.warn("MENU: USING OFFLINE/CACHE", e);
+            console.warn("MENU: USING BACKUP (Reason: " + e + ")");
             const cached = localStorage.getItem("MENU_CACHE");
             if (cached) {
-                RAW_DATA = JSON.parse(cached).data;
+                const cachedJson = JSON.parse(cached);
+                if(cachedJson.data && Object.keys(cachedJson.data).length > 0) {
+                    RAW_DATA = cachedJson.data;
+                    return true;
+                }
             }
-            // fallback already active
+            return false;
         }
     }
 
@@ -409,7 +430,7 @@
         section.id = "lobby";
         
         let html = `
-        <div class="slide-header"><span class="header-title">SWIPE-OS v10.1</span></div>
+        <div class="slide-header"><span class="header-title">SWIPE-OS v10.2</span></div>
         <div class="lobby-container">
             <h1 style="text-align:center; margin-bottom:40px;">AAJ KYA MANGVAAYEGE!</h1>
             <div id="cuisine-grid" style="display:grid; gap:15px;">
@@ -678,7 +699,7 @@
     }
 
     /* =========================================
-       4. MASTER VOICE ROUTER
+       4. MASTER VOICE ROUTER (PATCH V1)
        ========================================= */
     const VOICE_INTENTS = {
       NAV: { next: ["next","continue","go ahead"], prev: ["back","previous","go back"], jump: ["go to","open","show me"] },
@@ -688,6 +709,34 @@
       PLATFORM: { zomato: ["zomato"], swiggy: ["swiggy"], blinkit: ["blinkit"], whatsapp: ["whatsapp"] },
       SYSTEM: { help: ["help","what can i say","commands"], copy: ["copy","clipboard","phone"], save: ["save","cloud"] }
     };
+
+    /* PATCH 1: NUMBER MAP */
+    const NUMBER_MAP = {
+      "zero": 0, "one": 1, "won": 1,
+      "two": 2, "to": 2, "too": 2,
+      "three": 3,
+      "four": 4, "for": 4,
+      "five": 5,
+      "six": 6,
+      "seven": 7,
+      "eight": 8, "ate": 8,
+      "nine": 9,
+      "ten": 10,
+      "eleven": 11,
+      "twelve": 12,
+      "half": 0.5
+    };
+
+    /* PATCH 2: NUMBER EXTRACTOR */
+    function extractNumber(text) {
+      text = text.toLowerCase();
+      const digit = text.match(/\b\d+\b/);
+      if (digit) return parseInt(digit[0], 10);
+      for (let word in NUMBER_MAP) {
+        if (text.includes(word)) return NUMBER_MAP[word];
+      }
+      return null;
+    }
 
     function fetchVoiceConfig() {
         if(!NET_STATE.online){
@@ -739,6 +788,16 @@
           }
           if(cmd.key === 'next' || cmd.key === 'jump') startHunt();
           return;
+      }
+
+      /* PATCH 5: JUMP */
+      if (cmd.group === "NAV" && cmd.key === "jump") {
+        const n = extractNumber(cmd.raw);
+        if (n !== null && slideElements[n - 1]) {
+            goToSlide(n - 1);
+            speak(`Jumping to slide ${n}`);
+            return;
+        }
       }
 
       switch(cmd.group){
@@ -811,40 +870,68 @@
     /* =========================================
        5. VOICE & CONNECTIVITY
        ========================================= */
+    /* PATCH 6: DETAILED READ CART */
     function readCart(){
-        const items = Object.keys(ENGINE_STATE.items_detected);
-        if(!items.length){ speak("Cart is empty"); return; }
-        speak("You have " + items.join(", "));
+      const items = ENGINE_STATE.items_detected;
+      if(!Object.keys(items).length){
+        speak("Cart is empty");
+        return;
+      }
+      let sentence = "You have ";
+      Object.entries(items).forEach(([k,v]) => {
+        sentence += `${v.qty} ${k}, `;
+      });
+      speak(sentence.slice(0, -2));
     }
 
+    /* PATCH 3: QUANTITY AWARE ADD */
     function handleGlobalAdd(txt) {
-        let found = false;
-        // Universal Search
-        if(RAW_DATA) {
-            Object.keys(RAW_DATA).forEach(cId => {
-                RAW_DATA[cId].categories.forEach(cat => {
-                    cat.items.forEach(item => {
-                        if (!found && txt.includes(item.name.toLowerCase())) {
-                            engineUpdate("ADD_ITEM", item.name);
-                            showToast(`ADDED ${item.name}`);
-                            found = true;
-                            if (slideElements[currentIdx].id === 'final') updateResult();
-                        }
-                    });
-                });
-            });
-        }
-        if(!found) showToast("ITEM NOT FOUND");
+      let qty = extractNumber(txt) || 1;
+      let found = false;
+
+      // Universal Search
+      if(RAW_DATA) {
+          Object.keys(RAW_DATA).forEach(cId => {
+              RAW_DATA[cId].categories.forEach(cat => {
+                  cat.items.forEach(item => {
+                      if (!found && txt.includes(item.name.toLowerCase())) {
+                          const currentQty = ENGINE_STATE.items_detected[item.name]?.qty || 0;
+                          ENGINE_STATE.items_detected[item.name] = { 
+                              qty: currentQty + qty, 
+                              price: item.price || 0,
+                              added_at: Date.now() 
+                          };
+                          found = true;
+                          recalcStrategy();
+                          showToast(`ADDED ${qty} × ${item.name}`);
+                          if (slideElements[currentIdx] && slideElements[currentIdx].id === 'final') updateResult();
+                      }
+                  });
+              });
+          });
+      }
+      if(!found) showToast("ITEM NOT FOUND");
     }
 
+    /* PATCH 4: REMOVE WITH NUMBER */
     function handleGlobalRemove(txt) {
-        for (const item in ENGINE_STATE.items_detected) {
-            if (txt.includes(item.toLowerCase())) {
-                engineUpdate("REMOVE_ITEM", item);
-                showToast(`REMOVED ${item}`);
-                if (slideElements[currentIdx].id === 'final') updateResult();
-            }
+      const qty = extractNumber(txt) || 1;
+      for (const item in ENGINE_STATE.items_detected) {
+        if (txt.includes(item.toLowerCase())) {
+          ENGINE_STATE.items_detected[item].qty -= qty;
+          
+          if (ENGINE_STATE.items_detected[item].qty <= 0) {
+            delete ENGINE_STATE.items_detected[item];
+            showToast(`REMOVED ${item}`);
+          } else {
+            showToast(`REDUCED ${item} ×${qty}`);
+          }
+          
+          recalcStrategy();
+          if (slideElements[currentIdx] && slideElements[currentIdx].id === 'final') updateResult();
+          return;
         }
+      }
     }
 
     function speak(text) { window.speechSynthesis.speak(new SpeechSynthesisUtterance(text)); }
