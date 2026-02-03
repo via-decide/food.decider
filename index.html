@@ -286,28 +286,97 @@
     function speak(text) { if(!window.speechSynthesis) return; window.speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text); u.lang = "en-IN"; window.speechSynthesis.speak(u); }
 
     function initVoice() {
-        if(!window.SpeechRecognition && !window.webkitSpeechRecognition) return;
+        if (!window.SpeechRecognition && !window.webkitSpeechRecognition) return;
+
         const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-        rec = new SR(); rec.lang = "en-IN"; rec.continuous = true; rec.onresult = e => {
-            const t = e.results[e.results.length-1][0].transcript.toLowerCase();
+        rec = new SR();
+        rec.lang = "en-IN";
+        rec.continuous = true;
+        rec.interimResults = false;
+
+        // --- PRECOMPUTE MENU NAMES ---
+        const MENU_NAMES = [];
+        for (let c in RAW_DATA)
+            for (let cat of RAW_DATA[c].categories)
+            for (let i of cat.items)
+                MENU_NAMES.push(i.name);
+
+        const numberMap = {
+            one:1, two:2, three:3, four:4, five:5,
+            1:1, 2:2, 3:3, 4:4, 5:5
+        };
+
+        function extractQty(text) {
+            for (let k in numberMap) if (text.includes(k)) return numberMap[k];
+            const m = text.match(/\d+/);
+            return m ? parseInt(m[0],10) : 1;
+        }
+
+        function extractItem(text) {
+            return MENU_NAMES.find(n =>
+            text.includes(n.toLowerCase()) ||
+            n.toLowerCase().split(" ").some(w => text.includes(w))
+            );
+        }
+
+        rec.onresult = e => {
+            const t = e.results[e.results.length - 1][0].transcript.toLowerCase();
             showToast(`Voice: ${t}`);
-            if(t.includes("zomato")) return link('zomato');
-            if(t.includes("whatsapp")) return sendWa();
-            if(t.includes("browse")) return executeAction("BROWSE");
-            if(t.includes("skip")) return executeAction("SKIP");
-            if(t.includes("next")) return nextSlide();
-            const menuNames = []; for(let c in RAW_DATA) for(let cat of RAW_DATA[c].categories) for(let i of cat.items) menuNames.push(i.name);
-            const num = parseInt(t.match(/\d+/) || [1])[0];
-            let foundItem = menuNames.find(n => t.includes(n.toLowerCase()));
-            if (t.includes("remove")) { if(foundItem) { updateCart("REMOVE", foundItem); speak(`Removed ${foundItem}`); } }
-            else if (t.includes("double")) { if(foundItem) { updateCart("DOUBLE", foundItem); speak(`Doubled ${foundItem}`); } }
-            else if (t.includes("half")) { if(foundItem) { updateCart("HALF", foundItem); speak(`Halved ${foundItem}`); } }
-            else if (t.includes("add") || foundItem) {
-                const itemToAdd = foundItem || (slideElements[currentIdx].dataset.mode === 'options' ? slideElements[currentIdx].querySelector('.opt-active').dataset.val : null);
-                if(itemToAdd) { updateCart("ADD", itemToAdd, num); speak(`Added ${num > 1 ? num : ''} ${itemToAdd}`); }
+
+            // --- PLATFORM ROUTES ---
+            if (t.includes("zomato")) return link("zomato");
+            if (t.includes("swiggy")) return link("swiggy");
+            if (t.includes("blinkit")) return link("blinkit");
+            if (t.includes("whatsapp")) return sendWa();
+
+            // --- NAVIGATION ---
+            if (t.includes("browse")) return executeAction("BROWSE");
+            if (t.includes("skip")) return executeAction("SKIP");
+            if (t.includes("next")) return nextSlide();
+
+            const qty = extractQty(t);
+            const foundItem = extractItem(t);
+
+            // --- CART OPERATIONS ---
+            if (t.includes("remove") && foundItem) {
+            updateCart("REMOVE", foundItem);
+            speak(`Removed ${foundItem}`);
+            return;
+            }
+
+            if (t.includes("double") && foundItem) {
+            updateCart("DOUBLE", foundItem);
+            speak(`Doubled ${foundItem}`);
+            return;
+            }
+
+            if (t.includes("half") && foundItem) {
+            updateCart("HALF", foundItem);
+            speak(`Halved ${foundItem}`);
+            return;
+            }
+
+            // --- ADD / SELECT ---
+            if (t.includes("add") || foundItem) {
+            const fallbackItem =
+                slideElements[currentIdx]?.dataset.mode === "options"
+                ? slideElements[currentIdx]
+                    .querySelector(".opt-active")?.dataset.val
+                : null;
+
+            const item = foundItem || fallbackItem;
+            if (!item) return;
+
+            updateCart("ADD", item, qty);
+            speak(`Added ${qty > 1 ? qty : ""} ${item}`);
+            return;
             }
         };
-        rec.onend = () => { if(document.getElementById('mic-toggle').classList.contains('listening')) rec.start(); };
+
+        rec.onend = () => {
+            const mic = document.getElementById("mic-toggle");
+            if (mic && mic.classList.contains("listening")) rec.start();
+        };
     }
 
     function toggleListenMode() {
@@ -325,4 +394,3 @@
 </script>
 </body>
 </html>
-
