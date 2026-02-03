@@ -290,8 +290,8 @@
             if(t.includes("next")) return nextSlide();
 
             // C. UNIVERSAL MODIFIERS (ADD/REMOVE/DOUBLE/HALF)
-        let rec;
-    function initVoice() {
+    
+
         if(!window.SpeechRecognition && !window.webkitSpeechRecognition) return;
         const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
         rec = new SR(); rec.lang = "en-IN"; rec.continuous = true; rec.interimResults = false;
