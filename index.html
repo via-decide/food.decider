@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>| food.decide | v16.9 Fixed</title>
+    <title>| food.decide | v16.10</title>
 
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0a0a0a">
@@ -143,7 +143,7 @@
     function renderLobby() {
         container.innerHTML = `
         <section class="main-slide active" id="lobby">
-            <div class="slide-header"><span class="header-title">SWIPE-OS v16.9</span></div>
+            <div class="slide-header"><span class="header-title">SWIPE-OS v16.10</span></div>
             <div class="lobby-container">
                 <h1>AAJ KYA MANGVAAYEGE!</h1>
                 <div id="cuisine-grid" style="display:grid; gap:15px;">
@@ -222,6 +222,7 @@
         document.getElementById('depth-fill').style.height = '0%';
     }
 
+    // UPGRADED TO SUPPORT VOICE OBJECT PAYLOADS
     function updateCart(action, payload) {
         if(action === "ADD" || action === "ADD_ITEM") { 
             let name, qtyToAdd;
@@ -236,8 +237,8 @@
             const currentQty = (ENGINE_STATE.items_detected[name]?.qty || 0);
             ENGINE_STATE.items_detected[name] = { qty: currentQty + qtyToAdd, price: getPrice(name) };
         }
-        if(action === "REMOVE") {
-             // Just triggering save, logic handled in caller
+        else if(action === "REMOVE") {
+             // Just saving state, logic handled in caller
         }
         localStorage.setItem("ENGINE_STATE_CACHE", JSON.stringify(ENGINE_STATE));
     }
@@ -352,8 +353,7 @@ ${cartItems}----------------
     function saveToCloud() { fetch(GOOGLE_SCRIPT_URL, {method:"POST", body:JSON.stringify(ENGINE_STATE)}); showToast("SAVED"); }
     function showToast(msg) { const t = document.getElementById('toast'); t.innerText = msg; t.classList.add('visible'); setTimeout(() => t.classList.remove('visible'), 2000); }
 
-    // --- 5. CONVERSATIONAL VOICE ENGINE (v16.4 Restored) ---
-    
+    // --- 5. VOICE ENGINE (Conversational v11 Style) ---
     // 1. COMMAND DICTIONARY
     const VOICE_COMMANDS = {
       PLATFORM: { zomato: ["zomato"], swiggy: ["swiggy"], blinkit: ["blinkit"], whatsapp: ["whatsapp"] },
@@ -379,6 +379,7 @@ ${cartItems}----------------
             for (let cat of RAW_DATA[c].categories) {
                 for (let item of cat.items) {
                     const nameTokens = tokenize(item.name);
+                    // Fuzzy match: match if at least one distinct word matches and is longer than 2 chars
                     if (nameTokens.some(t => tokens.includes(t) && t.length > 2)) return item.name;
                 }
             }
@@ -391,7 +392,7 @@ ${cartItems}----------------
         const tokens = tokenize(text);
         let intent = null;
 
-        // A. Find Intent
+        // A. Find Intent (Fuzzy)
         for (const [group, defs] of Object.entries(VOICE_COMMANDS)) {
             for (const [action, keywords] of Object.entries(defs)) {
                 if (keywords.some(k => tokens.includes(k))) {
@@ -402,7 +403,7 @@ ${cartItems}----------------
             if (intent) break;
         }
 
-        // B. Handle Implicit Items (e.g., "Two Naan")
+        // B. Handle Implicit Items
         const item = matchItem(tokens);
         const qty = extractNumber(text);
 
@@ -410,7 +411,7 @@ ${cartItems}----------------
         if (intent) {
             if (intent.group === "PLATFORM") { 
                 speak(`Opening ${intent.action}`); 
-                if (intent.action === 'whatsapp') sendWa(); 
+                if(intent.action === 'whatsapp') sendWa(); 
                 else link(intent.action); 
                 return; 
             }
@@ -429,7 +430,7 @@ ${cartItems}----------------
                 if (intent.action === "remove" && item) {
                     if (ENGINE_STATE.items_detected[item]) {
                         delete ENGINE_STATE.items_detected[item];
-                        updateCart("REMOVE", null); // Just triggers save
+                        updateCart("REMOVE", null); 
                         renderCart();
                         speak(`Removed ${item}`);
                         showToast(`Removed ${item}`);
@@ -446,16 +447,12 @@ ${cartItems}----------------
             updateCart("ADD", { name: item, qty: qty });
             speak(`Added ${qty} ${item}`);
             showToast(`+${qty} ${item}`);
-        } else if (!intent) {
-            // No intent, no item
-            // speak("Say that again?"); 
         }
     }
 
     // 4. SPEECH ENGINE
     let rec = null;
     function speak(text) {
-        // The "Talk Back" Feature
         window.speechSynthesis.cancel();
         window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
     }
