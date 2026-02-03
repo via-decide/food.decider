@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>| food.decide | swipe - OS </title>
+    <title>| food.decide | v16.6 Conversational</title>
 
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0a0a0a">
@@ -96,9 +96,10 @@
 </div>
 
 <script>
-    // --- 1. DATA (IMMEDIATE LOAD - FIXES BLANK SCREEN) ---
-    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzTDhqkHghMyeIT_cdLdWV6f5maaeX6K8w2Okwu87Q4uThWUxFeqIlPQE4dfMlBeXlkJg/exec";
+    // --- 1. CONFIG & DATA ---
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyBMwKxq92U0dptKMdEHvUCXPS9AjExHtxHjcRmfh2JFjCSn9Zd82bzp34xLg6X0a7L9g/exec";
     
+    // HARDCODED MENU (Source of Truth)
     const RAW_DATA = {
         "punjabi": {
           "label": "PUNJABI",
@@ -142,7 +143,7 @@
     function renderLobby() {
         container.innerHTML = `
         <section class="main-slide active" id="lobby">
-            <div class="slide-header"><span class="header-title">SWIPE-OS v16.5</span></div>
+            <div class="slide-header"><span class="header-title">SWIPE-OS v16.6</span></div>
             <div class="lobby-container">
                 <h1>AAJ KYA MANGVAAYEGE!</h1>
                 <div id="cuisine-grid" style="display:grid; gap:15px;">
@@ -188,29 +189,11 @@
         });
 
         const final = document.createElement('section'); final.className = 'main-slide next'; final.id = 'final';
-        final.innerHTML = `<div class="sub-slide static"><div class="verdict-container"><div class="choice-header">FINAL ORDER</div><div class="input-group" id="final-list"></div><div class="final-actions"><button class="btn btn-zomato" onclick="link('zomato')">ZOMATO</button><button class="btn btn-swiggy" onclick="link('swiggy')">SWIGGY</button><button class="btn btn-blinkit" onclick="link('blinkit')">BLINKIT</button><button class="btn btn-cloud" onclick="saveToCloud()">SAVE</button><button class="btn btn-wa" onclick="goToSlide(currentIdx+1)">WHATSAPP &rarr;</button></div></div></div>`;
+        final.innerHTML = `<div class="sub-slide static"><div class="verdict-container"><div class="choice-header">FINAL ORDER</div><div class="input-group" id="final-list"></div><div class="final-actions"><button class="btn btn-zomato" onclick="link('zomato')">ZOMATO</button><button class="btn btn-swiggy" onclick="link('swiggy')">SWIGGY</button><button class="btn btn-blinkit" onclick="link('blinkit')">BLINKIT</button><button class="btn btn-cloud" onclick="copyOrder()">COPY ORDER</button><button class="btn btn-wa" onclick="goToSlide(currentIdx+1)">WHATSAPP &rarr;</button></div></div></div>`;
         container.appendChild(final);
 
-        const biz = document.createElement('section'); 
-        biz.className = 'main-slide next'; 
-        biz.id = 'business';
-        
-        biz.innerHTML = `
-        <div class="sub-slide static">
-            <div class="biz-card">
-                <span class="biz-tagline">POWERED BY KUTCH AUTOMATION</span>
-                <div class="biz-title">BUILD YOUR OWN ENGINE</div>
-                <p style="color:#888; font-size:0.85rem; line-height:1.5; margin-bottom:25px;">
-                    You just used one.<br>
-                    This is how decisions move without platforms.
-                </p>
-                <div class="final-actions">
-                    <button class="btn btn-wa" onclick="sendWa()">WHATSAPP CTA &rarr;</button>
-                    <button class="btn" style="border:1px solid #333; margin-top:10px;" onclick="location.reload()">RESTART DEMO</button>
-                </div>
-            </div>
-        </div>`;
-        
+        const biz = document.createElement('section'); biz.className = 'main-slide next'; biz.id = 'business';
+        biz.innerHTML = `<div class="sub-slide static"><div class="biz-card"><span class="biz-tagline">POWERED BY KUTCH AUTOMATION</span><div class="biz-title">BUILD YOUR OWN ENGINE</div><div class="final-actions"><button class="btn btn-wa" onclick="sendWa()">CHAT WITH 916351537770</button><button class="btn" onclick="location.reload()">RESTART</button></div></div></div>`;
         container.appendChild(biz);
         
         slideElements = Array.from(document.querySelectorAll('.main-slide'));
@@ -239,10 +222,20 @@
         document.getElementById('depth-fill').style.height = '0%';
     }
 
-    function updateCart(action, item) {
-        if(action === "ADD") { 
-            const qty = (ENGINE_STATE.items_detected[item]?.qty || 0) + 1;
-            ENGINE_STATE.items_detected[item] = { qty: qty, price: getPrice(item) };
+    // UPGRADED TO SUPPORT VOICE OBJECT PAYLOADS
+    function updateCart(action, payload) {
+        if(action === "ADD" || action === "ADD_ITEM") { 
+            let name, qtyToAdd;
+            if (typeof payload === 'object') {
+                name = payload.name;
+                qtyToAdd = payload.qty || 1;
+            } else {
+                name = payload; // legacy string touch input
+                qtyToAdd = 1;
+            }
+            
+            const currentQty = (ENGINE_STATE.items_detected[name]?.qty || 0);
+            ENGINE_STATE.items_detected[name] = { qty: currentQty + qtyToAdd, price: getPrice(name) };
         }
         localStorage.setItem("ENGINE_STATE_CACHE", JSON.stringify(ENGINE_STATE));
     }
@@ -256,7 +249,7 @@
         const list = document.getElementById('final-list');
         let h = "", total = 0;
         for(let [k,v] of Object.entries(ENGINE_STATE.items_detected)) {
-            h += `<div class="input-row"><span class="input-key">${name}</span><span class="input-val">x${v.qty} · ₹${v.price*v.qty}</span></div>`;
+            h += `<div class="input-row"><span class="input-key">${k}</span><span class="input-val">x${v.qty} · ₹${v.price*v.qty}</span></div>`;
             total += v.price*v.qty;
         }
         h += `<div class="input-row" style="border-top:1px solid #444;margin-top:10px"><span>TOTAL</span><span>₹${total}</span></div>`;
@@ -277,12 +270,13 @@
                 slides.forEach((s,i) => { if(s.classList.contains('opt-active')) curr = i; s.classList.remove('opt-active'); s.classList.add('opt-hidden'); setTimeout(()=>{s.style.transform='';s.style.opacity='1'},300); });
                 const next = slides[(curr+1)%slides.length];
                 next.classList.remove('opt-hidden'); next.classList.add('opt-active');
+                next.style.transform = ''; next.style.opacity = '1';
             }
         }
     }
 
+    let startX = 0, startY = 0;
     function attachEvents() {
-        let startX = 0, startY = 0;
         document.querySelectorAll('.carousel-viewport').forEach(view => {
             view._currOpt = 0;
             view.addEventListener('touchstart', e => { startX = e.touches[0].clientX; startY = e.touches[0].clientY; }, {passive: true});
@@ -336,170 +330,140 @@
         }
         msg += "----------------\n";
         msg += `💰 *Est. Total: ₹${total}*\n`;
-        msg += `📍 Location: Gandhidham\n-------------------\n
-get customized "PRE-loaded"-- inquiry like above for your business/personal need with support of log - management ”\n
--------------------\n“You decide once. We handle the rest.”`;
+        msg += `📍 Location: Gandhidham`;
         window.open(`https://wa.me/916351537770?text=${encodeURIComponent(msg)}`, '_blank');
+    }
+    
+    function copyOrder() {
+        let text = "ORDER SUMMARY:\n";
+        for(let [k,v] of Object.entries(ENGINE_STATE.items_detected)) text += `${k} x${v.qty}\n`;
+        navigator.clipboard.writeText(text).then(() => showToast("COPIED TO CLIPBOARD"));
     }
     
     function saveToCloud() { fetch(GOOGLE_SCRIPT_URL, {method:"POST", body:JSON.stringify(ENGINE_STATE)}); showToast("SAVED"); }
     function showToast(msg) { const t = document.getElementById('toast'); t.innerText = msg; t.classList.add('visible'); setTimeout(() => t.classList.remove('visible'), 2000); }
 
-   // --- 5. STRICT VOICE ENGINE (PATCHED) ---
+    // --- 5. CONVERSATIONAL VOICE ENGINE (v16.4 Restored) ---
     
-    // 1. LOCKED DICTIONARY
+    // 1. COMMAND DICTIONARY
     const VOICE_COMMANDS = {
-      PLATFORM: {
-        zomato: ["zomato"],
-        swiggy: ["swiggy"],
-        blinkit: ["blinkit"],
-        whatsapp: ["whatsapp"]
-      },
-      SYSTEM: {
-        help: ["help", "commands"],
-        copy: ["copy", "clipboard"],
-        save: ["save", "cloud"]
-      },
-      CART: {
-        add: ["add", "jodo"],
-        remove: ["remove", "delete", "hatao"],
-        reset: ["clear", "reset", "start"],
-        read: ["read", "list"]
-      },
-      QUANTITY: {
-        double: ["double", "do", "two"],
-        half: ["half", "aadha"]
-      },
-      ACTION: {
-        select: ["select", "choose", "pick", "yes", "ha"],
-        skip: ["skip", "no", "na"],
-        browse: ["browse", "next", "show", "dekhao"]
-      },
-      NAV: {
-        next: ["next", "continue"],
-        prev: ["back", "previous"]
-      }
+      PLATFORM: { zomato: ["zomato"], swiggy: ["swiggy"], blinkit: ["blinkit"], whatsapp: ["whatsapp"] },
+      SYSTEM: { help: ["help", "commands"], save: ["save", "cloud"] },
+      CART: { add: ["add", "jodo"], remove: ["remove", "delete", "hatao"], reset: ["clear", "reset"] },
+      ACTION: { select: ["select", "choose", "yes"], skip: ["skip", "no"], browse: ["browse", "next"] },
+      NAV: { next: ["next", "continue"], prev: ["back"] }
     };
 
-    // 2. PRIORITY ORDER (No Backtracking)
-    const INTENT_PRIORITY = ["PLATFORM", "SYSTEM", "CART", "QUANTITY", "ACTION", "NAV", "IMPLICIT_ADD"];
-
-    // 3. STRICT TOKENIZATION
-    function tokenize(text) {
-        return text.toLowerCase().replace(/[^a-z0-9 ]/g, '').split(' ').filter(Boolean);
-    }
-
+    // 2. PARSING HELPERS
+    function tokenize(text) { return text.toLowerCase().replace(/[^a-z0-9 ]/g, '').split(' ').filter(Boolean); }
+    
     function extractNumber(text) {
         const words = tokenize(text);
-        const map = { "one":1, "two":2, "three":3, "four":4, "five":5, "1":1, "2":2, "3":3, "ek":1, "do":2, "teen":3 };
+        const map = { "one":1, "two":2, "three":3, "four":4, "five":5, "ek":1, "do":2, "teen":3 };
         for (let w of words) if (map[w]) return map[w];
         const digit = text.match(/\b\d+\b/);
-        return digit ? parseInt(digit[0], 10) : null;
+        return digit ? parseInt(digit[0], 10) : 1;
     }
 
-    // 4. ITEM MATCHING (Last Resort)
     function matchItem(tokens) {
         for (let c in RAW_DATA) {
             for (let cat of RAW_DATA[c].categories) {
                 for (let item of cat.items) {
                     const nameTokens = tokenize(item.name);
-                    // Match if ALL item tokens are present in speech tokens
-                    if (nameTokens.every(t => tokens.includes(t))) return item.name;
-                    // Fallback: Match if ANY rare token matches (simplified for usability)
-                    if (nameTokens.some(t => tokens.includes(t) && t.length > 3)) return item.name;
+                    if (nameTokens.some(t => tokens.includes(t) && t.length > 2)) return item.name;
                 }
             }
         }
         return null;
     }
 
-    function parseVoiceStrict(text) {
+    // 3. LOGIC ROUTER
+    function dispatchVoice(text) {
         const tokens = tokenize(text);
+        let intent = null;
 
-        // Check Intents in Priority Order
-        for (const group of INTENT_PRIORITY) {
-            if (group === "IMPLICIT_ADD") continue;
-            
-            const definitions = VOICE_COMMANDS[group];
-            if (!definitions) continue;
-
-            for (const [action, keywords] of Object.entries(definitions)) {
-                // Strict Token Match
+        // A. Find Intent
+        for (const [group, defs] of Object.entries(VOICE_COMMANDS)) {
+            for (const [action, keywords] of Object.entries(defs)) {
                 if (keywords.some(k => tokens.includes(k))) {
-                    return { group, key: action, raw: text };
+                    intent = { group, action };
+                    break;
+                }
+            }
+            if (intent) break;
+        }
+
+        // B. Handle Implicit Items (e.g., "Two Naan")
+        const item = matchItem(tokens);
+        const qty = extractNumber(text);
+
+        // C. EXECUTION
+        if (intent) {
+            if (intent.group === "PLATFORM") { 
+                speak(`Opening ${intent.action}`); 
+                if (intent.action === 'whatsapp') sendWa(); 
+                else link(intent.action); 
+                return; 
+            }
+            if (intent.group === "SYSTEM") { if(intent.action === "save") { saveToCloud(); speak("Order saved"); } return; }
+            if (intent.group === "NAV") { if(intent.action==="next") executeAction("NEXT"); return; }
+            
+            if (intent.group === "ACTION") {
+                if(intent.action === "select") executeAction("SELECT");
+                if(intent.action === "skip") executeAction("SKIP");
+                if(intent.action === "browse") executeAction("BROWSE");
+                return;
+            }
+
+            if (intent.group === "CART") {
+                if (intent.action === "reset") { ENGINE_STATE.items_detected={}; renderCart(); speak("Cart emptied"); return; }
+                if (intent.action === "remove" && item) {
+                    if (ENGINE_STATE.items_detected[item]) {
+                        delete ENGINE_STATE.items_detected[item];
+                        updateCart("REMOVE", null); // Just triggers save
+                        renderCart();
+                        speak(`Removed ${item}`);
+                        showToast(`Removed ${item}`);
+                    } else {
+                        speak(`${item} is not in cart`);
+                    }
+                    return;
                 }
             }
         }
 
-        // Implicit Add Logic
-        const item = matchItem(tokens);
+        // Implicit Add (Default Fallback)
         if (item) {
-            const qty = extractNumber(text) || 1;
-            return { group: "IMPLICIT_ADD", item, qty };
-        }
-
-        return null;
-    }
-
-    function dispatchVoice(cmd) {
-        if (!cmd) { speak("Say help for commands"); return; }
-
-        // PATCH 7: Platform is Final
-        if (cmd.group === "PLATFORM") {
-            if(cmd.key === "whatsapp") sendWa();
-            else link(cmd.key);
-            return;
-        }
-
-        // PATCH 5: Implicit Add
-        if (cmd.group === "IMPLICIT_ADD") {
-            updateCart("ADD", { name: cmd.item, qty: cmd.qty }); // Fixed payload structure
-            speak(`Added ${cmd.qty} ${cmd.item}`);
-            showToast(`+${cmd.qty} ${cmd.item}`);
-            return;
-        }
-
-        // Routing
-        switch (cmd.group) {
-            case "NAV": 
-                if (cmd.key === "next") executeAction("NEXT"); 
-                if (cmd.key === "prev") executeAction("PREV");
-                break;
-            case "ACTION":
-                if (cmd.key === "select") executeAction("SELECT");
-                if (cmd.key === "skip") executeAction("SKIP");
-                if (cmd.key === "browse") executeAction("BROWSE");
-                break;
-            case "SYSTEM":
-                if (cmd.key === "save") saveToCloud();
-                if (cmd.key === "help") speak("You can say Select, Skip, Next, or order food directly.");
-                break;
-            case "CART":
-                if (cmd.key === "reset") { ENGINE_STATE.items_detected={}; renderCart(); speak("Cart cleared"); }
-                break;
+            updateCart("ADD", { name: item, qty: qty });
+            speak(`Added ${qty} ${item}`);
+            showToast(`+${qty} ${item}`);
+        } else if (!intent) {
+            // No intent, no item
+            // speak("Say that again?"); 
         }
     }
 
-    // --- ENGINE CORE ---
+    // 4. SPEECH ENGINE
     let rec = null;
-    function initVoice() {
-        if (rec) return;
-        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SR) { showToast("VOICE NOT SUPPORTED"); return; }
+    function speak(text) {
+        // The "Talk Back" Feature
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
+    }
 
-        rec = new SR();
+    function initVoice() {
+        if (!window.SpeechRecognition && !window.webkitSpeechRecognition) return;
+        rec = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
         rec.lang = "en-IN";
-        rec.continuous = true; 
+        rec.continuous = true;
         rec.interimResults = false;
 
         rec.onresult = e => {
             const t = e.results[e.results.length - 1][0].transcript;
             showToast(`"${t}"`);
-            const cmd = parseVoiceStrict(t);
-            dispatchVoice(cmd);
+            dispatchVoice(t);
         };
 
-        // Auto-restart wrapper
         rec.onend = () => {
             if (document.getElementById('mic-toggle').classList.contains('listening')) {
                 try { rec.start(); } catch(e){}
@@ -507,23 +471,16 @@ get customized "PRE-loaded"-- inquiry like above for your business/personal need
         };
     }
 
-    function toggleListenMode() {
-        initVoice();
-        if (!rec) return;
-        const btn = document.getElementById('mic-toggle');
-        if (btn.classList.contains('listening')) {
-            btn.classList.remove('listening');
-            rec.stop();
-            showToast("MIC OFF");
-        } else {
-            btn.classList.add('listening');
-            try { rec.start(); showToast("LISTENING..."); } catch(e){}
+    function toggleListenMode() { 
+        if(!rec) initVoice();
+        const m = document.getElementById('mic-toggle');
+        if(m.classList.contains('listening')) { 
+            rec.stop(); m.classList.remove('listening'); speak("Voice off");
+        } else { 
+            rec.start(); m.classList.add('listening'); speak("Listening");
         }
     }
-    
-    function speak(text) {
-        window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
-    }
+
     // BOOT
     renderLobby();
     initVoice();
