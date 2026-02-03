@@ -191,8 +191,26 @@
         final.innerHTML = `<div class="sub-slide static"><div class="verdict-container"><div class="choice-header">FINAL ORDER</div><div class="input-group" id="final-list"></div><div class="final-actions"><button class="btn btn-zomato" onclick="link('zomato')">ZOMATO</button><button class="btn btn-swiggy" onclick="link('swiggy')">SWIGGY</button><button class="btn btn-blinkit" onclick="link('blinkit')">BLINKIT</button><button class="btn btn-cloud" onclick="saveToCloud()">SAVE</button><button class="btn btn-wa" onclick="goToSlide(currentIdx+1)">WHATSAPP &rarr;</button></div></div></div>`;
         container.appendChild(final);
 
-        const biz = document.createElement('section'); biz.className = 'main-slide next'; biz.id = 'business';
-        biz.innerHTML = `<div class="sub-slide static"><div class="biz-card"><span class="biz-tagline">POWERED BY KUTCH AUTOMATION</span><div class="biz-title">BUILD YOUR OWN ENGINE</div><div class="final-actions"><button class="btn btn-wa" onclick="sendWa()">CHAT WITH 916351537770</button><button class="btn" onclick="location.reload()">RESTART</button></div></div></div>`;
+        const biz = document.createElement('section'); 
+        biz.className = 'main-slide next'; 
+        biz.id = 'business';
+        
+        biz.innerHTML = `
+        <div class="sub-slide static">
+            <div class="biz-card">
+                <span class="biz-tagline">POWERED BY KUTCH AUTOMATION</span>
+                <div class="biz-title">BUILD YOUR OWN ENGINE</div>
+                <p style="color:#888; font-size:0.85rem; line-height:1.5; margin-bottom:25px;">
+                    You just used one.<br>
+                    This is how decisions move without platforms.
+                </p>
+                <div class="final-actions">
+                    <button class="btn btn-wa" onclick="sendWa()">WHATSAPP CTA &rarr;</button>
+                    <button class="btn" style="border:1px solid #333; margin-top:10px;" onclick="location.reload()">RESTART DEMO</button>
+                </div>
+            </div>
+        </div>`;
+        
         container.appendChild(biz);
         
         slideElements = Array.from(document.querySelectorAll('.main-slide'));
