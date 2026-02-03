@@ -9,194 +9,73 @@
     <meta name="theme-color" content="#0a0a0a">
     <meta name="background-color" content="#0a0a0a">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="food.decide">
-    <link rel="apple-touch-icon" href="icons/icon-192.png">
     <meta name="mobile-web-app-capable" content="yes">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-    <script src="https://webgazer.cs.brown.edu/webgazer.js"></script>
+    <script src="https://webgazer.cs.brown.edu/webgazer.js" async></script>
 
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('./service-worker.js')
-            .catch(err => console.log('SW failed:', err));
+          navigator.serviceWorker.register('./service-worker.js').catch(e => console.log('SW Fail:', e));
         });
       }
     </script>
 
     <style>
-        /* =========================================
-           CORE VISUAL SYSTEM
-           ========================================= */
-        :root {
-            --brand-orange: #ff671f;
-            --brand-bg: #0a0a0a;
-            --text-main: #f0f0f0;
-            --accent-go: #00e676; 
-            --accent-skip: #ff3333;
-            --accent-zomato: #cb202d;
-            --accent-swiggy: #fc8019;
-            --accent-blinkit: #f8cb46;
-            --font-tech: 'Courier New', monospace;
-            --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        }
+        :root { --orange: #ff671f; --bg: #0a0a0a; --text: #f0f0f0; --go: #00e676; --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        html, body { margin:0; padding:0; height:100%; width:100%; background:var(--bg); color:var(--text); font-family:var(--font); overflow:hidden; touch-action:none; }
+        #master-container { height: 100vh; width: 100vw; position: relative; overflow: hidden; }
 
-        html, body {
-            margin: 0; padding: 0; height: 100%; width: 100%;
-            background-color: var(--brand-bg);
-            color: var(--text-main);
-            font-family: var(--font-ui);
-            overflow: hidden;
-            touch-action: none; 
-        }
+        /* STATUS */
+        .status-pill { position: fixed; left: 50%; transform: translateX(-50%); font-size: 0.6rem; color: #444; border: 1px solid #333; padding: 4px 8px; border-radius: 4px; opacity: 0; transition: opacity 0.5s; z-index: 1000; pointer-events: none; background: #000; }
+        #gyro-status { top: 15px; } #eye-status { top: 40px; }
+        .active-pill { opacity: 1 !important; color: var(--go) !important; border-color: var(--go) !important; }
+        #gaze-dot { position: fixed; width: 10px; height: 10px; background: var(--orange); border-radius: 50%; z-index: 9999; pointer-events: none; display: none; transform: translate(-50%, -50%); box-shadow: 0 0 10px var(--orange); }
 
-        #master-container {
-            height: 100vh; width: 100vw; position: relative; overflow: hidden;
-        }
+        /* SLIDES */
+        .main-slide { height: 100vh; width: 100vw; position: absolute; top: 0; left: 0; display: flex; flex-direction: column; background: var(--bg); transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1); will-change: transform; }
+        .main-slide.prev { transform: translateY(-100%); } .main-slide.active { transform: translateY(0); z-index: 10; } .main-slide.next { transform: translateY(100%); z-index: 20; }
 
-        /* SENSOR STATUS PILLS */
-        .status-pill {
-            position: fixed; left: 50%; transform: translateX(-50%);
-            font-family: var(--font-tech); font-size: 0.6rem; color: #444;
-            border: 1px solid #333; padding: 4px 8px; border-radius: 4px;
-            opacity: 0; transition: opacity 0.5s; z-index: 1000; pointer-events: none;
-        }
-        #gyro-status { top: 15px; }
-        #eye-status { top: 40px; }
-        .active-pill { opacity: 1 !important; color: var(--accent-go) !important; border-color: var(--accent-go) !important; }
-
-        /* GAZE CURSOR (Red Dot) */
-        #gaze-dot {
-            position: fixed; width: 10px; height: 10px; background: var(--brand-orange); border-radius: 50%;
-            z-index: 9999; pointer-events: none; display: none; transform: translate(-50%, -50%);
-            box-shadow: 0 0 10px var(--brand-orange);
-        }
-
-        /* SLIDES & ANIMATION */
-        .main-slide {
-            height: 100vh; width: 100vw; position: absolute; top: 0; left: 0;
-            display: flex; flex-direction: column; background: var(--brand-bg);
-            transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
-            will-change: transform;
-        }
-        .main-slide.prev { transform: translateY(-100%); }
-        .main-slide.active { transform: translateY(0); z-index: 10; }
-        .main-slide.next { transform: translateY(100%); z-index: 20; }
-
-        .slide-header {
-            padding: 20px; border-left: 3px solid var(--brand-orange); height: 70px;
-            flex-shrink: 0; z-index: 10; display: flex; align-items: center;
-        }
-        .header-title {
-            font-family: var(--font-tech); font-size: 0.75rem; color: var(--brand-orange);
-            letter-spacing: 1px; font-weight: 700; text-transform: uppercase;
-        }
-
-        .carousel-viewport {
-            position: relative; flex-grow: 1; width: 100%; height: 100%; perspective: 1000px;
-        }
-
-        .sub-slide {
-            position: absolute; inset: 0; padding: 25px;
-            display: flex; flex-direction: column; justify-content: center;
-            opacity: 0; pointer-events: none; background: var(--brand-bg); border-radius: 12px;
-            transform-origin: 50% 150%; 
-            transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s;
-            will-change: transform;
-        }
+        .slide-header { padding: 20px; border-left: 3px solid var(--orange); height: 70px; flex-shrink: 0; z-index: 10; display: flex; align-items: center; }
+        .header-title { font-size: 0.75rem; color: var(--orange); letter-spacing: 1px; font-weight: 700; text-transform: uppercase; }
+        
+        .carousel-viewport { position: relative; flex-grow: 1; width: 100%; height: 100%; perspective: 1000px; }
+        .sub-slide { position: absolute; inset: 0; padding: 25px; display: flex; flex-direction: column; justify-content: center; opacity: 0; pointer-events: none; background: var(--bg); border-radius: 12px; transform-origin: 50% 150%; transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s; will-change: transform; }
         .sub-slide.opt-active { z-index: 30; opacity: 1; pointer-events: auto; transform: translateX(0); }
         .sub-slide.opt-hidden { z-index: 0; opacity: 0; pointer-events: none; transform: scale(0.9); }
         .sub-slide.static { z-index: 30; opacity: 1; pointer-events: auto; transform: none; }
 
-        h1 { font-size: 1.8rem; margin: 0 0 15px 0; line-height: 1; letter-spacing: -1px; color: var(--brand-orange); }
-        .primary-question { font-size: 1.1rem; color: #fff; margin-bottom: 25px; line-height: 1.4; font-weight: 600; }
-        
-        .price {
-            font-size: 0.9rem; color: #aaa; margin-left: 10px; font-family: var(--font-tech);
-            background: #222; padding: 2px 6px; border-radius: 4px;
-        }
-        .role-label {
-            font-family: var(--font-tech); font-size: 0.6rem; color: #000;
-            background: var(--accent-go); padding: 4px 8px; border-radius: 4px;
-            width: fit-content; margin-bottom: 15px; font-weight: bold;
-        }
+        h1 { font-size: 1.8rem; margin: 0 0 15px 0; line-height: 1; letter-spacing: -1px; color: var(--orange); }
+        .primary-question { font-size: 1.1rem; color: #fff; margin-bottom: 25px; font-weight: 600; }
+        .price { font-size: 0.9rem; color: #aaa; margin-left: 10px; background: #222; padding: 2px 6px; border-radius: 4px; }
+        .role-label { font-size: 0.6rem; color: #000; background: var(--go); padding: 4px 8px; border-radius: 4px; width: fit-content; margin-bottom: 15px; font-weight: bold; }
+        .nav-hint { margin-top: 30px; padding-top: 20px; border-top: 1px solid #333; font-size: 0.7rem; color: #666; display: flex; justify-content: space-between; }
 
-        .nav-hint {
-            margin-top: 30px; padding-top: 20px; border-top: 1px solid #333;
-            font-family: var(--font-tech); font-size: 0.7rem; color: #666;
-            display: flex; justify-content: space-between;
-        }
-
-        /* FINAL ORDER & ACTIONS */
-        .verdict-container { display: flex; flex-direction: column; height: 100%; justify-content: center; }
-        .choice-header { font-family: var(--font-tech); color: #666; font-size: 0.8rem; margin-bottom: 20px; text-transform: uppercase; text-align: center; }
-        
-        .input-group { 
-            border: 1px solid #333; background: #111; padding: 20px; border-radius: 8px; 
-            margin-bottom: 20px; min-height: 100px; max-height: 40vh; overflow-y: auto; 
-        }
-        .input-row { display: flex; justify-content: space-between; border-bottom: 1px dashed #333; padding: 10px 0; font-family: var(--font-tech); font-size: 0.8rem; }
-        .input-key { color: #888; text-transform: uppercase; }
-        .input-val { color: var(--accent-go); font-weight: bold; text-align: right; }
-        
+        /* UI */
+        .input-group { border: 1px solid #333; background: #111; padding: 20px; border-radius: 8px; margin-bottom: 20px; min-height: 100px; max-height: 40vh; overflow-y: auto; }
+        .input-row { display: flex; justify-content: space-between; border-bottom: 1px dashed #333; padding: 10px 0; font-size: 0.8rem; }
         .final-actions { display: grid; gap: 10px; margin-top: 20px; }
-        .btn { background: #222; color: #fff; border: 1px solid #333; padding: 15px; border-radius: 8px; font-weight: 600; text-align: center; font-size: 0.9rem; cursor: pointer; display: block; width: 100%; box-sizing: border-box;}
+        .btn { background: #222; color: #fff; border: 1px solid #333; padding: 15px; border-radius: 8px; font-weight: 600; text-align: center; font-size: 0.9rem; cursor: pointer; width: 100%; box-sizing: border-box;}
+        .btn-zomato { background: #cb202d; border: none; opacity: 0.5; }
+        .btn-swiggy { background: #fc8019; border: none; opacity: 0.5; }
+        .btn-blinkit { background: #f8cb46; color: #000; border: none; opacity: 0.5; }
         .btn-wa { background: #25D366; color: #000; border: none; }
-        .btn-zomato { background: var(--accent-zomato); border: none; opacity: 0.5; }
-        .btn-swiggy { background: var(--accent-swiggy); border: none; opacity: 0.5; }
-        .btn-blinkit { background: var(--accent-blinkit); color: #000; border: none; opacity: 0.5; }
-        .btn-cloud { background: #4285F4; border: none; opacity: 1; }
-        
+        .btn-cloud { background: #4285F4; border: none; }
         .btn-zomato.active, .btn-swiggy.active, .btn-blinkit.active { opacity: 1; box-shadow: 0 0 10px rgba(255,255,255,0.2); }
 
-        .biz-card {
-            background: linear-gradient(145deg, #111, #050505);
-            border: 1px solid var(--brand-orange);
-            padding: 30px;
-            border-radius: 12px;
-            text-align: center;
-        }
-        .biz-tagline { font-family: var(--font-tech); color: var(--brand-orange); font-size: 0.7rem; margin-bottom: 10px; display: block; }
-        .biz-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 20px; color: #fff; }
+        .biz-card { background: linear-gradient(145deg, #111, #050505); border: 1px solid var(--orange); padding: 30px; border-radius: 12px; text-align: center; }
+        .lobby-container { display: flex; flex-direction: column; gap: 15px; padding: 30px; height: 100%; justify-content: center; }
+        .cuisine-btn { background: #222; border: 1px solid #444; color: #888; padding: 20px; font-size: 1.2rem; font-weight: bold; border-radius: 12px; transition: all 0.2s; }
+        .cuisine-btn.selected { background: var(--orange); color: #000; border-color: var(--orange); box-shadow: 0 0 15px rgba(255, 103, 31, 0.4); }
+        .hunt-btn { background: #fff; color: #000; font-weight: 900; margin-top: 30px; letter-spacing: 2px; }
 
-        .lobby-container {
-            display: flex; flex-direction: column; gap: 15px; padding: 30px;
-            height: 100%; justify-content: center;
-        }
-        .cuisine-btn {
-            background: #222; border: 1px solid #444; color: #888;
-            padding: 20px; font-size: 1.2rem; font-weight: bold;
-            text-transform: uppercase; border-radius: 12px;
-            transition: all 0.2s;
-        }
-        .cuisine-btn.selected {
-            background: var(--brand-orange); color: #000; border-color: var(--brand-orange);
-            box-shadow: 0 0 15px rgba(255, 103, 31, 0.4);
-        }
-        .hunt-btn {
-            background: #fff; color: #000; font-weight: 900; margin-top: 30px;
-            letter-spacing: 2px;
-        }
-
-        #depth-fill { position: fixed; right: 0; top: 0; bottom: 0; width: 4px; background: #333; z-index: 900; height: 0%; transition: height 0.05s linear; }
-        
-        .toast-msg {
-            position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
-            background: #222; color: #00e676; padding: 10px 20px; border: 1px solid #00e676;
-            border-radius: 20px; font-size: 0.8rem; opacity: 0; pointer-events: none;
-            transition: opacity 0.3s; z-index: 3000; white-space: nowrap; font-family: var(--font-tech);
-        }
-        .toast-msg.visible { opacity: 1; }
-
-        #mic-toggle {
-            position: fixed; bottom: 20px; left: 20px; width: 50px; height: 50px;
-            background: #111; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-            border: 1px solid #444; z-index: 2000; cursor: pointer; transition: all 0.3s;
-        }
+        #mic-toggle { position: fixed; bottom: 20px; left: 20px; width: 50px; height: 50px; background: #111; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid #444; z-index: 2000; cursor: pointer; transition: all 0.3s; }
         #mic-toggle svg { width: 24px; height: 24px; fill: #666; }
-        #mic-toggle.listening { border-color: var(--accent-go); box-shadow: 0 0 15px rgba(0,230,118,0.3); }
-        #mic-toggle.listening svg { fill: var(--accent-go); }
+        #mic-toggle.listening { border-color: var(--go); box-shadow: 0 0 15px rgba(0,230,118,0.3); }
+        #mic-toggle.listening svg { fill: var(--go); }
+        #toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: #222; color: #00e676; padding: 10px 20px; border: 1px solid #00e676; border-radius: 20px; font-size: 0.8rem; opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 3000; white-space: nowrap; }
+        #toast.visible { opacity: 1; }
     </style>
 </head>
 <body>
@@ -204,109 +83,39 @@
 <div id="gyro-status" class="status-pill">GYRO ACTIVE</div>
 <div id="eye-status" class="status-pill">EYE TRACKING ACTIVE</div>
 <div id="gaze-dot"></div>
-
 <div id="master-container"></div>
-<div id="depth-fill"></div>
-<div id="toast" class="toast-msg"></div>
-
-<div id="mic-toggle" onclick="toggleListenMode()">
-    <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
-</div>
+<div id="toast"></div>
+<div id="mic-toggle" onclick="toggleListenMode()"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></div>
 
 <script>
-    /* =========================================
-       1. SYSTEM CONFIGURATION
-       ========================================= */
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyBMwKxq92U0dptKMdEHvUCXPS9AjExHtxHjcRmfh2JFjCSn9Zd82bzp34xLg6X0a7L9g/exec";
-    const SHARE_LINK_TEXT = "food-decider | swipe OS";
-    
-    // Feature Flags
-    let SENSORS_ENABLED = false;
-    let GAZE_ENABLED = false;
-
-    // Physics Tuning
-    const BALL_WEIGHT = 0.08;
-    const SPHERE_RADIUS_PX = 1000; 
-    const CLICK_ANGLE_DEG = 15; 
-
-    // Connectivity State
     const NET_STATE = { online: navigator.onLine };
-    window.addEventListener("online", () => { NET_STATE.online = true; showToast("ONLINE · SYNC ENABLED"); fetchVoiceConfig(); });
-    window.addEventListener("offline", () => { NET_STATE.online = false; showToast("OFFLINE · USING SAVED DATA"); });
+    let SENSORS_ENABLED = false;
+    let RAW_DATA = { punjabi: { label: "PUNJABI", categories: [] } };
+    let ENGINE_STATE = { session_id: "auto-" + Date.now(), cuisines_detected: [], items_detected: {}, platform_strategy: { fulfillment: [] } };
 
-    // Fallback Data
-    const FALLBACK_MENU = {
-        version: "offline-v1",
-        data: {
-            punjabi: {
-                label: "PUNJABI",
-                categories: [
-                    { id: "p_breads", label: "Breads", items: [{name:"Butter Naan", price:40}, {name:"Tandoori Roti", price:25}] },
-                    { id: "p_mains", label: "Mains", items: [{name:"Dal Makhani", price:220}, {name:"Butter Chicken", price:280}] }
-                ]
-            }
-        }
-    };
-    let RAW_DATA = FALLBACK_MENU.data; 
-
-    let ENGINE_STATE = {
-        session_id: "auto-" + Date.now(),
-        cuisines_detected: [],
-        items_detected: {}, 
-        platform_strategy: { discover: ["zomato", "swiggy"], fulfillment: ["zomato", "swiggy"] },
-        cart_state: { items: [], total: 0 }
-    };
-
-    /* =========================================
-       2. INPUT ENGINES (Gaze & Physics)
-       ========================================= */
-    
-    // --- 👁️ EYE TRACKING CONTROLLER ---
+    // --- GAZE ENGINE ---
     class GazeController {
-        constructor() {
-            this.active = false;
-            this.lastTrigger = 0;
-            this.triggerDelay = 1500; // 1.5s cooldown
-        }
-
+        constructor() { this.active = false; this.lastTrigger = 0; }
         start() {
-            if(this.active) return;
+            if(this.active || typeof webgazer === 'undefined') return;
             this.active = true;
             document.getElementById('eye-status').classList.add('active-pill');
             document.getElementById('gaze-dot').style.display = 'block';
-            
             webgazer.setGazeListener((data, elapsed) => {
                 if (data == null) return;
-                
-                const x = data.x;
-                const y = data.y;
-                const w = window.innerWidth;
-                const h = window.innerHeight;
-                const now = Date.now();
-
-                // Visual Feedback
                 const dot = document.getElementById('gaze-dot');
-                dot.style.left = x + 'px';
-                dot.style.top = y + 'px';
-
-                // Trigger Zones
-                if (now - this.lastTrigger > this.triggerDelay) {
-                    if (y < h * 0.2) { this.trigger("UP"); }        // Top 20% = Select
-                    else if (x < w * 0.2) { this.trigger("LEFT"); } // Left 20% = Skip
-                    else if (x > w * 0.8) { this.trigger("RIGHT"); } // Right 20% = Browse
+                dot.style.left = data.x + 'px'; dot.style.top = data.y + 'px';
+                if (Date.now() - this.lastTrigger > 1500) {
+                    if (data.y < window.innerHeight * 0.2) this.trigger("UP");
+                    else if (data.x < window.innerWidth * 0.2) this.trigger("LEFT");
+                    else if (data.x > window.innerWidth * 0.8) this.trigger("RIGHT");
                 }
             }).begin();
         }
-
         trigger(dir) {
             this.lastTrigger = Date.now();
             showToast("EYE: " + dir);
-            
-            // Pulse Effect
-            const dot = document.getElementById('gaze-dot');
-            dot.style.transform = "translate(-50%, -50%) scale(2)";
-            setTimeout(() => dot.style.transform = "translate(-50%, -50%) scale(1)", 200);
-
             if(dir === "UP") executeAction("SELECT");
             if(dir === "LEFT") executeAction("SKIP");
             if(dir === "RIGHT") executeAction("BROWSE");
@@ -314,673 +123,226 @@
     }
     const gazeEngine = new GazeController();
 
-    // --- 📱 PHYSICS CONTROLLER (Touch + Gyro) ---
+    // --- PHYSICS ENGINE ---
     class PhysicsController {
-        constructor(el, cbs, active = true) {
-            this.el = el; 
-            this.cbs = cbs; 
-            this.active = false; 
-            this.locked = false;
-            this.current = {x:0, y:0}; 
-            this.target = {x:0, y:0};  
-            
-            // Mouse/Touch Listeners
-            const s = e => this.startDrag(e.touches?e.touches[0]:e); 
-            const m = e => this.move(e.touches?e.touches[0]:e); 
-            const e2 = () => this.end();
-            
+        constructor(el, cbs) {
+            this.el = el; this.cbs = cbs; this.active = false; this.current = {x:0, y:0}; this.target = {x:0, y:0};
+            const s = e => this.start(e); const m = e => this.move(e); const e2 = () => this.end();
             el.addEventListener("mousedown",s); window.addEventListener("mousemove",m); window.addEventListener("mouseup",e2);
-            el.addEventListener("touchstart",s,{passive:false}); el.addEventListener("touchmove",ev=>{if(this.active)ev.preventDefault();m(ev)},{passive:false}); el.addEventListener("touchend",e2);
-
-            // Gyro Listeners
-            if(SENSORS_ENABLED && active) {
-                this.handleOrientation = this.handleOrientation.bind(this);
-                if(window.DeviceOrientationEvent) window.addEventListener("deviceorientation", this.handleOrientation);
-                this.loop = this.loop.bind(this);
-                this.raf = requestAnimationFrame(this.loop);
-            }
-        }
-
-        cleanup() {
-            cancelAnimationFrame(this.raf);
-            window.removeEventListener("deviceorientation", this.handleOrientation);
-        }
-
-        // The Physics Loop
-        loop() {
-            if(this.active || this.locked) return; 
-            
-            // Lerp towards target
-            this.current.x += (this.target.x - this.current.x) * BALL_WEIGHT;
-            this.current.y += (this.target.y - this.current.y) * BALL_WEIGHT;
-            
-            this.updateVisuals(this.current.x, this.current.y);
-
-            // Threshold Check
+            el.addEventListener("touchstart",s,{passive:false}); el.addEventListener("touchmove",e=>{if(this.active)e.preventDefault();m(e)},{passive:false}); el.addEventListener("touchend",e2);
             if(SENSORS_ENABLED) {
-                const clickThresh = SPHERE_RADIUS_PX * Math.tan(CLICK_ANGLE_DEG * Math.PI / 180);
-                
-                // Horizontal Trigger (Skip/Browse)
-                if(Math.abs(this.current.x) > clickThresh) {
-                    this.commit(Math.sign(this.current.x)*100, 0);
-                } 
-                // Vertical Trigger (Select)
-                else if(Math.abs(this.current.y) > clickThresh) {
-                    this.commit(0, Math.sign(this.current.y)*100);
-                }
+                this.handleOrient = this.handleOrient.bind(this);
+                if(window.DeviceOrientationEvent) window.addEventListener("deviceorientation", this.handleOrient);
+                this.loop();
             }
-            this.raf = requestAnimationFrame(this.loop);
         }
-
-        handleOrientation(event) {
-            if(this.active || this.locked) return;
-            let g = event.gamma; // Left/Right tilt
-            let b = event.beta - 45; // Front/Back tilt (adjusted for holding angle)
-            
-            let radX = (g * Math.PI) / 180;
-            let radY = (b * Math.PI) / 180;
-            
-            const MAX_RAD = 20 * Math.PI / 180;
-            radX = Math.max(-MAX_RAD, Math.min(MAX_RAD, radX));
-            radY = Math.max(-MAX_RAD, Math.min(MAX_RAD, radY));
-
-            // Deadzone
-            if(Math.abs(g) > 1) this.target.x = SPHERE_RADIUS_PX * Math.tan(radX); else this.target.x = 0;
-            if(Math.abs(b) > 1) this.target.y = SPHERE_RADIUS_PX * Math.tan(radY); else this.target.y = 0;
+        cleanup() { window.removeEventListener("deviceorientation", this.handleOrient); }
+        loop() {
+            if(!SENSORS_ENABLED) return;
+            this.current.x += (this.target.x - this.current.x) * 0.08;
+            this.current.y += (this.target.y - this.current.y) * 0.08;
+            this.el.style.transform = `translate(${this.current.x}px, ${this.current.y}px) rotate(${this.current.x/20}deg)`;
+            if(Math.abs(this.current.x) > 200) this.commit(Math.sign(this.current.x)*100, 0);
+            else if(Math.abs(this.current.y) > 200) this.commit(0, Math.sign(this.current.y)*100);
+            else requestAnimationFrame(() => this.loop());
         }
-
-        startDrag(p){ this.active=true; this.start={x:p.clientX, y:p.clientY}; this.el.style.transition="none"; }
-        move(p){ if(!this.active) return; this.updateVisuals(p.clientX - this.start.x, p.clientY - this.start.y); }
-        end(){
+        handleOrient(e) {
+            if(this.active) return;
+            let g = e.gamma; let b = e.beta - 45;
+            if(Math.abs(g) > 1) this.target.x = 1000 * Math.tan(g * Math.PI / 180); else this.target.x = 0;
+            if(Math.abs(b) > 1) this.target.y = 1000 * Math.tan(b * Math.PI / 180); else this.target.y = 0;
+        }
+        start(e) { this.active=true; this.startPos={x:(e.touches?e.touches[0]:e).clientX, y:(e.touches?e.touches[0]:e).clientY}; this.el.style.transition="none"; }
+        move(e) { 
+            if(!this.active) return; 
+            const c = (e.touches?e.touches[0]:e); 
+            this.el.style.transform = `translate(${c.clientX - this.startPos.x}px, ${c.clientY - this.startPos.y}px)`; 
+        }
+        end() { 
             if(!this.active) return; this.active=false;
             const m = new WebKitCSSMatrix(getComputedStyle(this.el).transform);
-            // Swipe Threshold
             if(Math.hypot(m.m41, m.m42) > 80) this.commit(m.m41, m.m42);
-            else { this.el.style.transition="0.3s cubic-bezier(0.2,0.8,0.2,1)"; this.el.style.transform="translate(0,0) rotate(0deg)"; }
+            else { this.el.style.transition="0.3s ease"; this.el.style.transform="translate(0,0)"; }
         }
-
         commit(dx, dy) {
-            this.locked = true;
-            const dir = this.dir(dx, dy);
-            // Animate card off-screen
-            const flyX = dx * 4; const flyY = dy * 4;
-            this.el.style.transition = "0.4s ease";
-            this.el.style.transform = `translate(${flyX}px, ${flyY}px) rotate(${flyX/10}deg)`;
-            this.el.style.opacity = "0";
-            
-            setTimeout(() => { 
-                this.cleanup(); 
-                this.cbs.onCommit(dir); 
-            }, 300);
-        }
-
-        updateVisuals(dx, dy) { this.el.style.transform = `translate(${dx}px, ${dy}px) rotate(${dx/20}deg)`; }
-        
-        dir(dx, dy){
+            let dir = "RIGHT";
             const a = (Math.atan2(-dy, dx) * 180 / Math.PI + 360) % 360;
-            if(a>45 && a<135) return "UP";    // Select
-            if(a>135 && a<225) return "LEFT"; // Skip
-            if(a>225 && a<315) return "DOWN"; // (Ignored)
-            return "RIGHT";                   // Browse
+            if(a>45 && a<135) dir = "UP"; else if(a>135 && a<225) dir = "LEFT"; else if(a>225 && a<315) dir = "DOWN";
+            this.el.style.transition = "0.4s ease";
+            this.el.style.transform = `translate(${dx*4}px, ${dy*4}px)`;
+            this.el.style.opacity = "0";
+            setTimeout(() => { this.cleanup(); this.cbs(dir); }, 300);
         }
     }
 
-    /* =========================================
-       3. APP LOGIC (UI & Routing)
-       ========================================= */
-    const container = document.getElementById('master-container');
-    let slideElements = [];
-    let currentIdx = 0;
-    let activePhysics = null;
+    // --- APP LOGIC ---
+    let container = document.getElementById('master-container');
+    let slideElements = [], currentIdx = 0, activePhysics = null;
 
     async function boot() {
-        renderLobby(); 
-        loadLocalState(); 
+        renderLobby();
+        const cached = localStorage.getItem("ENGINE_STATE_CACHE");
+        if(cached) ENGINE_STATE = JSON.parse(cached);
         initVoice();
-        await fetchMenuData(); 
-        fetchVoiceConfig(); 
-        setTimeout(checkMenuVersion, 3000);
+        await fetchMenuData();
     }
 
     function renderLobby() {
-        container.innerHTML = "";
-        const section = document.createElement('section'); 
-        section.className = "main-slide active"; 
-        section.id = "lobby";
-        section.innerHTML = `
-        <div class="slide-header"><span class="header-title">SWIPE-OS v13.0 (OMNI)</span></div>
-        <div class="lobby-container">
-            <h1 style="text-align:center; margin-bottom:40px;">AAJ KYA MANGVAAYEGE!</h1>
-            <div id="cuisine-grid" style="display:grid; gap:15px;">
-                <button class="cuisine-btn" onclick="toggleCuisine('punjabi', this)">PUNJABI</button>
-                <button class="cuisine-btn" onclick="toggleCuisine('chinese', this)">CHINESE</button>
-                <button class="cuisine-btn" onclick="toggleCuisine('pizza', this)">PIZZA</button>
-                <button class="cuisine-btn" onclick="toggleCuisine('snacks', this)">NASTA PANI</button>
-            </div>
-            <button class="btn hunt-btn" onclick="startHunt()">HUNT &rarr;</button>
-            <div style="display:flex; gap:10px; margin-top:15px;">
-                <button class="btn" style="background:#222; font-size:0.7rem; flex:1;" onclick="requestSensorAccess()">ENABLE GYRO</button>
-                <button class="btn" style="background:#222; font-size:0.7rem; flex:1;" onclick="requestGazeAccess()">ENABLE EYES</button>
-            </div>
-        </div>`;
-        container.appendChild(section); 
-        slideElements = [section]; 
-        currentIdx = 0;
-        
-        if(ENGINE_STATE.cuisines_detected) {
-            ENGINE_STATE.cuisines_detected.forEach(c => { 
-                const btn = document.querySelector(`button[onclick*='${c}']`); 
-                if(btn) btn.classList.add('selected'); 
+        container.innerHTML = `<section class="main-slide active" id="lobby"><div class="slide-header"><span class="header-title">SWIPE-OS v13.1</span></div><div class="lobby-container"><h1>AAJ KYA MANGVAAYEGE!</h1><div id="cuisine-grid" style="display:grid; gap:15px;"><button class="cuisine-btn" onclick="toggleCuisine('punjabi', this)">PUNJABI</button><button class="cuisine-btn" onclick="toggleCuisine('chinese', this)">CHINESE</button><button class="cuisine-btn" onclick="toggleCuisine('pizza', this)">PIZZA</button><button class="cuisine-btn" onclick="toggleCuisine('snacks', this)">NASTA PANI</button></div><button class="btn hunt-btn" onclick="startHunt()">HUNT &rarr;</button><div style="display:flex;gap:10px;margin-top:15px"><button class="btn" style="flex:1" onclick="reqGyro()">GYRO</button><button class="btn" style="flex:1" onclick="reqGaze()">EYES</button></div></div></section>`;
+        slideElements = [document.getElementById('lobby')];
+        if(ENGINE_STATE.cuisines_detected) ENGINE_STATE.cuisines_detected.forEach(c => { const b = document.querySelector(`button[onclick*='${c}']`); if(b) b.classList.add('selected'); });
+    }
+
+    function toggleCuisine(id, btn) {
+        if(ENGINE_STATE.cuisines_detected.includes(id)) { ENGINE_STATE.cuisines_detected = ENGINE_STATE.cuisines_detected.filter(c=>c!==id); btn.classList.remove('selected'); }
+        else { ENGINE_STATE.cuisines_detected.push(id); btn.classList.add('selected'); }
+        localStorage.setItem("ENGINE_STATE_CACHE", JSON.stringify(ENGINE_STATE));
+    }
+
+    function reqGyro() { SENSORS_ENABLED = true; document.getElementById('gyro-status').classList.add('active-pill'); showToast("GYRO ACTIVE"); }
+    function reqGaze() { gazeEngine.start(); showToast("EYE TRACKING ON"); }
+
+    function startHunt() {
+        if(ENGINE_STATE.cuisines_detected.length === 0) { showToast("SELECT A CUISINE"); return; }
+        container.innerHTML = ""; slideElements = [];
+        ENGINE_STATE.cuisines_detected.forEach(cId => {
+            if(RAW_DATA[cId]) RAW_DATA[cId].categories.forEach(cat => {
+                const s = document.createElement('section'); s.className = 'main-slide next'; s.id = cat.id; s.dataset.mode = 'options';
+                let h = `<div class="slide-header"><span class="header-title">${cat.label}</span></div><div class="carousel-viewport">`;
+                cat.items.forEach((item, i) => {
+                    h += `<div class="sub-slide ${i===0?'opt-active':'opt-hidden'}" data-val="${item.name}"><div class="role-label">${cat.label}</div><h1>${item.name} ${item.price?`<span class="price">₹${item.price}</span>`:""}</h1><div class="primary-question">Swipe / Tilt / Voice</div><div class="nav-hint"><span>SKIP</span><span>SELECT</span><span>BROWSE</span></div></div>`;
+                });
+                s.innerHTML = h + `</div>`; container.appendChild(s);
             });
-        }
+        });
+        const final = document.createElement('section'); final.className = 'main-slide next'; final.id = 'final';
+        final.innerHTML = `<div class="sub-slide static"><div class="verdict-container"><div class="choice-header">FINAL ORDER</div><div class="input-group" id="final-list"></div><div class="final-actions"><button class="btn btn-zomato" onclick="link('zomato')">ZOMATO</button><button class="btn btn-swiggy" onclick="link('swiggy')">SWIGGY</button><button class="btn btn-blinkit" onclick="link('blinkit')">BLINKIT</button><button class="btn btn-cloud" onclick="saveToCloud()">SAVE</button><button class="btn btn-wa" onclick="sendWa()">WHATSAPP</button></div></div></div>`;
+        container.appendChild(final);
+        slideElements = Array.from(document.querySelectorAll('.main-slide'));
+        slideElements[0].className = "main-slide active";
+        currentIdx = 0;
+        if(slideElements[0].dataset.mode === 'options') attachPhysics(slideElements[0].querySelector('.sub-slide'));
     }
 
-    function requestSensorAccess() {
-        SENSORS_ENABLED = true; 
-        document.getElementById('gyro-status').classList.add('active-pill');
-        if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-            DeviceOrientationEvent.requestPermission()
-                .then(state => { if (state === 'granted') showToast("SENSORS: ACTIVE"); })
-                .catch(() => showToast("MOUSE MODE"));
-        } else { showToast("SENSORS: ACTIVE"); }
-    }
-
-    function requestGazeAccess() {
-        GAZE_ENABLED = true;
-        gazeEngine.start();
-        showToast("GAZE: CALIBRATING... FOLLOW CURSOR");
-    }
-
-    // --- CENTRAL ACTION HANDLER (Used by Touch, Voice, Gyro, Eye) ---
-    function executeAction(action) {
-        const currSlide = slideElements[currentIdx];
-        const mode = currSlide.dataset.mode;
-        
-        if(mode === 'options') {
-            // Food Card Interaction
-            const view = currSlide.querySelector('.carousel-viewport');
-            const val = view.querySelectorAll('.sub-slide')[view._currOpt || 0].dataset.val;
-            
-            if(action === "SELECT" || action === "UP") {
-                engineUpdate("ADD_ITEM", val); 
-                showToast(`ADDED: ${val}`); 
-                goToSlide(currentIdx + 1);
-            } 
-            else if(action === "SKIP" || action === "LEFT") {
-                showToast("SKIPPED"); 
-                goToSlide(currentIdx + 1);
-            } 
-            else if(action === "BROWSE" || action === "RIGHT") {
-                // Next Option in same category
-                const slides = view.querySelectorAll('.sub-slide');
-                let curr = view._currOpt || 0;
-                // Animate old out
-                slides[curr].classList.remove('opt-active'); 
-                slides[curr].classList.add('opt-hidden');
-                
-                curr = (curr + 1) % slides.length; 
-                view._currOpt = curr;
-                
-                // Animate new in
-                const next = slides[curr];
-                next.classList.remove('opt-hidden'); 
-                next.classList.add('opt-active');
-                
-                // Re-attach Physics to new card
-                attachPhysicsToCard(next);
-            }
-        } else {
-            // Static Slide Navigation (Lobby/Final)
-            if(action === "NEXT") goToSlide(currentIdx + 1);
-            if(action === "PREV") goToSlide(currentIdx - 1);
-        }
-    }
-
-    function attachPhysicsToCard(el) {
+    function attachPhysics(el) {
         if(activePhysics) activePhysics.cleanup();
-        activePhysics = new PhysicsController(el, {
-            onCommit: (dir) => {
-                // Map Physics Direction to Action
-                if(dir === "UP") executeAction("SELECT");
-                if(dir === "LEFT") executeAction("SKIP");
-                if(dir === "RIGHT") executeAction("BROWSE");
-                if(dir === "DOWN") { 
-                    // Reset if dragged down (cancel)
-                    el.style.transform = ""; 
-                    el.style.opacity = "1"; 
+        activePhysics = new PhysicsController(el, (dir) => {
+            const view = slideElements[currentIdx].querySelector('.carousel-viewport');
+            const val = el.dataset.val;
+            if(dir === "UP") { updateCart("ADD", val); showToast("ADDED"); nextSlide(); }
+            else if(dir === "LEFT") { showToast("SKIPPED"); nextSlide(); }
+            else if(dir === "RIGHT") { 
+                const slides = view.querySelectorAll('.sub-slide');
+                let curr = 0; slides.forEach((s,i) => { if(s.classList.contains('opt-active')) curr = i; s.classList.remove('opt-active'); s.classList.add('opt-hidden'); });
+                const next = slides[(curr+1)%slides.length];
+                next.classList.remove('opt-hidden'); next.classList.add('opt-active');
+                attachPhysics(next);
+            }
+            else { el.style.transform = ""; el.style.opacity = "1"; }
+        });
+    }
+
+    function nextSlide() {
+        if(currentIdx >= slideElements.length - 1) return;
+        slideElements[currentIdx].classList.remove('active'); slideElements[currentIdx].classList.add('prev');
+        currentIdx++;
+        slideElements[currentIdx].classList.remove('next'); slideElements[currentIdx].classList.add('active');
+        if(slideElements[currentIdx].id === 'final') renderCart();
+        else if(slideElements[currentIdx].dataset.mode === 'options') attachPhysics(slideElements[currentIdx].querySelector('.sub-slide'));
+    }
+
+    function updateCart(action, item) {
+        if(action === "ADD") { 
+            const qty = (ENGINE_STATE.items_detected[item]?.qty || 0) + 1;
+            ENGINE_STATE.items_detected[item] = { qty: qty, price: getPrice(item) };
+        }
+        localStorage.setItem("ENGINE_STATE_CACHE", JSON.stringify(ENGINE_STATE));
+    }
+
+    function getPrice(name) {
+        for(let c in RAW_DATA) for(let cat of RAW_DATA[c].categories) for(let i of cat.items) if(i.name === name) return i.price;
+        return 0;
+    }
+
+    function renderCart() {
+        const list = document.getElementById('final-list');
+        let h = "", total = 0;
+        for(let [k,v] of Object.entries(ENGINE_STATE.items_detected)) {
+            h += `<div class="input-row"><span>${k}</span><span>x${v.qty} · ₹${v.price*v.qty}</span></div>`;
+            total += v.price*v.qty;
+        }
+        h += `<div class="input-row" style="border-top:1px solid #444;margin-top:10px"><span>TOTAL</span><span>₹${total}</span></div>`;
+        list.innerHTML = h;
+    }
+
+    // --- DATA ---
+    async function fetchMenuData() {
+        try {
+            const res = await fetch(GOOGLE_SCRIPT_URL + "?type=menu");
+            const json = await res.json();
+            if(json.data && Object.keys(json.data).length > 0) RAW_DATA = json.data;
+        } catch(e) { console.log("Offline mode"); }
+    }
+
+    // --- ACTIONS ---
+    function executeAction(act) {
+        if(document.getElementById('lobby')) return;
+        const s = slideElements[currentIdx];
+        if(s.dataset.mode === 'options') {
+            const val = s.querySelector('.opt-active').dataset.val;
+            if(act === "SELECT") { updateCart("ADD", val); showToast("ADDED"); nextSlide(); }
+            if(act === "SKIP") { showToast("SKIPPED"); nextSlide(); }
+        }
+    }
+
+    function link(p) {
+        const q = encodeURIComponent(Object.keys(ENGINE_STATE.items_detected).map(k=>`${k} x${ENGINE_STATE.items_detected[k].qty}`).join(", "));
+        if(!q) return showToast("EMPTY CART");
+        const urls = { zomato: `https://www.zomato.com/search?q=${q}`, swiggy: `https://www.swiggy.com/search?query=${q}`, blinkit: `https://blinkit.com/s/?q=${q}` };
+        window.open(urls[p], '_blank');
+    }
+    function sendWa() {
+        let msg = "ORDER:\n"; for(let [k,v] of Object.entries(ENGINE_STATE.items_detected)) msg += `${k} x${v.qty}\n`;
+        window.open(`https://wa.me/916351537770?text=${encodeURIComponent(msg)}`, '_blank');
+    }
+    function saveToCloud() { fetch(GOOGLE_SCRIPT_URL, {method:"POST", body:JSON.stringify(ENGINE_STATE)}); showToast("SAVED"); }
+    function showToast(m) { const t=document.getElementById('toast'); t.innerText=m; t.classList.add('visible'); setTimeout(()=>t.classList.remove('visible'),2000); }
+    
+    // --- VOICE ---
+    function toggleListenMode() { 
+        if(!rec) initVoice();
+        const m = document.getElementById('mic-toggle');
+        if(m.classList.contains('listening')) { rec.stop(); m.classList.remove('listening'); } else { rec.start(); m.classList.add('listening'); }
+    }
+    let rec;
+    function initVoice() {
+        if(!window.SpeechRecognition && !window.webkitSpeechRecognition) return;
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        rec = new SR(); rec.lang = "en-IN"; rec.continuous = true;
+        rec.onresult = e => {
+            const t = e.results[e.results.length-1][0].transcript.toLowerCase();
+            showToast(t);
+            if(t.includes("zomato")) link('zomato');
+            else if(t.includes("swiggy")) link('swiggy');
+            else if(t.includes("whatsapp")) sendWa();
+            else if(t.includes("select") || t.includes("add")) executeAction("SELECT");
+            else if(t.includes("skip") || t.includes("next")) executeAction("SKIP");
+            else {
+                // Number detection
+                const nums = {"one":1,"two":2,"three":3,"1":1,"2":2,"3":3};
+                for(let k in nums) if(t.includes(k)) { 
+                    // Add current item with qty
+                    const s = slideElements[currentIdx];
+                    if(s && s.dataset.mode === 'options') {
+                         const val = s.querySelector('.opt-active').dataset.val;
+                         ENGINE_STATE.items_detected[val] = { qty: nums[k], price: getPrice(val) };
+                         showToast(`ADDED ${nums[k]} ${val}`);
+                         nextSlide();
+                    }
                 }
             }
-        }, true);
-    }
-
-    function goToSlide(idx) {
-        if (idx < 0 || idx >= slideElements.length) return;
-        
-        const curr = slideElements[currentIdx]; 
-        curr.classList.remove('active');
-        if (idx > currentIdx) { curr.classList.add('prev'); curr.classList.remove('next'); } 
-        else { curr.classList.add('next'); curr.classList.remove('prev'); }
-        
-        currentIdx = idx;
-        const next = slideElements[currentIdx];
-        next.classList.remove('prev', 'next'); 
-        next.classList.add('active');
-        
-        if(next.id === 'final') updateResult();
-        
-        // Setup Physics for the new slide if it has options
-        if(next.dataset.mode === 'options') {
-            const view = next.querySelector('.carousel-viewport');
-            const activeOpt = view.querySelectorAll('.sub-slide')[view._currOpt || 0];
-            if(activeOpt) attachPhysicsToCard(activeOpt);
-        } else { 
-            if(activePhysics) activePhysics.cleanup(); 
-        }
-    }
-
-    function buildGameDeck() {
-        container.innerHTML = ""; slideElements = [];
-        let slides = [];
-        ENGINE_STATE.cuisines_detected.forEach(cId => {
-            if(RAW_DATA[cId]) {
-                RAW_DATA[cId].categories.forEach(cat => {
-                    slides.push({ id: cat.id, type: 'selector', title: `${RAW_DATA[cId].label} · ${cat.label.toUpperCase()}`, items: cat.items });
-                });
-            }
-        });
-        slides.push({ id: "final", type: "final", title: "FINAL ORDER" });
-        
-        slides.forEach((cfg, idx) => {
-            const section = document.createElement('section'); 
-            section.className = `main-slide ${idx === 0 ? 'active' : 'next'}`;
-            section.id = cfg.id; 
-            section.dataset.mode = cfg.type === 'selector' ? 'options' : 'static';
-            
-            let html = `<div class="slide-header"><span class="header-title">${cfg.title}</span></div><div class="carousel-viewport" data-id="${cfg.id}">`;
-            
-            if (cfg.type === 'selector') {
-                cfg.items.forEach((item, i) => {
-                    html += `
-                    <div class="sub-slide ${i===0 ? 'opt-active' : 'opt-hidden'}" data-opt-idx="${i}" data-val="${item.name}">
-                        <div class="role-label">${cfg.title.split('·')[0].trim()}</div>
-                        <h1>${item.name}${item.price ? `<span class="price">₹${item.price}</span>` : ""}</h1>
-                        <div class="primary-question">Swipe / Tilt / Voice / Gaze</div>
-                        <div class="nav-hint">
-                            <span style="flex:1; color:var(--accent-skip); font-weight:bold;">&larr; SKIP</span>
-                            <span style="flex:2; text-align:center; color:var(--accent-go); font-weight:bold;">&uarr; SELECT</span>
-                            <span style="flex:1; text-align:right;">BROWSE &rarr;</span>
-                        </div>
-                    </div>`;
-                });
-            } else if (cfg.type === 'final') {
-                html += `
-                <div class="sub-slide static">
-                    <div class="verdict-container">
-                        <div class="choice-header">WHAT YOU CHOSE</div>
-                        <div class="input-group" id="final-list"></div>
-                        <div class="final-actions">
-                            <button class="btn btn-zomato" id="btn-zomato" onclick="copyAndRedirect('zomato')">ZOMATO</button>
-                            <button class="btn btn-swiggy" id="btn-swiggy" onclick="copyAndRedirect('swiggy')">SWIGGY</button>
-                            <button class="btn btn-blinkit" id="btn-blinkit" onclick="copyAndRedirect('blinkit')">BLINKIT</button>
-                            <button class="btn btn-cloud" onclick="saveToCloud()">SAVE TO CLOUD</button>
-                            <button class="btn btn-wa" onclick="sendWhatsapp()">WHATSAPP</button>
-                        </div>
-                    </div>
-                </div>`;
-            }
-            html += `</div>`; section.innerHTML = html; container.appendChild(section);
-        });
-        
-        slideElements = Array.from(document.querySelectorAll('.main-slide')); 
-        currentIdx = 0;
-        
-        // Init Physics for First Card
-        if(slideElements[0].dataset.mode === 'options') {
-            attachPhysicsToCard(slideElements[0].querySelector('.sub-slide'));
-        }
-    }
-
-    /* =========================================
-       4. DATA & STATE MANAGEMENT
-       ========================================= */
-    function findItemPrice(name) { 
-        if (!RAW_DATA) return 0; 
-        for (let c in RAW_DATA) { 
-            for (let cat of RAW_DATA[c].categories) { 
-                for (let item of cat.items) { 
-                    if (item.name.toLowerCase() === name.toLowerCase()) return item.price || 0; 
-                } 
-            } 
-        } 
-        return 0; 
-    }
-
-    function engineUpdate(patchType, payload) {
-        if (patchType === "ADD_CUISINE") if(!ENGINE_STATE.cuisines_detected.includes(payload)) ENGINE_STATE.cuisines_detected.push(payload);
-        if (patchType === "REMOVE_CUISINE") ENGINE_STATE.cuisines_detected = ENGINE_STATE.cuisines_detected.filter(c => c !== payload);
-        if (patchType === "ADD_ITEM") { 
-            const qty = ENGINE_STATE.items_detected[payload] ? ENGINE_STATE.items_detected[payload].qty + 1 : 1; 
-            ENGINE_STATE.items_detected[payload] = { qty: qty, price: findItemPrice(payload), added_at: Date.now() }; 
-            recalcStrategy(); 
-        }
-        if (patchType === "REMOVE_ITEM") { delete ENGINE_STATE.items_detected[payload]; recalcStrategy(); }
-        if (patchType === "RESET") { ENGINE_STATE.items_detected = {}; ENGINE_STATE.cuisines_detected = []; recalcStrategy(); }
-        if (patchType === "QUANTITY") {
-            for(let key in ENGINE_STATE.items_detected) {
-                if(key.toLowerCase().includes(payload.target.toLowerCase())) { 
-                    let q = ENGINE_STATE.items_detected[key].qty; 
-                    if(payload.mod === "double") q *= 2; 
-                    if(payload.mod === "half") q = Math.max(1, Math.ceil(q/2)); 
-                    ENGINE_STATE.items_detected[key].qty = q; 
-                } 
-            }
-        }
-        saveLocalState(); 
-    }
-
-    function recalcStrategy() { 
-        const items = Object.keys(ENGINE_STATE.items_detected); 
-        const cuisines = ENGINE_STATE.cuisines_detected; 
-        let platforms = new Set(["zomato", "swiggy"]); 
-        if(cuisines.includes('snacks') || items.some(i => i.match(/coke|chips|thumbs|water/i))) platforms.add("blinkit"); 
-        ENGINE_STATE.platform_strategy.fulfillment = Array.from(platforms); 
-        updateResult(); 
-    }
-
-    function saveLocalState(){ localStorage.setItem("ENGINE_STATE_CACHE", JSON.stringify(ENGINE_STATE)); }
-    function loadLocalState(){ const cached = localStorage.getItem("ENGINE_STATE_CACHE"); if(cached) ENGINE_STATE = JSON.parse(cached); }
-    
-    function windowToggleCuisine(id, btn) { 
-        if(ENGINE_STATE.cuisines_detected.includes(id)) { engineUpdate("REMOVE_CUISINE", id); btn.classList.remove('selected'); } 
-        else { engineUpdate("ADD_CUISINE", id); btn.classList.add('selected'); } 
-    }
-    window.toggleCuisine = windowToggleCuisine; 
-
-    async function fetchMenuData() { 
-        try { 
-            const res = await fetch(GOOGLE_SCRIPT_URL + "?type=menu", { cache: "no-store" }); 
-            const json = await res.json(); 
-            if(json.data && Object.keys(json.data).length > 0) { 
-                RAW_DATA = json.data; 
-                localStorage.setItem("MENU_CACHE", JSON.stringify(json)); 
-                console.log("MENU: LIVE UPDATED");
-            } else throw new Error("Empty"); 
-        } catch(e) { console.log("Using Offline Menu"); } 
-    }
-
-    function fetchVoiceConfig() { 
-        fetch(GOOGLE_SCRIPT_URL + "?type=voice_config").then(res => res.json()).then(data => { 
-            if(data && !data.error) { 
-                Object.assign(VOICE_INTENTS, data); 
-                localStorage.setItem("VOICE_INTENTS_CACHE", JSON.stringify(VOICE_INTENTS)); 
-            } 
-        }); 
-    }
-
-    async function checkMenuVersion() { 
-        try { 
-            const res = await fetch(GOOGLE_SCRIPT_URL + "?type=menu_version"); 
-            const { version } = await res.json(); 
-            if (version !== localStorage.getItem(SERVER_VERSION_KEY)) { 
-                localStorage.setItem(SERVER_VERSION_KEY, version); 
-                await fetchMenuData(); 
-            } 
-        } catch(e){} 
-    }
-
-    function updateResult() {
-        const list = document.getElementById('final-list'); if(!list) return;
-        const cart = ENGINE_STATE.items_detected; const strategies = ENGINE_STATE.platform_strategy.fulfillment;
-        
-        ['zomato','swiggy','blinkit'].forEach(p => { 
-            const btn = document.getElementById(`btn-${p}`); 
-            if(btn) { 
-                if(strategies.includes(p)) btn.classList.add('active'); 
-                else btn.classList.remove('active'); 
-            } 
-        });
-
-        let html = ''; let total = 0;
-        if (Object.keys(cart).length === 0) html = '<div style="text-align:center;color:#666;margin-top:20px;">No items selected.</div>';
-        else { 
-            for (const [name, data] of Object.entries(cart)) { 
-                const price = data.price || 0; 
-                total += price * data.qty; 
-                html += `<div class="input-row"><span class="input-key">${name}</span><span class="input-val">x${data.qty} · ₹${price * data.qty}</span></div>`; 
-            } 
-            html += `<div class="input-row" style="border-top:1px solid #444; margin-top:10px;"><span class="input-key">TOTAL</span><span class="input-val">₹${total}</span></div>`; 
-        }
-        list.innerHTML = html;
-    }
-
-    /* =========================================
-       5. VOICE RECOGNITION SYSTEM
-       ========================================= */
-    const VOICE_INTENTS = { 
-        NAV: { next: ["next","continue"], prev: ["back"], jump: ["go to","open"] }, 
-        ACTION: { select: ["select","choose"], skip: ["skip"], browse: ["browse"] }, 
-        CART: { add: ["add"], remove: ["remove"], reset: ["clear cart","reset order"], read: ["read cart"] }, 
-        QUANTITY: { double: ["double"], half: ["half"] }, 
-        PLATFORM: { zomato: ["zomato"], swiggy: ["swiggy"], blinkit: ["blinkit"], whatsapp: ["whatsapp"] }, 
-        SYSTEM: { help: ["help"], copy: ["copy"], save: ["save"] } 
-    };
-
-    const NUMBER_MAP = { "zero":0, "one":1, "won":1, "two":2, "to":2, "three":3, "four":4, "five":5, "six":6, "seven":7, "eight":8, "nine":9, "ten":10 };
-
-    function extractNumber(text) { 
-        text = text.toLowerCase(); 
-        const digit = text.match(/\b\d+\b/); 
-        if (digit) return parseInt(digit[0], 10); 
-        for (let word in NUMBER_MAP) { 
-            if (new RegExp(`\\b${word}\\b`, 'i').test(text)) return NUMBER_MAP[word]; 
-        } 
-        return null; 
-    }
-    
-    // PRIORITY PARSER: Checks Platforms First to avoid "Open Zomato" -> Jump to 2
-    function parseVoice(text){ 
-        const t = text.toLowerCase(); 
-        if(VOICE_INTENTS.PLATFORM) { 
-            for (const [key, words] of Object.entries(VOICE_INTENTS.PLATFORM)) { 
-                if (words.some(w => t.includes(w))) return { group: "PLATFORM", key, raw: t }; 
-            } 
-        } 
-        for (const [group, intents] of Object.entries(VOICE_INTENTS)) { 
-            if (group === "PLATFORM") continue; 
-            for (const [key, words] of Object.entries(intents)) { 
-                if (words.some(w => t.includes(w))) return { group, key, raw: t }; 
-            } 
-        } 
-        return null; 
-    }
-    
-    function dispatchVoice(cmd){ 
-        if(!cmd) return; 
-        
-        // Lobby Commands
-        if(document.getElementById('lobby')) { 
-            if(cmd.group === 'CART' && cmd.key === 'add') { 
-                const map = {'punjabi': 'punjabi', 'chinese': 'chinese', 'pizza': 'pizza', 'nasta': 'snacks'}; 
-                for(let k in map) if(cmd.raw.includes(k)) toggleCuisine(map[k], document.querySelector(`button[onclick*='${map[k]}']`)); 
-            } 
-            if(cmd.key === 'next' || cmd.key === 'jump') startHunt(); 
-            return; 
-        } 
-        
-        // Jump Commands (if number present)
-        if (cmd.group === "NAV" && cmd.key === "jump") { 
-            const n = extractNumber(cmd.raw); 
-            if (n !== null && slideElements[n - 1]) { 
-                goToSlide(n - 1); 
-                speak(`Jumping to slide ${n}`); 
-                return; 
-            } 
-        } 
-
-        switch(cmd.group){ 
-            case "NAV": if(cmd.key==="next") executeAction("NEXT"); if(cmd.key==="prev") executeAction("PREV"); break; 
-            case "ACTION": if(cmd.key==="select") executeAction("SELECT"); if(cmd.key==="skip") executeAction("SKIP"); if(cmd.key==="browse") executeAction("BROWSE"); break; 
-            case "CART": if(cmd.key==="add") handleGlobalAdd(cmd.raw); if(cmd.key==="remove") handleGlobalRemove(cmd.raw); if(cmd.key==="reset") engineUpdate("RESET"); if(cmd.key==="read") readCart(); break; 
-            case "QUANTITY": 
-                for(let item in ENGINE_STATE.items_detected) { 
-                    if(cmd.raw.includes(item.toLowerCase())) engineUpdate("QUANTITY", { target: item, mod: cmd.key }); 
-                } 
-                speak("Updated quantity"); updateResult(); 
-                break; 
-            case "PLATFORM": 
-                if(cmd.key === "whatsapp") sendWhatsapp(); else copyAndRedirect(cmd.key); 
-                break; 
-            case "SYSTEM": 
-                if(cmd.key==="help") speak("Commands: Select, Skip, Add Item, Zomato."); 
-                if(cmd.key==="copy") autoCopy(); 
-                if(cmd.key==="save") saveToCloud(); 
-                break; 
-        } 
-    }
-    
-    /* =========================================
-       6. CONNECTIVITY (Deep Links & Helpers)
-       ========================================= */
-    function handleGlobalAdd(txt) { 
-        let qty = extractNumber(txt) || 1; 
-        let found = false; 
-        if(RAW_DATA) Object.keys(RAW_DATA).forEach(cId => RAW_DATA[cId].categories.forEach(cat => cat.items.forEach(item => { 
-            if (!found && txt.includes(item.name.toLowerCase())) { 
-                const currentQty = ENGINE_STATE.items_detected[item.name]?.qty || 0; 
-                ENGINE_STATE.items_detected[item.name] = { qty: currentQty + qty, price: item.price || 0, added_at: Date.now() }; 
-                found = true; 
-                recalcStrategy(); 
-                showToast(`ADDED ${qty} × ${item.name}`); 
-                if (slideElements[currentIdx] && slideElements[currentIdx].id === 'final') updateResult(); 
-            } 
-        }))); 
-        if(!found) showToast("ITEM NOT FOUND"); 
-    }
-
-    function handleGlobalRemove(txt) { 
-        const qty = extractNumber(txt) || 1; 
-        for (const item in ENGINE_STATE.items_detected) { 
-            if (txt.includes(item.toLowerCase())) { 
-                ENGINE_STATE.items_detected[item].qty -= qty; 
-                if (ENGINE_STATE.items_detected[item].qty <= 0) { 
-                    delete ENGINE_STATE.items_detected[item]; 
-                    showToast(`REMOVED ${item}`); 
-                } else { showToast(`REDUCED ${item} ×${qty}`); } 
-                recalcStrategy(); 
-                if (slideElements[currentIdx] && slideElements[currentIdx].id === 'final') updateResult(); 
-                return; 
-            } 
-        } 
-    }
-
-    function readCart(){ 
-        const items = ENGINE_STATE.items_detected; 
-        if(!Object.keys(items).length){ speak("Cart is empty"); return; } 
-        let sentence = "You have "; 
-        Object.entries(items).forEach(([k,v]) => { sentence += `${v.qty} ${k}, `; }); 
-        speak(sentence.slice(0, -2)); 
-    }
-
-    function speak(text) { window.speechSynthesis.speak(new SpeechSynthesisUtterance(text)); }
-    
-    function buildCartSearchQuery() { 
-        const cart = ENGINE_STATE.items_detected; 
-        if(Object.keys(cart).length === 0) return ""; 
-        let query = []; 
-        for(let [k, v] of Object.entries(cart)) { query.push(`${k} x${v.qty}`); } 
-        return encodeURIComponent(query.join(", ")); 
-    }
-
-    function buildWhatsappMessage() { 
-        const cart = ENGINE_STATE.items_detected; 
-        let msg = "📋 *NEW ORDER*\n----------------\n"; 
-        let total = 0; let i = 1; 
-        for(let [k, v] of Object.entries(cart)) { 
-            let lineTotal = v.price * v.qty; 
-            total += lineTotal; 
-            msg += `${i}. ${k} (x${v.qty}) - ₹${lineTotal}\n`; 
-            i++; 
-        } 
-        msg += "----------------\n"; 
-        msg += `💰 *Est. Total: ₹${total}*\n`; 
-        msg += `📍 Location: Gandhidham`; 
-        return encodeURIComponent(msg); 
-    }
-    
-    function copyAndRedirect(platform) { 
-        if(!NET_STATE.online){ showToast("COPIED — OPEN APP MANUALLY"); autoCopy(); return; } 
-        const query = buildCartSearchQuery(); 
-        if(!query) { showToast("CART IS EMPTY"); return; } 
-        showToast("OPENING " + platform.toUpperCase()); 
-        
-        // FIXED URL SCHEMAS
-        const links = { 
-            zomato: `https://www.zomato.com/search?q=${query}`, 
-            swiggy: `https://www.swiggy.com/search?query=${query}`, 
-            blinkit: `https://blinkit.com/s/?q=${query}` 
-        }; 
-        if (links[platform]) { window.open(links[platform], '_blank'); } 
-    }
-    
-    function sendWhatsapp() { const msg = buildWhatsappMessage(); window.open(`https://wa.me/916351537770?text=${msg}`, '_blank'); }
-    
-    function saveToCloud() { 
-        if(!NET_STATE.online) { showToast("OFFLINE"); return; } 
-        showToast("SAVING..."); 
-        fetch(GOOGLE_SCRIPT_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(ENGINE_STATE) })
-            .then(() => { showToast("SAVED ✅"); speak("Order saved"); }); 
-    }
-    
-    function autoCopy() { 
-        let str = ""; let total = 0; 
-        for(let [k,v] of Object.entries(ENGINE_STATE.items_detected)) { 
-            str += `${k} (x${v.qty}), `; 
-            total += v.price * v.qty; 
-        } 
-        navigator.clipboard.writeText(str + ` | TOTAL: ₹${total}`); 
-        showToast("COPIED"); 
-    }
-
-    function showToast(msg) { 
-        const t = document.getElementById('toast'); 
-        t.innerText = msg; t.classList.add('visible'); 
-        setTimeout(() => t.classList.remove('visible'), 2000); 
-    }
-
-    function toggleListenMode() { 
-        const mic = document.getElementById('mic-toggle'); 
-        if(mic.classList.contains('listening')) { rec.stop(); mic.classList.remove('listening'); } 
-        else { try { rec.start(); } catch(e) {} mic.classList.add('listening'); } 
-    }
-
-    // --- VOICE INIT ---
-    let rec; 
-    function initVoice() { 
-        const SR = window.SpeechRecognition || window.webkitSpeechRecognition; 
-        if (!SR) { showToast("VOICE NOT SUPPORTED"); return; } 
-        rec = new SR(); 
-        rec.lang = "en-IN"; 
-        rec.continuous = true; 
-        rec.interimResults = false; 
-        
-        rec.onresult = e => { 
-            const txt = e.results[e.results.length - 1][0].transcript; 
-            showToast(`Heard: "${txt}"`); 
-            const intent = parseVoice(txt); 
-            if (intent) { 
-                dispatchVoice(intent); 
-            } else { 
-                // Implicit Number Fallback ("Two Cokes")
-                const num = extractNumber(txt); 
-                if (num !== null) handleGlobalAdd(txt); 
-            } 
-        }; 
-        
-        rec.onerror = e => { showToast("VOICE RETRY"); }; 
-        rec.onend = () => { 
-            const mic = document.getElementById('mic-toggle'); 
-            if (mic && mic.classList.contains('listening')) setTimeout(() => { try { rec.start(); } catch(e) {} }, 300); 
-        }; 
+        };
+        rec.onend = () => { if(document.getElementById('mic-toggle').classList.contains('listening')) rec.start(); };
     }
 
     boot();
