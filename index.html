@@ -10,6 +10,9 @@
 <link rel="apple-touch-icon" href="icons/icon-192.png">  
 
 <script>  
+
+    let rec = null;
+    
   if ('serviceWorker' in navigator) {  
     window.addEventListener('load', () => {  
       navigator.serviceWorker.register('./service-worker.js').catch(()=>{});  
@@ -40,10 +43,32 @@
         will-change: transform;   
         overflow: hidden;   
     }  
+    
     .sub-slide.opt-active { z-index: 30; opacity: 1; pointer-events: auto; transform: translateX(0); }  
     .sub-slide.opt-hidden { z-index: 0; opacity: 0; pointer-events: none; transform: scale(0.9); }  
     .sub-slide.static { z-index: 30; opacity: 1; pointer-events: auto; transform: none; }  
+slide.addEventListener("touchend", e => {
+  const dx = e.changedTouches[0].clientX - startX;
+  const dy = e.changedTouches[0].clientY - startY;
 
+  // DOWN = SELECT
+  if (dy > 60 && Math.abs(dy) > Math.abs(dx)) {
+    executeAction("SELECT");
+  }
+
+  // LEFT = SKIP
+  else if (dx < -60) {
+    executeAction("SKIP");
+  }
+
+  // RIGHT = BROWSE
+  else if (dx > 60) {
+    executeAction("BROWSE");
+  }
+
+  document.getElementById("depth-fill").style.height = "0%";
+});
+    
     /* UI ELEMENTS */  
     h1 { font-size: 1.8rem; margin: 0 0 15px 0; line-height: 1; letter-spacing: -1px; color: var(--orange); position: relative; z-index: 10; }  
     .primary-question { font-size: 1.1rem; color: #fff; margin-bottom: 25px; font-weight: 600; position: relative; z-index: 10; }  
@@ -287,8 +312,7 @@
             }  
         }  
     }  
-  function attachEvents() {
-  let startX = 0, startY = 0;
+  
 
   slideElements.forEach(slide => {
     slide.addEventListener('touchstart', e => {
@@ -413,7 +437,20 @@ function readCart() {
       speakSafe("Say item names, quantities, skip, browse, next, or WhatsApp");
       return;
     }
+function toggleListenMode() {
+  if (!rec) initVoice();
 
+  const m = document.getElementById("mic-toggle");
+
+  if (m.classList.contains("listening")) {
+    rec.stop();
+    m.classList.remove("listening");
+  } else {
+    rec.start();
+    m.classList.add("listening");
+  }
+}
+      
     // PLATFORM
     if (t.includes("zomato")) return link("zomato");
     if (t.includes("swiggy")) return link("swiggy");
@@ -471,7 +508,6 @@ function readCart() {
         }
   };
 
-  rec.start();
 }
     boot();  
 </script>  </body>  
