@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>| food.decide | v16.7 Commander</title>
+    <title>| food.decide | </title>
 
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0a0a0a">
@@ -261,7 +261,7 @@
     function sendWa() {
         let total = 0, msg = "📋 *NEW ORDER*\n----------------\n", i = 1;
         for(let [k,v] of Object.entries(ENGINE_STATE.items_detected)) { const line = v.price * v.qty; total += line; msg += `${i}. ${k} (x${v.qty}) - ₹${line}\n`; i++; }
-        msg += "----------------\n💰 *Est. Total: ₹${total}*\n📍 Location: Gandhidham\n“You decide once. We handle the rest.”";
+        msg += "----------------\n💰 *Est. Total: ₹${total}*\n📍 Location: Gandhidham\n“You decide once. We handle the rest.”\n--------------------\nget customized "PRE-loaded"-- inquiry like above for your business/personal need with support of log - management";
         window.open(`https://wa.me/916351537770?text=${encodeURIComponent(msg)}`, '_blank');
     }
 
