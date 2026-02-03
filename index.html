@@ -58,7 +58,13 @@ h1{color:var(--orange);margin:0 0 12px 0}
 <div id="mic">🎙️</div>
 
 <script>
-/* ---------- ENGINE STATE ---------- */
+/* ---------- DATA ---------- */
+const MENU = [
+  "Butter Naan","Garlic Naan","Dal Makhani","Paneer Butter Masala",
+  "Margherita","Pepperoni","Burger","Samosa","Coke"
+];
+
+/* ---------- ENGINE STATE (DROP-IN) ---------- */
 const ENGINE_STATE = {
   session_id: "auto_" + Date.now(),
   user_context: {
@@ -68,79 +74,48 @@ const ENGINE_STATE = {
   },
   behavioral_categories: {
     SAFE_BET_DEFAULT: {
-      items: ["chicken biryani","veg biryani","paneer butter masala","butter naan","garlic naan"],
+      items: ["Chicken Biryani","Veg Biryani","Paneer Butter Masala","Butter Naan","Garlic Naan"],
       platform_bias: ["zomato","swiggy"]
     },
     MIDWEEK_CRISIS_MEAL: {
-      items: ["paneer butter masala","dal makhani","butter chicken","jeera rice"],
+      items: ["Paneer Butter Masala","Dal Makhani","Butter Chicken","Jeera Rice"],
       platform_bias: ["zomato","swiggy"]
     },
     WEEKDAY_FAST_COMFORT: {
-      items: ["pizza","momos","roll","wrap"],
+      items: ["Pizza","Momos","Roll","Wrap"],
       platform_bias: ["zomato","swiggy"]
     },
     SNACK_ESCAPE: {
-      items: ["burger","fries","small pizza","momos"],
+      items: ["Burger","Fries","Small Pizza","Momos"],
       platform_bias: ["zomato","swiggy"]
     },
     QUICK_COMMERCE_EMERGENCY: {
-      items: ["milk","bread","chips","cold drink","coke"],
+      items: ["Milk","Bread","Chips","Cold Drink","Coke"],
       platform_bias: ["blinkit","instamart"]
     }
   },
   items_detected: {},
   selected_categories: [],
-  platform_strategy: {
-    zomato: [],
-    swiggy: [],
-    blinkit: []
-  }
+  platform_strategy: { zomato: [], swiggy: [], blinkit: [] }
 };
 
-/* ---------- VOICE ROUTER ---------- */
-const VOICE_ROUTER = [
-  { keywords:["biryani"], category:"SAFE_BET_DEFAULT", platform:"zomato" },
-  { keywords:["paneer butter masala","naan"], category:"MIDWEEK_CRISIS_MEAL", platform:"swiggy" },
-  { keywords:["pizza"], category:"WEEKDAY_FAST_COMFORT", platform:"zomato", addons:["cold drink"] },
-  { keywords:["momos","roll","wrap"], category:"SNACK_ESCAPE", platform:"swiggy" },
-  { keywords:["milk","bread","chips","coke","cold drink"], category:"QUICK_COMMERCE_EMERGENCY", platform:"blinkit" }
+/* ---------- VOICE ROUTING TABLE ---------- */
+const VOICE_INTENTS = [
+  { keywords:["biryani"], cat:"SAFE_BET_DEFAULT", platform:"zomato" },
+  { keywords:["paneer butter masala","naan"], cat:"MIDWEEK_CRISIS_MEAL", platform:"swiggy" },
+  { keywords:["pizza"], cat:"WEEKDAY_FAST_COMFORT", platform:"zomato", addon:"Cold Drink" },
+  { keywords:["momos","roll","wrap"], cat:"SNACK_ESCAPE", platform:"swiggy" },
+  { keywords:["milk","bread","chips","coke","cold drink"], cat:"QUICK_COMMERCE_EMERGENCY", platform:"blinkit" }
 ];
 
-/* ---------- HELPERS ---------- */
-function classifyItem(name){
-  name = name.toLowerCase();
-  for(const cat in ENGINE_STATE.behavioral_categories){
-    if(ENGINE_STATE.behavioral_categories[cat].items.includes(name)){
-      return cat;
-    }
-  }
-  return null;
-}
-
-function routePlatform(item){
-  const category = classifyItem(item);
-  if(!category) return;
-  ENGINE_STATE.selected_categories.push(category);
-  ENGINE_STATE.behavioral_categories[category].platform_bias.forEach(p=>{
-    if(!ENGINE_STATE.platform_strategy[p].includes(item)){
-      ENGINE_STATE.platform_strategy[p].push(item);
-    }
-  });
-}
-
-/* ---------- DATA ---------- */
-const MENU=[
-  "Butter Naan","Garlic Naan","Dal Makhani","Paneer Butter Masala",
-  "Margherita","Pepperoni","Burger","Samosa","Coke"
-];
-
-let slides=[],index=0,cart={},rec=null;
+let slides=[], index=0, cart={}, rec=null;
 const master=document.getElementById("master");
 
 /* ---------- UI ---------- */
 function toast(t){
   const el=document.getElementById("toast");
-  el.textContent=t; el.classList.add("show");
+  el.textContent=t;
+  el.classList.add("show");
   setTimeout(()=>el.classList.remove("show"),1400);
 }
 
@@ -170,6 +145,21 @@ function next(){
   slides[index].classList.add("active");
 }
 
+/* ---------- ITEM ADD (ENRICHED) ---------- */
+function addItem(item){
+  cart[item]=(cart[item]||0)+1;
+  ENGINE_STATE.items_detected[item]=(ENGINE_STATE.items_detected[item]||0)+1;
+
+  for(const key in ENGINE_STATE.behavioral_categories){
+    if(ENGINE_STATE.behavioral_categories[key].items
+      .map(i=>i.toLowerCase())
+      .includes(item.toLowerCase())){
+      if(!ENGINE_STATE.selected_categories.includes(key))
+        ENGINE_STATE.selected_categories.push(key);
+    }
+  }
+}
+
 /* ---------- SWIPE ---------- */
 let sx=0,sy=0;
 master.addEventListener("touchstart",e=>{
@@ -189,13 +179,9 @@ master.addEventListener("touchend",e=>{
   const dy=e.changedTouches[0].clientY-sy;
   document.getElementById("depth").style.height="0%";
 
+  const item=MENU[index];
   if(Math.abs(dy)>Math.abs(dx) && dy>60){
-    const item=MENU[index];
-    cart[item]=(cart[item]||0)+1;
-
-    ENGINE_STATE.items_detected[item]=(ENGINE_STATE.items_detected[item]||0)+1;
-    routePlatform(item.toLowerCase());
-
+    addItem(item);
     toast("Added "+item);
     next();
   } else if(dx<-60){
@@ -206,6 +192,15 @@ master.addEventListener("touchend",e=>{
 });
 
 /* ---------- VOICE ---------- */
+function routeVoice(text){
+  for(const r of VOICE_INTENTS){
+    if(r.keywords.some(k=>text.includes(k))){
+      ENGINE_STATE.selected_categories.push(r.cat);
+      ENGINE_STATE.platform_strategy[r.platform].push(...r.keywords);
+    }
+  }
+}
+
 function initVoice(){
   if(!("webkitSpeechRecognition"in window))return;
   rec=new webkitSpeechRecognition();
@@ -215,27 +210,19 @@ function initVoice(){
   rec.onresult=e=>{
     const t=e.results[e.results.length-1][0].transcript.toLowerCase();
     toast(t);
+    routeVoice(t);
 
     if(t.includes("skip")) return next();
     if(t.includes("add")||t.includes("select")){
       const item=MENU[index];
-      cart[item]=(cart[item]||0)+1;
-
-      ENGINE_STATE.items_detected[item]=(ENGINE_STATE.items_detected[item]||0)+1;
-      routePlatform(item.toLowerCase());
-
+      addItem(item);
       toast("Added "+item);
       next();
       return;
     }
-
     MENU.forEach(n=>{
       if(t.includes(n.toLowerCase())){
-        cart[n]=(cart[n]||0)+1;
-
-        ENGINE_STATE.items_detected[n]=(ENGINE_STATE.items_detected[n]||0)+1;
-        routePlatform(n.toLowerCase());
-
+        addItem(n);
         toast("Added "+n);
         next();
       }
@@ -250,7 +237,7 @@ document.getElementById("mic").onclick=()=>{
   if(m.classList.toggle("active")) rec.start();
   else rec.stop();
 };
-</script>
+    </script>
 
 </body>
 </html>
