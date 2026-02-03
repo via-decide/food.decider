@@ -1,62 +1,63 @@
-<!DOCTYPE html>  <html lang="en">  
-<head>  
-<meta charset="UTF-8">  
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">  
-<title>| food.decide | Touch+Voice+Engine</title>  <style>  
-:root {  
-  --bg:#0a0a0a; --text:#f0f0f0; --orange:#ff671f; --go:#00e676;  
-  --mono:'Courier New',monospace;  
-}  
-html,body{  
-  margin:0;height:100%;background:var(--bg);color:var(--text);  
-  font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;  
-  overflow:hidden;touch-action:none;  
-}  
-#master{position:relative;width:100vw;height:100vh;overflow:hidden}  
-.slide{  
-  position:absolute;inset:0;display:flex;flex-direction:column;  
-  transform:translateY(100%);transition:.45s cubic-bezier(.2,.8,.2,1);  
-}  
-.slide.active{transform:translateY(0);z-index:10}  
-.slide.prev{transform:translateY(-100%)}  
-  
-.header{padding:20px;border-left:3px solid var(--orange)}  
-h1{color:var(--orange);margin:0 0 12px 0}  
-.sub{  
-  position:absolute;inset:0;padding:25px;display:none;  
-  justify-content:center;flex-direction:column;  
-}  
-.sub.active{display:flex}  
-.price{font-family:var(--mono);font-size:.8rem;color:#aaa}  
-.nav{margin-top:20px;font-family:var(--mono);font-size:.7rem;color:#666;display:flex;justify-content:space-between}  
-  
-#depth{position:fixed;right:0;top:0;width:4px;height:0;background:#333;z-index:99}  
-  
-#mic{  
-  position:fixed;bottom:20px;left:20px;width:52px;height:52px;  
-  border-radius:50%;background:#111;border:1px solid #444;  
-  display:flex;align-items:center;justify-content:center;  
-}  
-#mic.active{border-color:var(--go);box-shadow:0 0 12px rgba(0,230,118,.4)}  
-#toast{  
-  position:fixed;bottom:100px;left:50%;transform:translateX(-50%);  
-  background:#222;color:var(--go);padding:8px 16px;border-radius:20px;  
-  font-family:var(--mono);opacity:0;transition:.25s  
-}  
-#toast.show{opacity:1}  
-</style>  </head>  <body>  <div id="master"></div>  
-<div id="depth"></div>  
-<div id="toast"></div>  
-<div id="mic">🎙️</div>  <script>  
-/* ---------- DATA ---------- */  
-const MENU=[  
-  "Butter Naan","Garlic Naan","Dal Makhani","Paneer Butter Masala",  
-  "Margherita","Pepperoni","Burger","Samosa","Coke"  
-];  
-  
-let slides=[],index=0,cart={},rec=null;  
-const master=document.getElementById("master");  
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>| food.decide | Touch+Voice</title>
 
+<style>
+:root {
+  --bg:#0a0a0a; --text:#f0f0f0; --orange:#ff671f; --go:#00e676;
+  --mono:'Courier New',monospace;
+}
+html,body{
+  margin:0;height:100%;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;
+  overflow:hidden;touch-action:none;
+}
+#master{position:relative;width:100vw;height:100vh;overflow:hidden}
+.slide{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  transform:translateY(100%);transition:.45s cubic-bezier(.2,.8,.2,1);
+}
+.slide.active{transform:translateY(0);z-index:10}
+.slide.prev{transform:translateY(-100%)}
+
+.header{padding:20px;border-left:3px solid var(--orange)}
+h1{color:var(--orange);margin:0 0 12px 0}
+.sub{
+  position:absolute;inset:0;padding:25px;display:none;
+  justify-content:center;flex-direction:column;
+}
+.sub.active{display:flex}
+.price{font-family:var(--mono);font-size:.8rem;color:#aaa}
+.nav{margin-top:20px;font-family:var(--mono);font-size:.7rem;color:#666;display:flex;justify-content:space-between}
+
+#depth{position:fixed;right:0;top:0;width:4px;height:0;background:#333;z-index:99}
+
+#mic{
+  position:fixed;bottom:20px;left:20px;width:52px;height:52px;
+  border-radius:50%;background:#111;border:1px solid #444;
+  display:flex;align-items:center;justify-content:center;
+}
+#mic.active{border-color:var(--go);box-shadow:0 0 12px rgba(0,230,118,.4)}
+#toast{
+  position:fixed;bottom:100px;left:50%;transform:translateX(-50%);
+  background:#222;color:var(--go);padding:8px 16px;border-radius:20px;
+  font-family:var(--mono);opacity:0;transition:.25s
+}
+#toast.show{opacity:1}
+</style>
+</head>
+
+<body>
+
+<div id="master"></div>
+<div id="depth"></div>
+<div id="toast"></div>
+<div id="mic">🎙️</div>
+
+<script>
 /* ---------- ENGINE STATE ---------- */
 const ENGINE_STATE = {
   session_id: "auto_" + Date.now(),
@@ -119,128 +120,137 @@ function classifyItem(name){
 function routePlatform(item){
   const category = classifyItem(item);
   if(!category) return;
-  const platforms = ENGINE_STATE.behavioral_categories[category].platform_bias;
-  platforms.forEach(p=>{
+  ENGINE_STATE.selected_categories.push(category);
+  ENGINE_STATE.behavioral_categories[category].platform_bias.forEach(p=>{
     if(!ENGINE_STATE.platform_strategy[p].includes(item)){
       ENGINE_STATE.platform_strategy[p].push(item);
     }
   });
 }
-  
-/* ---------- UI ---------- */  
-function toast(t){  
-  const el=document.getElementById("toast");  
-  el.textContent=t; el.classList.add("show");  
-  setTimeout(()=>el.classList.remove("show"),1400);  
-}  
-  
-function build(){  
-  MENU.forEach((name,i)=>{  
-    const s=document.createElement("section");  
-    s.className="slide"+(i===0?" active":"");  
-    s.innerHTML=`  
-      <div class="header"><span>${name}</span></div>  
-      <div class="sub active">  
-        <h1>${name}</h1>  
-        <span class="price">₹${(i+1)*40}</span>  
-        <div class="nav"><span>SKIP</span><span>SELECT</span><span>BROWSE</span></div>  
-      </div>`;  
-    master.appendChild(s);  
-  });  
-  slides=[...document.querySelectorAll(".slide")];  
-}  
-build();  
-  
-/* ---------- SLIDE ---------- */  
-function next(){  
-  if(index>=slides.length-1)return;  
-  slides[index].classList.remove("active");  
-  slides[index].classList.add("prev");  
-  index++;  
-  slides[index].classList.add("active");  
-}  
-  
-/* ---------- SWIPE ---------- */  
-let sx=0,sy=0;  
-master.addEventListener("touchstart",e=>{  
-  sx=e.touches[0].clientX; sy=e.touches[0].clientY;  
-},{passive:true});  
-  
-master.addEventListener("touchmove",e=>{  
-  const dy=e.touches[0].clientY-sy;  
-  if(dy>0){  
-    e.preventDefault();  
-    document.getElementById("depth").style.height=Math.min(dy/2,100)+"%";  
-  }  
-},{passive:false});  
-  
-master.addEventListener("touchend",e=>{  
-  const dx=e.changedTouches[0].clientX-sx;  
-  const dy=e.changedTouches[0].clientY-sy;  
-  document.getElementById("depth").style.height="0%";  
-  
-  if(Math.abs(dy)>Math.abs(dx) && dy>60){  
-    const item=MENU[index];  
-    cart[item]=(cart[item]||0)+1;  
 
-    // Enhanced Engine Logic
+/* ---------- DATA ---------- */
+const MENU=[
+  "Butter Naan","Garlic Naan","Dal Makhani","Paneer Butter Masala",
+  "Margherita","Pepperoni","Burger","Samosa","Coke"
+];
+
+let slides=[],index=0,cart={},rec=null;
+const master=document.getElementById("master");
+
+/* ---------- UI ---------- */
+function toast(t){
+  const el=document.getElementById("toast");
+  el.textContent=t; el.classList.add("show");
+  setTimeout(()=>el.classList.remove("show"),1400);
+}
+
+function build(){
+  MENU.forEach((name,i)=>{
+    const s=document.createElement("section");
+    s.className="slide"+(i===0?" active":"");
+    s.innerHTML=`
+      <div class="header"><span>${name}</span></div>
+      <div class="sub active">
+        <h1>${name}</h1>
+        <span class="price">₹${(i+1)*40}</span>
+        <div class="nav"><span>SKIP</span><span>SELECT</span><span>BROWSE</span></div>
+      </div>`;
+    master.appendChild(s);
+  });
+  slides=[...document.querySelectorAll(".slide")];
+}
+build();
+
+/* ---------- SLIDE ---------- */
+function next(){
+  if(index>=slides.length-1)return;
+  slides[index].classList.remove("active");
+  slides[index].classList.add("prev");
+  index++;
+  slides[index].classList.add("active");
+}
+
+/* ---------- SWIPE ---------- */
+let sx=0,sy=0;
+master.addEventListener("touchstart",e=>{
+  sx=e.touches[0].clientX; sy=e.touches[0].clientY;
+},{passive:true});
+
+master.addEventListener("touchmove",e=>{
+  const dy=e.touches[0].clientY-sy;
+  if(dy>0){
+    e.preventDefault();
+    document.getElementById("depth").style.height=Math.min(dy/2,100)+"%";
+  }
+},{passive:false});
+
+master.addEventListener("touchend",e=>{
+  const dx=e.changedTouches[0].clientX-sx;
+  const dy=e.changedTouches[0].clientY-sy;
+  document.getElementById("depth").style.height="0%";
+
+  if(Math.abs(dy)>Math.abs(dx) && dy>60){
+    const item=MENU[index];
+    cart[item]=(cart[item]||0)+1;
+
     ENGINE_STATE.items_detected[item]=(ENGINE_STATE.items_detected[item]||0)+1;
     routePlatform(item.toLowerCase());
 
-    toast("Added "+item);  
-    next();  
-  } else if(dx<-60){  
-    toast("Skipped"); next();  
-  } else if(dx>60){  
-    toast("Browse");  
-  }  
-});  
-  
-/* ---------- VOICE ---------- */  
-function initVoice(){  
-  if(!("webkitSpeechRecognition"in window))return;  
-  rec=new webkitSpeechRecognition();  
-  rec.lang="en-IN";  
-  rec.continuous=true;  
-  
-  rec.onresult=e=>{  
-    const t=e.results[e.results.length-1][0].transcript.toLowerCase();  
-    toast(t);  
-  
-    if(t.includes("skip")) return next();  
-    if(t.includes("add")||t.includes("select")){  
-      const item=MENU[index];  
-      cart[item]=(cart[item]||0)+1;  
-      
-      // Enhanced Engine Logic (Implicit Add)
+    toast("Added "+item);
+    next();
+  } else if(dx<-60){
+    toast("Skipped"); next();
+  } else if(dx>60){
+    toast("Browse");
+  }
+});
+
+/* ---------- VOICE ---------- */
+function initVoice(){
+  if(!("webkitSpeechRecognition"in window))return;
+  rec=new webkitSpeechRecognition();
+  rec.lang="en-IN";
+  rec.continuous=true;
+
+  rec.onresult=e=>{
+    const t=e.results[e.results.length-1][0].transcript.toLowerCase();
+    toast(t);
+
+    if(t.includes("skip")) return next();
+    if(t.includes("add")||t.includes("select")){
+      const item=MENU[index];
+      cart[item]=(cart[item]||0)+1;
+
       ENGINE_STATE.items_detected[item]=(ENGINE_STATE.items_detected[item]||0)+1;
       routePlatform(item.toLowerCase());
 
-      toast("Added "+item);  
-      next();  
-      return;  
-    }  
-    MENU.forEach(n=>{  
-      if(t.includes(n.toLowerCase())){  
-        cart[n] = (cart[n] || 0) + 1;
+      toast("Added "+item);
+      next();
+      return;
+    }
 
-        // Enhanced Engine Logic (Explicit Add)
-        ENGINE_STATE.items_detected[n] = (ENGINE_STATE.items_detected[n] || 0) + 1;
+    MENU.forEach(n=>{
+      if(t.includes(n.toLowerCase())){
+        cart[n]=(cart[n]||0)+1;
+
+        ENGINE_STATE.items_detected[n]=(ENGINE_STATE.items_detected[n]||0)+1;
         routePlatform(n.toLowerCase());
 
-        toast("Added " + n);
-        next();  
-      }  
-    });  
-  };  
-}  
-initVoice();  
-  
-document.getElementById("mic").onclick=()=>{  
-  if(!rec)return;  
-  const m=document.getElementById("mic");  
-  if(m.classList.toggle("active")) rec.start();  
-  else rec.stop();  
-};  
-</script>  </body>  
+        toast("Added "+n);
+        next();
+      }
+    });
+  };
+}
+initVoice();
+
+document.getElementById("mic").onclick=()=>{
+  if(!rec)return;
+  const m=document.getElementById("mic");
+  if(m.classList.toggle("active")) rec.start();
+  else rec.stop();
+};
+</script>
+
+</body>
 </html>
