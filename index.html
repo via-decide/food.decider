@@ -1,398 +1,449 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>| food.decide | Touch+Voice</title>
+<!DOCTYPE html>  <html lang="en">  
+<head>  
+    <meta charset="UTF-8">  
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">  
+    <title>| food.decide | Touch+Voice</title>  <link rel="manifest" href="manifest.json">  
+<meta name="theme-color" content="#0a0a0a">  
+<meta name="background-color" content="#0a0a0a">  
+<meta name="apple-mobile-web-app-capable" content="yes">  
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">  
+<link rel="apple-touch-icon" href="icons/icon-192.png">  
 
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#0a0a0a">
-    <meta name="background-color" content="#0a0a0a">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="apple-touch-icon" href="icons/icon-192.png">
+<script>  
+  if ('serviceWorker' in navigator) {  
+    window.addEventListener('load', () => {  
+      navigator.serviceWorker.register('./service-worker.js').catch(()=>{});  
+    });  
+  }  
+</script>  
 
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('./service-worker.js').catch(()=>{});
-        });
-      }
-    </script>
+<style>  
+    :root { --orange: #ff671f; --bg: #0a0a0a; --text: #f0f0f0; --go: #00e676; --red: #ff3333; --blue: #4285F4; --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; --mono: 'Courier New', monospace; }  
+      
+    html, body { margin:0; padding:0; height:100%; width:100%; background:var(--bg); color:var(--text); font-family:var(--font); overflow:hidden; touch-action:none; }  
+    #master-container { height: 100vh; width: 100vw; position: relative; overflow: hidden; }  
 
-    <style>
-        :root { --orange: #ff671f; --bg: #0a0a0a; --text: #f0f0f0; --go: #00e676; --red: #ff3333; --blue: #4285F4; --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; --mono: 'Courier New', monospace; }
-        
-        html, body { margin:0; padding:0; height:100%; width:100%; background:var(--bg); color:var(--text); font-family:var(--font); overflow:hidden; touch-action:none; }
-        #master-container { height: 100vh; width: 100vw; position: relative; overflow: hidden; }
+    /* SLIDES */  
+    .main-slide { height: 100vh; width: 100vw; position: absolute; top: 0; left: 0; display: flex; flex-direction: column; background: var(--bg); transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1); will-change: transform; }  
+    .main-slide.prev { transform: translateY(-100%); } .main-slide.active { transform: translateY(0); z-index: 10; } .main-slide.next { transform: translateY(100%); z-index: 20; }  
 
-        /* SLIDES */
-        .main-slide { height: 100vh; width: 100vw; position: absolute; top: 0; left: 0; display: flex; flex-direction: column; background: var(--bg); transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1); will-change: transform; }
-        .main-slide.prev { transform: translateY(-100%); } .main-slide.active { transform: translateY(0); z-index: 10; } .main-slide.next { transform: translateY(100%); z-index: 20; }
+    .slide-header { padding: 20px; border-left: 3px solid var(--orange); height: 70px; flex-shrink: 0; z-index: 10; display: flex; align-items: center; }  
+    .header-title { font-family: var(--mono); font-size: 0.75rem; color: var(--orange); letter-spacing: 1px; font-weight: 700; text-transform: uppercase; }  
+      
+    .carousel-viewport { position: relative; flex-grow: 1; width: 100%; height: 100%; }  
+      
+    .sub-slide {   
+        position: absolute; inset: 0; padding: 25px; display: flex; flex-direction: column; justify-content: center;   
+        opacity: 0; pointer-events: none; background: var(--bg); border-radius: 12px;   
+        transform-origin: 50% 150%;   
+        transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s;   
+        will-change: transform;   
+        overflow: hidden;   
+    }  
+    .sub-slide.opt-active { z-index: 30; opacity: 1; pointer-events: auto; transform: translateX(0); }  
+    .sub-slide.opt-hidden { z-index: 0; opacity: 0; pointer-events: none; transform: scale(0.9); }  
+    .sub-slide.static { z-index: 30; opacity: 1; pointer-events: auto; transform: none; }  
 
-        .slide-header { padding: 20px; border-left: 3px solid var(--orange); height: 70px; flex-shrink: 0; z-index: 10; display: flex; align-items: center; }
-        .header-title { font-family: var(--mono); font-size: 0.75rem; color: var(--orange); letter-spacing: 1px; font-weight: 700; text-transform: uppercase; }
-        
-        .carousel-viewport { position: relative; flex-grow: 1; width: 100%; height: 100%; }
-        
-        .sub-slide { 
-            position: absolute; inset: 0; padding: 25px; display: flex; flex-direction: column; justify-content: center; 
-            opacity: 0; pointer-events: none; background: var(--bg); border-radius: 12px; 
-            transform-origin: 50% 150%; 
-            transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s; 
-            will-change: transform; 
-            overflow: hidden; 
-        }
-        .sub-slide.opt-active { z-index: 30; opacity: 1; pointer-events: auto; transform: translateX(0); }
-        .sub-slide.opt-hidden { z-index: 0; opacity: 0; pointer-events: none; transform: scale(0.9); }
-        .sub-slide.static { z-index: 30; opacity: 1; pointer-events: auto; transform: none; }
+    /* UI ELEMENTS */  
+    h1 { font-size: 1.8rem; margin: 0 0 15px 0; line-height: 1; letter-spacing: -1px; color: var(--orange); position: relative; z-index: 10; }  
+    .primary-question { font-size: 1.1rem; color: #fff; margin-bottom: 25px; font-weight: 600; position: relative; z-index: 10; }  
+    .price { font-size: 0.9rem; color: #aaa; margin-left: 10px; font-family: var(--mono); background: #222; padding: 2px 6px; border-radius: 4px; }  
+    .role-label { font-family: var(--mono); font-size: 0.6rem; color: #000; background: var(--go); padding: 4px 8px; border-radius: 4px; width: fit-content; margin-bottom: 15px; font-weight: bold; position: relative; z-index: 10; }  
+    .nav-hint { margin-top: 30px; padding-top: 20px; border-top: 1px solid #333; font-family: var(--mono); font-size: 0.7rem; color: #666; display: flex; justify-content: space-between; position: relative; z-index: 10; }  
 
-        /* UI ELEMENTS */
-        h1 { font-size: 1.8rem; margin: 0 0 15px 0; line-height: 1; letter-spacing: -1px; color: var(--orange); position: relative; z-index: 10; }
-        .primary-question { font-size: 1.1rem; color: #fff; margin-bottom: 25px; font-weight: 600; position: relative; z-index: 10; }
-        .price { font-size: 0.9rem; color: #aaa; margin-left: 10px; font-family: var(--mono); background: #222; padding: 2px 6px; border-radius: 4px; }
-        .role-label { font-family: var(--mono); font-size: 0.6rem; color: #000; background: var(--go); padding: 4px 8px; border-radius: 4px; width: fit-content; margin-bottom: 15px; font-weight: bold; position: relative; z-index: 10; }
-        .nav-hint { margin-top: 30px; padding-top: 20px; border-top: 1px solid #333; font-family: var(--mono); font-size: 0.7rem; color: #666; display: flex; justify-content: space-between; position: relative; z-index: 10; }
+    .lobby-container { display: flex; flex-direction: column; gap: 15px; padding: 30px; height: 100%; justify-content: center; }  
+    .cuisine-btn { background: #222; border: 1px solid #444; color: #888; padding: 20px; font-size: 1.2rem; font-weight: bold; text-transform: uppercase; border-radius: 12px; transition: all 0.2s; }  
+    .cuisine-btn.selected { background: var(--orange); color: #000; border-color: var(--orange); box-shadow: 0 0 15px rgba(255, 103, 31, 0.4); }  
+    .hunt-btn { background: #fff; color: #000; font-weight: 900; margin-top: 30px; letter-spacing: 2px; padding: 15px; border-radius: 8px; border: none; cursor: pointer;}  
+      
+    .final-actions { display: grid; gap: 10px; margin-top: 20px; }  
+    .btn { background: #222; color: #fff; border: 1px solid #333; padding: 15px; border-radius: 8px; font-weight: 600; text-align: center; font-size: 0.9rem; cursor: pointer; width: 100%; box-sizing: border-box;}  
+    .btn-zomato { background: #cb202d; opacity: 0.5; border:none;} .btn-swiggy { background: #fc8019; opacity: 0.5; border:none;} .btn-blinkit { background: #f8cb46; color: #000; opacity: 0.5; border:none;}  
+    .btn-wa { background: #25D366; color: #000; border: none; } .btn-cloud { background: #4285F4; border: none; }  
+    .btn-zomato.active, .btn-swiggy.active, .btn-blinkit.active { opacity: 1; box-shadow: 0 0 10px rgba(255,255,255,0.2); }  
+      
+    .verdict-container { display: flex; flex-direction: column; height: 100%; justify-content: center; }  
+    .choice-header { font-family: var(--mono); color: #666; font-size: 0.8rem; margin-bottom: 20px; text-transform: uppercase; text-align: center; }  
+    .input-group { border: 1px solid #333; background: #111; padding: 20px; border-radius: 8px; margin-bottom: 20px; min-height: 100px; max-height: 40vh; overflow-y: auto; }  
+    .input-row { display: flex; justify-content: space-between; border-bottom: 1px dashed #333; padding: 10px 0; font-family: var(--mono); font-size: 0.8rem; }  
+    .input-key { color: #888; text-transform: uppercase; } .input-val { color: var(--go); font-weight: bold; text-align: right; }  
+      
+    .biz-card { background: linear-gradient(145deg, #111, #050505); border: 1px solid var(--orange); padding: 30px; border-radius: 12px; text-align: center; }  
+    .biz-tagline { font-family: var(--mono); color: var(--orange); font-size: 0.7rem; margin-bottom: 10px; display: block; } .biz-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 20px; color: #fff; }  
 
-        .lobby-container { display: flex; flex-direction: column; gap: 15px; padding: 30px; height: 100%; justify-content: center; }
-        .cuisine-btn { background: #222; border: 1px solid #444; color: #888; padding: 20px; font-size: 1.2rem; font-weight: bold; text-transform: uppercase; border-radius: 12px; transition: all 0.2s; }
-        .cuisine-btn.selected { background: var(--orange); color: #000; border-color: var(--orange); box-shadow: 0 0 15px rgba(255, 103, 31, 0.4); }
-        .hunt-btn { background: #fff; color: #000; font-weight: 900; margin-top: 30px; letter-spacing: 2px; padding: 15px; border-radius: 8px; border: none; cursor: pointer;}
-        
-        .final-actions { display: grid; gap: 10px; margin-top: 20px; }
-        .btn { background: #222; color: #fff; border: 1px solid #333; padding: 15px; border-radius: 8px; font-weight: 600; text-align: center; font-size: 0.9rem; cursor: pointer; width: 100%; box-sizing: border-box;}
-        .btn-zomato { background: #cb202d; opacity: 0.5; border:none;} .btn-swiggy { background: #fc8019; opacity: 0.5; border:none;} .btn-blinkit { background: #f8cb46; color: #000; opacity: 0.5; border:none;}
-        .btn-wa { background: #25D366; color: #000; border: none; } .btn-cloud { background: #4285F4; border: none; }
-        .btn-zomato.active, .btn-swiggy.active, .btn-blinkit.active { opacity: 1; box-shadow: 0 0 10px rgba(255,255,255,0.2); }
-        
-        .verdict-container { display: flex; flex-direction: column; height: 100%; justify-content: center; }
-        .choice-header { font-family: var(--mono); color: #666; font-size: 0.8rem; margin-bottom: 20px; text-transform: uppercase; text-align: center; }
-        .input-group { border: 1px solid #333; background: #111; padding: 20px; border-radius: 8px; margin-bottom: 20px; min-height: 100px; max-height: 40vh; overflow-y: auto; }
-        .input-row { display: flex; justify-content: space-between; border-bottom: 1px dashed #333; padding: 10px 0; font-family: var(--mono); font-size: 0.8rem; }
-        .input-key { color: #888; text-transform: uppercase; } .input-val { color: var(--go); font-weight: bold; text-align: right; }
-        
-        .biz-card { background: linear-gradient(145deg, #111, #050505); border: 1px solid var(--orange); padding: 30px; border-radius: 12px; text-align: center; }
-        .biz-tagline { font-family: var(--mono); color: var(--orange); font-size: 0.7rem; margin-bottom: 10px; display: block; } .biz-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 20px; color: #fff; }
+    /* v11 PHYSICS UI */  
+    #depth-fill { position: fixed; right: 0; top: 0; bottom: 0; width: 4px; background: #333; z-index: 900; height: 0%; transition: height 0.05s linear; }  
 
-        /* v11 PHYSICS UI */
-        #depth-fill { position: fixed; right: 0; top: 0; bottom: 0; width: 4px; background: #333; z-index: 900; height: 0%; transition: height 0.05s linear; }
+    #mic-toggle { position: fixed; bottom: 20px; left: 20px; width: 50px; height: 50px; background: #111; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid #444; z-index: 2000; cursor: pointer; transition: all 0.3s; }  
+    #mic-toggle svg { width: 24px; height: 24px; fill: #666; }  
+    #mic-toggle.listening { border-color: var(--go); box-shadow: 0 0 15px rgba(0,230,118,0.3); }  
+    #mic-toggle.listening svg { fill: var(--go); }  
+    #toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: #222; color: #00e676; padding: 10px 20px; border: 1px solid #00e676; border-radius: 20px; font-family: var(--mono); font-size: 0.8rem; opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 3000; white-space: nowrap; }  
+    #toast.visible { opacity: 1; }  
+</style>
 
-        #mic-toggle { position: fixed; bottom: 20px; left: 20px; width: 50px; height: 50px; background: #111; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid #444; z-index: 2000; cursor: pointer; transition: all 0.3s; }
-        #mic-toggle svg { width: 24px; height: 24px; fill: #666; }
-        #mic-toggle.listening { border-color: var(--go); box-shadow: 0 0 15px rgba(0,230,118,0.3); }
-        #mic-toggle.listening svg { fill: var(--go); }
-        #toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: #222; color: #00e676; padding: 10px 20px; border: 1px solid #00e676; border-radius: 20px; font-family: var(--mono); font-size: 0.8rem; opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 3000; white-space: nowrap; }
-        #toast.visible { opacity: 1; }
-    </style>
-</head>
-<body>
+</head>  
+<body>  <div id="master-container"></div>  
+<div id="depth-fill"></div>  
+<div id="toast" class="toast-msg"></div>  <div id="mic-toggle" onclick="toggleListenMode()">  
+    <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>  
+</div>  <script>  
+    // --- 1. CONFIG & DATA ---  
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwUYs1kYtITFcnibCxBmCJ85TEVSgdw0Vi2iC8qcnpdHCDO5qczp5JbCRMev1PkXuyraA/exec";  
+      
+    // HARDCODED MENU (Source of Truth)  
+    const RAW_DATA = {  
+        "punjabi": {  
+          "label": "PUNJABI",  
+          "categories": [  
+            { "id": "p_breads", "label": "Breads", "items": [ { "name": "Butter Naan", "price": 40 }, { "name": "Garlic Naan", "price": 50 }, { "name": "Tandoori Roti", "price": 25 }, { "name": "Lachha Paratha", "price": 55 } ] },  
+            { "id": "p_mains", "label": "Mains", "items": [ { "name": "Dal Makhani", "price": 220 }, { "name": "Paneer Butter Masala", "price": 240 }, { "name": "Shahi Paneer", "price": 250 }, { "name": "Butter Chicken", "price": 280 }, { "name": "Kadai Paneer", "price": 230 } ] },  
+            { "id": "p_rice", "label": "Rice", "items": [ { "name": "Jeera Rice", "price": 150 }, { "name": "Veg Pulao", "price": 160 }, { "name": "Chicken Biryani", "price": 290 } ] },  
+            { "id": "p_beverages", "label": "Beverages", "items": [ { "name": "Sweet Lassi", "price": 60 }, { "name": "Salted Lassi", "price": 50 }, { "name": "Masala Chaas", "price": 40 } ] }  
+          ]  
+        },  
+        "chinese": {  
+          "label": "CHINESE",  
+          "categories": [  
+            { "id": "c_dimsum", "label": "Dim Sum", "items": [ { "name": "Veg Crystal Dumpling", "price": 220 }, { "name": "Pork Siu Mai", "price": 260 }, { "name": "Har Gao", "price": 280 } ] },  
+            { "id": "c_noodles", "label": "Noodles", "items": [ { "name": "Lo Mein", "price": 220 }, { "name": "Dan Dan Noodles", "price": 260 }, { "name": "Hakka Noodles", "price": 200 } ] },  
+            { "id": "c_wok", "label": "Wok Specials", "items": [ { "name": "Kung Pao Chicken", "price": 280 }, { "name": "Mapo Tofu", "price": 240 }, { "name": "Chilli Chicken", "price": 260 } ] }  
+          ]  
+        },  
+        "pizza": {  
+          "label": "PIZZA",  
+          "categories": [  
+            { "id": "z_classic", "label": "Classic", "items": [ { "name": "Margherita", "price": 350 }, { "name": "Marinara", "price": 330 }, { "name": "Pepperoni", "price": 450 } ] },  
+            { "id": "z_gourmet", "label": "Gourmet", "items": [ { "name": "Burrata Pizza", "price": 550 }, { "name": "Truffle Mushroom Pizza", "price": 520 }, { "name": "Wood Fired Chicken Pizza", "price": 480 } ] }  
+          ]  
+        },  
+        "snacks": {  
+          "label": "NASTA PANI",  
+          "categories": [  
+            { "id": "s_packaged", "label": "Packaged", "items": [ { "name": "Coke", "price": 40 }, { "name": "Thums Up", "price": 40 }, { "name": "Chips", "price": 20 }, { "name": "Kurkure", "price": 20 } ] },  
+            { "id": "s_hot", "label": "Hot Snacks", "items": [ { "name": "Samosa", "price": 20 }, { "name": "Veg Puff", "price": 30 }, { "name": "Burger", "price": 60 } ] }  
+          ]  
+        }  
+    };  
+      
+    let ENGINE_STATE = { session_id: "auto-" + Date.now(), cuisines_detected: [], items_detected: {}, platform_strategy: { fulfillment: [] } };  
+  
+    // --- 2. APP LOGIC ---  
+    let container = document.getElementById('master-container');  
+    let slideElements = [], currentIdx = 0;  
+  
+    async function boot() { renderLobby(); initVoice(); }  
+  
+    function renderLobby() {  
+        container.innerHTML = `  
+        <section class="main-slide active" id="lobby">  
+            <div class="slide-header"><span class="header-title">SWIPE-OS v16.3</span></div>  
+            <div class="lobby-container">  
+                <h1>AAJ KYA MANGVAAYEGE!</h1>  
+                <div id="cuisine-grid" style="display:grid; gap:15px;">  
+                    <button class="cuisine-btn" onclick="toggleCuisine('punjabi', this)">PUNJABI</button>  
+                    <button class="cuisine-btn" onclick="toggleCuisine('chinese', this)">CHINESE</button>  
+                    <button class="cuisine-btn" onclick="toggleCuisine('pizza', this)">PIZZA</button>  
+                    <button class="cuisine-btn" onclick="toggleCuisine('snacks', this)">NASTA PANI</button>  
+                </div>  
+                <button class="hunt-btn" onclick="startHunt()">HUNT &rarr;</button>  
+            </div>  
+        </section>`;  
+        slideElements = [document.getElementById('lobby')];  
+        if(ENGINE_STATE.cuisines_detected) ENGINE_STATE.cuisines_detected.forEach(c => { const b = document.querySelector(`button[onclick*='${c}']`); if(b) b.classList.add('selected'); });  
+    }  
+  
+    function toggleCuisine(id, btn) {  
+        if(ENGINE_STATE.cuisines_detected.includes(id)) { ENGINE_STATE.cuisines_detected = ENGINE_STATE.cuisines_detected.filter(c=>c!==id); btn.classList.remove('selected'); }  
+        else { ENGINE_STATE.cuisines_detected.push(id); btn.classList.add('selected'); }  
+        localStorage.setItem("ENGINE_STATE_CACHE", JSON.stringify(ENGINE_STATE));  
+    }  
+  
+    function startHunt() {  
+        if(ENGINE_STATE.cuisines_detected.length === 0) { showToast("SELECT A CUISINE"); return; }  
+          
+        container.innerHTML = ""; slideElements = [];  
+        ENGINE_STATE.cuisines_detected.forEach(cId => {  
+            if(RAW_DATA[cId]) {  
+                RAW_DATA[cId].categories.forEach(cat => {  
+                    const s = document.createElement('section'); s.className = 'main-slide next'; s.id = cat.id; s.dataset.mode = 'options';  
+                    let h = `<div class="slide-header"><span class="header-title">${cat.label}</span></div><div class="carousel-viewport">`;  
+                    cat.items.forEach((item, i) => {  
+                        h += `  
+                        <div class="sub-slide ${i===0?'opt-active':'opt-hidden'}" data-val="${item.name}">  
+                            <div class="role-label">${cat.label}</div>  
+                            <h1>${item.name} ${item.price?`<span class="price">₹${item.price}</span>`:""}</h1>  
+                            <div class="primary-question">Swipe Right to Browse</div>  
+                            <div class="nav-hint"><span>SKIP</span><span>SELECT</span><span>BROWSE</span></div>  
+                        </div>`;  
+                    });  
+                    s.innerHTML = h + `</div>`; container.appendChild(s);  
+                });  
+            }  
+        });  
+  
+        const final = document.createElement('section'); final.className = 'main-slide next'; final.id = 'final';  
+        final.innerHTML = `<div class="sub-slide static"><div class="verdict-container"><div class="choice-header">FINAL ORDER</div><div class="input-group" id="final-list"></div><div class="final-actions"><button class="btn btn-zomato" onclick="link('zomato')">ZOMATO</button><button class="btn btn-swiggy" onclick="link('swiggy')">SWIGGY</button><button class="btn btn-blinkit" onclick="link('blinkit')">BLINKIT</button><button class="btn btn-cloud" onclick="saveToCloud()">SAVE</button><button class="btn btn-wa" onclick="goToSlide(currentIdx+1)">WHATSAPP &rarr;</button></div></div></div>`;  
+        container.appendChild(final);  
+  
+        const biz = document.createElement('section'); biz.className = 'main-slide next'; biz.id = 'business';  
+        biz.innerHTML = `<div class="sub-slide static"><div class="biz-card"><span class="biz-tagline">POWERED BY KUTCH AUTOMATION</span><div class="biz-title">BUILD YOUR OWN ENGINE</div><div class="final-actions"><button class="btn btn-wa" onclick="sendWa()">CHAT WITH 916351537770</button><button class="btn" onclick="location.reload()">RESTART</button></div></div></div>`;  
+        container.appendChild(biz);  
+          
+        slideElements = Array.from(document.querySelectorAll('.main-slide'));  
+        slideElements[0].className = "main-slide active";  
+        currentIdx = 0;  
+        attachEvents(); updateResult();  
+    }  
+  
+    // --- 3. PHYSICS & TOUCH ---  
+    function nextSlide() {  
+        if(currentIdx >= slideElements.length - 1) return;  
+        slideElements[currentIdx].classList.remove('active'); slideElements[currentIdx].classList.add('prev');  
+        currentIdx++;  
+        slideElements[currentIdx].classList.remove('next'); slideElements[currentIdx].classList.add('active');  
+        if(slideElements[currentIdx].id === 'final') renderCart();  
+    }  
+  
+    function goToSlide(idx) {  
+        if (idx < 0 || idx >= slideElements.length) return;  
+        slideElements[currentIdx].classList.remove('active');  
+        if (idx > currentIdx) slideElements[currentIdx].classList.add('prev'); else slideElements[currentIdx].classList.add('next');  
+        slideElements[currentIdx].classList.remove(idx > currentIdx ? 'next' : 'prev');  
+        currentIdx = idx;  
+        const next = slideElements[currentIdx]; next.classList.remove('prev', 'next'); next.classList.add('active');  
+        if(next.id === 'final') updateResult();  
+        document.getElementById('depth-fill').style.height = '0%';  
+    }  
+  
+    function updateCart(action, item) {  
+        if(action === "ADD") {   
+            const qty = (ENGINE_STATE.items_detected[item]?.qty || 0) + 1;  
+            ENGINE_STATE.items_detected[item] = { qty: qty, price: getPrice(item) };  
+        }  
+        localStorage.setItem("ENGINE_STATE_CACHE", JSON.stringify(ENGINE_STATE));  
+    }  
+  
+    function getPrice(name) {  
+        for(let c in RAW_DATA) for(let cat of RAW_DATA[c].categories) for(let i of cat.items) if(i.name === name) return i.price;  
+        return 0;  
+    }  
+  
+    function renderCart() {  
+  const list = document.getElementById('final-list');  
+  if (!list) return;  
+  
+  let h = "";  
+  let total = 0;  
+  
+  for (let [name, data] of Object.entries(ENGINE_STATE.items_detected)) {  
+    const lineTotal = (data.price || 0) * data.qty;  
+    total += lineTotal;  
+  
+    h += `  
+      <div class="input-row">  
+        <span class="input-key" style="color:#ddd; font-weight:600;">  
+          ${name}  
+        </span>  
+        <span class="input-val">  
+          x${data.qty} · ₹${lineTotal}  
+        </span>  
+      </div>  
+    `;  
+  }  
+  
+  // EMPTY CART STATE  
+  if (!h) {  
+    h = `<div style="text-align:center;color:#666;margin-top:20px;">No items selected.</div>`;  
+  } else {  
+    // ✅ TOTAL ROW (ONLY ONCE)  
+    h += `  
+      <div class="input-row" style="border-top:1px solid #444; margin-top:12px; padding-top:12px;">  
+        <span class="input-key" style="color:#aaa; letter-spacing:1px;">TOTAL</span>  
+        <span class="input-val" style="font-size:0.95rem;">₹${total}</span>  
+      </div>  
+    `;  
+  }  
+  
+  list.innerHTML = h;  
+    }  
+  
+    function executeAction(act) {  
+        if(document.getElementById('lobby')) return;  
+        const s = slideElements[currentIdx];  
+        if(s.dataset.mode === 'options') {  
+            const val = s.querySelector('.opt-active').dataset.val;  
+            if(act === "SELECT") { updateCart("ADD", val); showToast("ADDED"); nextSlide(); }  
+            if(act === "SKIP") { showToast("SKIPPED"); nextSlide(); }  
+            if(act === "BROWSE") {  
+                const view = s.querySelector('.carousel-viewport');  
+                const slides = view.querySelectorAll('.sub-slide');  
+                let curr = 0;   
+                slides.forEach((s,i) => { if(s.classList.contains('opt-active')) curr = i; s.classList.remove('opt-active'); s.classList.add('opt-hidden'); setTimeout(()=>{s.style.transform='';s.style.opacity='1'},300); });  
+                const next = slides[(curr+1)%slides.length];  
+                next.classList.remove('opt-hidden'); next.classList.add('opt-active');  
+            }  
+        }  
+    }  
+  
+    function attachEvents() {  
+        let startX = 0, startY = 0;  
+        document.querySelectorAll('.carousel-viewport').forEach(view => {  
+            view._currOpt = 0;  
+            view.addEventListener('touchstart', e => { startX = e.touches[0].clientX; startY = e.touches[0].clientY; }, {passive: true});  
+            view.addEventListener('touchmove', e => {  
+                const dx = e.touches[0].clientX - startX; const dy = e.touches[0].clientY - startY;  
+                const axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';  
+                if(axis === 'y' && dy > 0) { e.preventDefault(); let dragRatio = Math.min(dy/250, 1); document.getElementById('depth-fill').style.height = (dragRatio*100)+'%'; }  
+            }, {passive: false});  
+            view.addEventListener('touchend', e => {  
+                const dx = e.changedTouches[0].clientX - startX; const dy = e.changedTouches[0].clientY - startY;  
+                const axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';  
+                if (axis === 'y') { if (dy < -50) executeAction('PREV'); else if (dy > 50) executeAction('SELECT'); }  
+                else if (axis === 'x' && view.closest('.main-slide').dataset.mode === 'options') { if (dx < -50) executeAction('SKIP'); else if (dx > 50) executeAction('BROWSE'); }  
+                document.getElementById('depth-fill').style.height = '0%';  
+            });  
+        });  
+    }  
+  
+    // --- 4. SMART DEEP LINKS ---  
+    function getCategory(name) {  
+        for(let c in RAW_DATA) for(let cat of RAW_DATA[c].categories) for(let i of cat.items) if(i.name === name) return cat.id;  
+        return "";  
+    }  
+    function link(p) {  
+        const allItems = Object.keys(ENGINE_STATE.items_detected);  
+        let validItems = [];  
+        if (p === 'blinkit') {  
+            validItems = allItems.filter(name => { const cat = getCategory(name); return cat.startsWith("s_") || cat.includes("beverage"); });  
+        } else {  
+            validItems = allItems.filter(name => { const cat = getCategory(name); return !cat.startsWith("s_packaged"); });  
+        }  
+        if (validItems.length === 0) return showToast("NO ITEMS FOR THIS APP");  
+        const q = encodeURIComponent(validItems.map(k => `${k} x${ENGINE_STATE.items_detected[k].qty}`).join(", "));  
+        const urls = {   
+            zomato: `https://www.zomato.com/search?q=${q}`,   
+            swiggy: `https://www.swiggy.com/search?query=${q}`,   
+            blinkit: `https://blinkit.com/s/?q=${q}`   
+        };  
+        window.open(urls[p], '_blank');  
+    }  
+  
+    function sendWa() {  
+        let total = 0;  
+        let msg = "📋 *NEW ORDER*\n----------------\n";  
+        let i = 1;  
+        for(let [k,v] of Object.entries(ENGINE_STATE.items_detected)) {  
+            const line = v.price * v.qty;  
+            total += line;  
+            msg += `${i}. ${k} (x${v.qty}) - ₹${line}\n`;  
+            i++;  
+        }  
+        msg += "----------------\n";  
+        msg += `💰 *Est. Total: ₹${total}*\n`;  
+        msg += `📍 Location: Gandhidham`;  
+        window.open(`https://wa.me/916351537770?text=${encodeURIComponent(msg)}`, '_blank');  
+    }  
+      
+    function saveToCloud() { fetch(GOOGLE_SCRIPT_URL, {method:"POST", body:JSON.stringify(ENGINE_STATE)}); showToast("SAVED"); }  
+    function showToast(msg) { const t = document.getElementById('toast'); t.innerText = msg; t.classList.add('visible'); setTimeout(() => t.classList.remove('visible'), 2000); }  
+  
+function speakSafe(text) {  
+  if (!window.speechSynthesis) return;  
+  window.speechSynthesis.cancel();  
+  window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));  
+}  
+  
+function confirmVoice(text) {  
+  showToast(text);  
+  speakSafe(text);  
+}  
+  
+function readCart() {  
+  const items = Object.keys(ENGINE_STATE.items_detected);  
+  if (!items.length) return speakSafe("Your cart is empty");  
+  speakSafe("You have " + items.join(", "));  
+}  
+  
+    // --- 5. VOICE ---  
+   function initVoice() {
+  if (!window.SpeechRecognition && !window.webkitSpeechRecognition) return;
 
-<div id="master-container"></div>
-<div id="depth-fill"></div>
-<div id="toast" class="toast-msg"></div>
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  rec = new SR();
+  rec.lang = "en-IN";
+  rec.continuous = true;
+  rec.interimResults = false;
 
-<div id="mic-toggle" onclick="toggleListenMode()">
-    <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
-</div>
+  rec.onresult = e => {
+    const t = e.results[e.results.length - 1][0].transcript.toLowerCase();
+    showToast(t);
 
-<script>
-    // --- 1. CONFIG & DATA ---
-    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwUYs1kYtITFcnibCxBmCJ85TEVSgdw0Vi2iC8qcnpdHCDO5qczp5JbCRMev1PkXuyraA/exec";
-    
-    // HARDCODED MENU (Source of Truth)
-    const RAW_DATA = {
-        "punjabi": {
-          "label": "PUNJABI",
-          "categories": [
-            { "id": "p_breads", "label": "Breads", "items": [ { "name": "Butter Naan", "price": 40 }, { "name": "Garlic Naan", "price": 50 }, { "name": "Tandoori Roti", "price": 25 }, { "name": "Lachha Paratha", "price": 55 } ] },
-            { "id": "p_mains", "label": "Mains", "items": [ { "name": "Dal Makhani", "price": 220 }, { "name": "Paneer Butter Masala", "price": 240 }, { "name": "Shahi Paneer", "price": 250 }, { "name": "Butter Chicken", "price": 280 }, { "name": "Kadai Paneer", "price": 230 } ] },
-            { "id": "p_rice", "label": "Rice", "items": [ { "name": "Jeera Rice", "price": 150 }, { "name": "Veg Pulao", "price": 160 }, { "name": "Chicken Biryani", "price": 290 } ] },
-            { "id": "p_beverages", "label": "Beverages", "items": [ { "name": "Sweet Lassi", "price": 60 }, { "name": "Salted Lassi", "price": 50 }, { "name": "Masala Chaas", "price": 40 } ] }
-          ]
-        },
-        "chinese": {
-          "label": "CHINESE",
-          "categories": [
-            { "id": "c_dimsum", "label": "Dim Sum", "items": [ { "name": "Veg Crystal Dumpling", "price": 220 }, { "name": "Pork Siu Mai", "price": 260 }, { "name": "Har Gao", "price": 280 } ] },
-            { "id": "c_noodles", "label": "Noodles", "items": [ { "name": "Lo Mein", "price": 220 }, { "name": "Dan Dan Noodles", "price": 260 }, { "name": "Hakka Noodles", "price": 200 } ] },
-            { "id": "c_wok", "label": "Wok Specials", "items": [ { "name": "Kung Pao Chicken", "price": 280 }, { "name": "Mapo Tofu", "price": 240 }, { "name": "Chilli Chicken", "price": 260 } ] }
-          ]
-        },
-        "pizza": {
-          "label": "PIZZA",
-          "categories": [
-            { "id": "z_classic", "label": "Classic", "items": [ { "name": "Margherita", "price": 350 }, { "name": "Marinara", "price": 330 }, { "name": "Pepperoni", "price": 450 } ] },
-            { "id": "z_gourmet", "label": "Gourmet", "items": [ { "name": "Burrata Pizza", "price": 550 }, { "name": "Truffle Mushroom Pizza", "price": 520 }, { "name": "Wood Fired Chicken Pizza", "price": 480 } ] }
-          ]
-        },
-        "snacks": {
-          "label": "NASTA PANI",
-          "categories": [
-            { "id": "s_packaged", "label": "Packaged", "items": [ { "name": "Coke", "price": 40 }, { "name": "Thums Up", "price": 40 }, { "name": "Chips", "price": 20 }, { "name": "Kurkure", "price": 20 } ] },
-            { "id": "s_hot", "label": "Hot Snacks", "items": [ { "name": "Samosa", "price": 20 }, { "name": "Veg Puff", "price": 30 }, { "name": "Burger", "price": 60 } ] }
-          ]
-        }
-    };
-    
-    let ENGINE_STATE = { session_id: "auto-" + Date.now(), cuisines_detected: [], items_detected: {}, platform_strategy: { fulfillment: [] } };
-
-    // --- 2. APP LOGIC ---
-    let container = document.getElementById('master-container');
-    let slideElements = [], currentIdx = 0;
-
-    async function boot() { renderLobby(); initVoice(); }
-
-    function renderLobby() {
-        container.innerHTML = `
-        <section class="main-slide active" id="lobby">
-            <div class="slide-header"><span class="header-title">SWIPE-OS v16.3</span></div>
-            <div class="lobby-container">
-                <h1>AAJ KYA MANGVAAYEGE!</h1>
-                <div id="cuisine-grid" style="display:grid; gap:15px;">
-                    <button class="cuisine-btn" onclick="toggleCuisine('punjabi', this)">PUNJABI</button>
-                    <button class="cuisine-btn" onclick="toggleCuisine('chinese', this)">CHINESE</button>
-                    <button class="cuisine-btn" onclick="toggleCuisine('pizza', this)">PIZZA</button>
-                    <button class="cuisine-btn" onclick="toggleCuisine('snacks', this)">NASTA PANI</button>
-                </div>
-                <button class="hunt-btn" onclick="startHunt()">HUNT &rarr;</button>
-            </div>
-        </section>`;
-        slideElements = [document.getElementById('lobby')];
-        if(ENGINE_STATE.cuisines_detected) ENGINE_STATE.cuisines_detected.forEach(c => { const b = document.querySelector(`button[onclick*='${c}']`); if(b) b.classList.add('selected'); });
+    // HELP (highest priority)
+    if (t.includes("help")) {
+      speakSafe("Say item names, quantities, skip, browse, next, or WhatsApp");
+      return;
     }
 
-    function toggleCuisine(id, btn) {
-        if(ENGINE_STATE.cuisines_detected.includes(id)) { ENGINE_STATE.cuisines_detected = ENGINE_STATE.cuisines_detected.filter(c=>c!==id); btn.classList.remove('selected'); }
-        else { ENGINE_STATE.cuisines_detected.push(id); btn.classList.add('selected'); }
-        localStorage.setItem("ENGINE_STATE_CACHE", JSON.stringify(ENGINE_STATE));
+    // PLATFORM
+    if (t.includes("zomato")) return link("zomato");
+    if (t.includes("swiggy")) return link("swiggy");
+    if (t.includes("blinkit")) return link("blinkit");
+    if (t.includes("whatsapp")) return sendWa();
+
+    // NAVIGATION
+    if (t.includes("skip")) return executeAction("SKIP");
+    if (t.includes("next")) return nextSlide();
+    if (t.includes("browse") || t.includes("show")) return executeAction("BROWSE");
+
+    // SELECT / ADD
+    if (t.includes("select") || t.includes("add")) {
+      const s = slideElements[currentIdx];
+      if (!s || s.dataset.mode !== "options") return;
+      const val = s.querySelector(".opt-active").dataset.val;
+      updateCart("ADD", val);
+      confirmVoice(`${val} added`);
+      nextSlide();
+      return;
     }
 
-    function startHunt() {
-        if(ENGINE_STATE.cuisines_detected.length === 0) { showToast("SELECT A CUISINE"); return; }
-        
-        container.innerHTML = ""; slideElements = [];
-        ENGINE_STATE.cuisines_detected.forEach(cId => {
-            if(RAW_DATA[cId]) {
-                RAW_DATA[cId].categories.forEach(cat => {
-                    const s = document.createElement('section'); s.className = 'main-slide next'; s.id = cat.id; s.dataset.mode = 'options';
-                    let h = `<div class="slide-header"><span class="header-title">${cat.label}</span></div><div class="carousel-viewport">`;
-                    cat.items.forEach((item, i) => {
-                        h += `
-                        <div class="sub-slide ${i===0?'opt-active':'opt-hidden'}" data-val="${item.name}">
-                            <div class="role-label">${cat.label}</div>
-                            <h1>${item.name} ${item.price?`<span class="price">₹${item.price}</span>`:""}</h1>
-                            <div class="primary-question">Swipe Right to Browse</div>
-                            <div class="nav-hint"><span>SKIP</span><span>SELECT</span><span>BROWSE</span></div>
-                        </div>`;
-                    });
-                    s.innerHTML = h + `</div>`; container.appendChild(s);
-                });
-            }
-        });
-
-        const final = document.createElement('section'); final.className = 'main-slide next'; final.id = 'final';
-        final.innerHTML = `<div class="sub-slide static"><div class="verdict-container"><div class="choice-header">FINAL ORDER</div><div class="input-group" id="final-list"></div><div class="final-actions"><button class="btn btn-zomato" onclick="link('zomato')">ZOMATO</button><button class="btn btn-swiggy" onclick="link('swiggy')">SWIGGY</button><button class="btn btn-blinkit" onclick="link('blinkit')">BLINKIT</button><button class="btn btn-cloud" onclick="saveToCloud()">SAVE</button><button class="btn btn-wa" onclick="goToSlide(currentIdx+1)">WHATSAPP &rarr;</button></div></div></div>`;
-        container.appendChild(final);
-
-        const biz = document.createElement('section'); biz.className = 'main-slide next'; biz.id = 'business';
-        biz.innerHTML = `<div class="sub-slide static"><div class="biz-card"><span class="biz-tagline">POWERED BY KUTCH AUTOMATION</span><div class="biz-title">BUILD YOUR OWN ENGINE</div><div class="final-actions"><button class="btn btn-wa" onclick="sendWa()">CHAT WITH 916351537770</button><button class="btn" onclick="location.reload()">RESTART</button></div></div></div>`;
-        container.appendChild(biz);
-        
-        slideElements = Array.from(document.querySelectorAll('.main-slide'));
-        slideElements[0].className = "main-slide active";
-        currentIdx = 0;
-        attachEvents(); updateResult();
-    }
-
-    // --- 3. PHYSICS & TOUCH ---
-    function nextSlide() {
-        if(currentIdx >= slideElements.length - 1) return;
-        slideElements[currentIdx].classList.remove('active'); slideElements[currentIdx].classList.add('prev');
-        currentIdx++;
-        slideElements[currentIdx].classList.remove('next'); slideElements[currentIdx].classList.add('active');
-        if(slideElements[currentIdx].id === 'final') renderCart();
-    }
-
-    function goToSlide(idx) {
-        if (idx < 0 || idx >= slideElements.length) return;
-        slideElements[currentIdx].classList.remove('active');
-        if (idx > currentIdx) slideElements[currentIdx].classList.add('prev'); else slideElements[currentIdx].classList.add('next');
-        slideElements[currentIdx].classList.remove(idx > currentIdx ? 'next' : 'prev');
-        currentIdx = idx;
-        const next = slideElements[currentIdx]; next.classList.remove('prev', 'next'); next.classList.add('active');
-        if(next.id === 'final') updateResult();
-        document.getElementById('depth-fill').style.height = '0%';
-    }
-
-    function updateCart(action, item) {
-        if(action === "ADD") { 
-            const qty = (ENGINE_STATE.items_detected[item]?.qty || 0) + 1;
-            ENGINE_STATE.items_detected[item] = { qty: qty, price: getPrice(item) };
-        }
-        localStorage.setItem("ENGINE_STATE_CACHE", JSON.stringify(ENGINE_STATE));
-    }
-
-    function getPrice(name) {
-        for(let c in RAW_DATA) for(let cat of RAW_DATA[c].categories) for(let i of cat.items) if(i.name === name) return i.price;
-        return 0;
-    }
-
-    function renderCart() {
-  const list = document.getElementById('final-list');
-  if (!list) return;
-
-  let h = "";
-  let total = 0;
-
-  for (let [name, data] of Object.entries(ENGINE_STATE.items_detected)) {
-    const lineTotal = (data.price || 0) * data.qty;
-    total += lineTotal;
-
-    h += `
-      <div class="input-row">
-        <span class="input-key" style="color:#ddd; font-weight:600;">
-          ${name}
-        </span>
-        <span class="input-val">
-          x${data.qty} · ₹${lineTotal}
-        </span>
-      </div>
-    `;
-  }
-
-  // EMPTY CART STATE
-  if (!h) {
-    h = `<div style="text-align:center;color:#666;margin-top:20px;">No items selected.</div>`;
-  } else {
-    // ✅ TOTAL ROW (ONLY ONCE)
-    h += `
-      <div class="input-row" style="border-top:1px solid #444; margin-top:12px; padding-top:12px;">
-        <span class="input-key" style="color:#aaa; letter-spacing:1px;">TOTAL</span>
-        <span class="input-val" style="font-size:0.95rem;">₹${total}</span>
-      </div>
-    `;
-  }
-
-  list.innerHTML = h;
-    }
-
-    function executeAction(act) {
-        if(document.getElementById('lobby')) return;
+    // QUANTITY
+    const nums = { one:1, two:2, three:3, four:4, five:5, 1:1, 2:2, 3:3 };
+    for (let k in nums) {
+      if (t.includes(k)) {
         const s = slideElements[currentIdx];
-        if(s.dataset.mode === 'options') {
-            const val = s.querySelector('.opt-active').dataset.val;
-            if(act === "SELECT") { updateCart("ADD", val); showToast("ADDED"); nextSlide(); }
-            if(act === "SKIP") { showToast("SKIPPED"); nextSlide(); }
-            if(act === "BROWSE") {
-                const view = s.querySelector('.carousel-viewport');
-                const slides = view.querySelectorAll('.sub-slide');
-                let curr = 0; 
-                slides.forEach((s,i) => { if(s.classList.contains('opt-active')) curr = i; s.classList.remove('opt-active'); s.classList.add('opt-hidden'); setTimeout(()=>{s.style.transform='';s.style.opacity='1'},300); });
-                const next = slides[(curr+1)%slides.length];
-                next.classList.remove('opt-hidden'); next.classList.add('opt-active');
-            }
-        }
-    }
+        if (!s || s.dataset.mode !== "options") return;
+        const val = s.querySelector(".opt-active").dataset.val;
 
-    function attachEvents() {
-        let startX = 0, startY = 0;
-        document.querySelectorAll('.carousel-viewport').forEach(view => {
-            view._currOpt = 0;
-            view.addEventListener('touchstart', e => { startX = e.touches[0].clientX; startY = e.touches[0].clientY; }, {passive: true});
-            view.addEventListener('touchmove', e => {
-                const dx = e.touches[0].clientX - startX; const dy = e.touches[0].clientY - startY;
-                const axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
-                if(axis === 'y' && dy > 0) { e.preventDefault(); let dragRatio = Math.min(dy/250, 1); document.getElementById('depth-fill').style.height = (dragRatio*100)+'%'; }
-            }, {passive: false});
-            view.addEventListener('touchend', e => {
-                const dx = e.changedTouches[0].clientX - startX; const dy = e.changedTouches[0].clientY - startY;
-                const axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
-                if (axis === 'y') { if (dy < -50) executeAction('PREV'); else if (dy > 50) executeAction('SELECT'); }
-                else if (axis === 'x' && view.closest('.main-slide').dataset.mode === 'options') { if (dx < -50) executeAction('SKIP'); else if (dx > 50) executeAction('BROWSE'); }
-                document.getElementById('depth-fill').style.height = '0%';
-            });
-        });
-    }
-
-    // --- 4. SMART DEEP LINKS ---
-    function getCategory(name) {
-        for(let c in RAW_DATA) for(let cat of RAW_DATA[c].categories) for(let i of cat.items) if(i.name === name) return cat.id;
-        return "";
-    }
-    function link(p) {
-        const allItems = Object.keys(ENGINE_STATE.items_detected);
-        let validItems = [];
-        if (p === 'blinkit') {
-            validItems = allItems.filter(name => { const cat = getCategory(name); return cat.startsWith("s_") || cat.includes("beverage"); });
-        } else {
-            validItems = allItems.filter(name => { const cat = getCategory(name); return !cat.startsWith("s_packaged"); });
-        }
-        if (validItems.length === 0) return showToast("NO ITEMS FOR THIS APP");
-        const q = encodeURIComponent(validItems.map(k => `${k} x${ENGINE_STATE.items_detected[k].qty}`).join(", "));
-        const urls = { 
-            zomato: `https://www.zomato.com/search?q=${q}`, 
-            swiggy: `https://www.swiggy.com/search?query=${q}`, 
-            blinkit: `https://blinkit.com/s/?q=${q}` 
+        const prev = ENGINE_STATE.items_detected[val]?.qty || 0;
+        ENGINE_STATE.items_detected[val] = {
+          qty: prev + nums[k],
+          price: getPrice(val)
         };
-        window.open(urls[p], '_blank');
+
+        confirmVoice(`Added ${nums[k]} ${val}`);
+        if (Object.keys(ENGINE_STATE.items_detected).length === 3) readCart();
+        nextSlide();
+        return;
+      }
     }
 
-    function sendWa() {
-        let total = 0;
-        let msg = "📋 *NEW ORDER*\n----------------\n";
-        let i = 1;
-        for(let [k,v] of Object.entries(ENGINE_STATE.items_detected)) {
-            const line = v.price * v.qty;
-            total += line;
-            msg += `${i}. ${k} (x${v.qty}) - ₹${line}\n`;
-            i++;
+    // IMPLICIT ITEM MATCH
+    for (let c in RAW_DATA)
+      for (let cat of RAW_DATA[c].categories)
+        for (let i of cat.items) {
+          const key = i.name.toLowerCase();
+          if (t.includes(key) || key.split(" ").some(w => t.includes(w))) {
+            updateCart("ADD", i.name);
+            confirmVoice(`${i.name} added`);
+            nextSlide();
+            return;
+          }
         }
-        msg += "----------------\n";
-        msg += `💰 *Est. Total: ₹${total}*\n`;
-        msg += `📍 Location: Gandhidham`;
-        window.open(`https://wa.me/916351537770?text=${encodeURIComponent(msg)}`, '_blank');
-    }
-    
-    function saveToCloud() { fetch(GOOGLE_SCRIPT_URL, {method:"POST", body:JSON.stringify(ENGINE_STATE)}); showToast("SAVED"); }
-    function showToast(msg) { const t = document.getElementById('toast'); t.innerText = msg; t.classList.add('visible'); setTimeout(() => t.classList.remove('visible'), 2000); }
+  };
 
-    // --- 5. VOICE ---
-    function toggleListenMode() { 
-        if(!rec) initVoice();
-        const m = document.getElementById('mic-toggle');
-        if(m.classList.contains('listening')) { rec.stop(); m.classList.remove('listening'); } else { rec.start(); m.classList.add('listening'); }
-    }
-    let rec;
-    function initVoice() {
-        if(!window.SpeechRecognition && !window.webkitSpeechRecognition) return;
-        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-        rec = new SR(); rec.lang = "en-IN"; rec.continuous = true;
-        rec.onresult = e => {
-            const t = e.results[e.results.length-1][0].transcript.toLowerCase();
-            showToast(t);
-            if(t.includes("zomato")) link('zomato');
-            else if(t.includes("swiggy")) link('swiggy');
-            else if(t.includes("whatsapp")) sendWa();
-            else if(t.includes("select") || t.includes("add")) executeAction("SELECT");
-            else if(t.includes("skip") || t.includes("next")) executeAction("SKIP");
-            else if(t.includes("browse") || t.includes("show")) executeAction("BROWSE");
-            else {
-                const nums = {"one":1,"two":2,"three":3,"1":1,"2":2,"3":3};
-                for(let k in nums) if(t.includes(k)) { 
-                    const s = slideElements[currentIdx];
-                    if(s && s.dataset.mode === 'options') {
-                         const val = s.querySelector('.opt-active').dataset.val;
-                         ENGINE_STATE.items_detected[val] = { qty: nums[k], price: getPrice(val) };
-                         showToast(`ADDED ${nums[k]} ${val}`);
-                         nextSlide();
-                    }
-                }
-            }
-        };
-        rec.start();
-    }
-
-    boot();
-</script>
-</body>
+  rec.start();
+}
+    boot();  
+</script>  </body>  
 </html>
