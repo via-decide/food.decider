@@ -4,6 +4,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>| food.decide |</title>
+
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0a0a0a">
+    <meta name="background-color" content="#0a0a0a">
+
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="food.decide">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+
+    <meta name="mobile-web-app-capable" content="yes">
+
+    <meta name="application-name" content="food.decide">
+    <meta name="description" content="Voice-first food decision engine">
+
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./service-worker.js')
+            .then(reg => console.log('SW registered:', reg))
+            .catch(err => console.log('SW failed:', err));
+        });
+      }
+    </script>
+
     <style>
         /* =========================================
            CORE SYSTEM
@@ -100,6 +125,7 @@
         h1 { font-size: 1.8rem; margin: 0 0 15px 0; line-height: 1; letter-spacing: -1px; color: var(--brand-orange); }
         .primary-question { font-size: 1.1rem; color: #fff; margin-bottom: 25px; line-height: 1.4; font-weight: 600; }
         
+        /* PATCH 4 CSS: Price Style */
         .price {
             font-size: 0.9rem;
             color: #aaa;
@@ -109,7 +135,7 @@
             padding: 2px 6px;
             border-radius: 4px;
         }
-        
+
         .role-label {
             font-family: var(--font-tech);
             font-size: 0.6rem;
@@ -133,6 +159,7 @@
             justify-content: space-between;
         }
 
+        /* VERDICT & ACTIONS */
         .verdict-container { display: flex; flex-direction: column; height: 100%; justify-content: center; }
         .choice-header { font-family: var(--font-tech); color: #666; font-size: 0.8rem; margin-bottom: 20px; text-transform: uppercase; text-align: center; }
         
@@ -153,8 +180,10 @@
         .btn-blinkit { background: var(--accent-blinkit); color: #000; border: none; opacity: 0.5; }
         .btn-cloud { background: #4285F4; border: none; opacity: 1; }
         
+        /* Platform Visibility State */
         .btn-zomato.active, .btn-swiggy.active, .btn-blinkit.active { opacity: 1; box-shadow: 0 0 10px rgba(255,255,255,0.2); }
 
+        /* BUSINESS CTA STYLING */
         .biz-card {
             background: linear-gradient(145deg, #111, #050505);
             border: 1px solid var(--brand-orange);
@@ -165,6 +194,7 @@
         .biz-tagline { font-family: var(--font-tech); color: var(--brand-orange); font-size: 0.7rem; margin-bottom: 10px; display: block; }
         .biz-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 20px; color: #fff; }
 
+        /* LOBBY STYLES */
         .lobby-container {
             display: flex; flex-direction: column; gap: 15px; padding: 30px;
             height: 100%; justify-content: center;
@@ -222,9 +252,17 @@
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyBMwKxq92U0dptKMdEHvUCXPS9AjExHtxHjcRmfh2JFjCSn9Zd82bzp34xLg6X0a7L9g/exec";
     const SHARE_LINK_TEXT = "food-decider | swipe OS";
 
+    /* 4️⃣ OPTIONAL PATCH: OFFLINE BANNER HOOK */
     const NET_STATE = { online: navigator.onLine };
-    window.addEventListener("online", () => { NET_STATE.online = true; showToast("ONLINE MODE"); fetchVoiceConfig(); });
-    window.addEventListener("offline", () => { NET_STATE.online = false; showToast("OFFLINE MODE"); });
+    window.addEventListener("online", () => { 
+        NET_STATE.online = true; 
+        showToast("ONLINE · SYNC ENABLED"); // Updated text per Patch 4
+        fetchVoiceConfig(); 
+    });
+    window.addEventListener("offline", () => { 
+        NET_STATE.online = false; 
+        showToast("OFFLINE · USING SAVED DATA"); // Updated text per Patch 4
+    });
 
     // FALLBACK MENU (This loads instantly)
     const FALLBACK_MENU = {
@@ -430,7 +468,7 @@
         section.id = "lobby";
         
         let html = `
-        <div class="slide-header"><span class="header-title">SWIPE-OS v10.2</span></div>
+        <div class="slide-header"><span class="header-title">SWIPE-OS v10.3</span></div>
         <div class="lobby-container">
             <h1 style="text-align:center; margin-bottom:40px;">AAJ KYA MANGVAAYEGE!</h1>
             <div id="cuisine-grid" style="display:grid; gap:15px;">
