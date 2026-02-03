@@ -356,55 +356,90 @@ biz.innerHTML = `
   
     // --- 5. VOICE ---  
     
+   // --- 5. VOICE ENGINE (FIXED) ---
     let rec = null;
-let MIC_ENABLED = false;
-let MIC_RUNNING = false;
+    let MIC_ENABLED = false;
 
-    
-    
-function initVoice() {
-  if (rec) return;
+    function initVoice() {
+        if (rec) return;
 
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) {
-    showToast("VOICE NOT SUPPORTED");
-    return;
-  }
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SR) { showToast("VOICE NOT SUPPORTED"); return; }
 
-  rec = new SR();
-  rec.lang = "en-IN";
-  rec.continuous = false;
-  rec.interimResults = false;
+        rec = new SR();
+        rec.lang = "en-IN";
+        rec.continuous = true;     // Fix: Keep listening
+        rec.interimResults = false; // Fix: Only final results
 
-  rec.onresult = e => {
-    MIC_RUNNING = false;
-    const t = e.results[0][0].transcript.toLowerCase().trim();
-    showToast(t);
+        rec.onresult = e => {
+            const t = e.results[e.results.length - 1][0].transcript.toLowerCase().trim();
+            showToast(`"${t}"`);
+            
+            // INTENT ROUTER
+            if (t.includes("zomato")) link("zomato");
+            else if (t.includes("swiggy")) link("swiggy");
+            else if (t.includes("whatsapp")) sendWa();
+            else if (t.includes("select") || t.includes("add") || t.includes("chahiye")) executeAction("SELECT");
+            else if (t.includes("skip") || t.includes("next") || t.includes("hatao")) executeAction("SKIP");
+            else if (t.includes("browse") || t.includes("show") || t.includes("dekhao")) executeAction("BROWSE");
+            else if (t.includes("gyro") || t.includes("tilt")) reqGyro();
+            else {
+                 // Implicit Number Logic (e.g. "Two Naan")
+                 const nums = {"one":1,"two":2,"three":3,"1":1,"2":2,"3":3, "ek":1, "do":2, "teen":3};
+                 let matched = false;
+                 for(let k in nums) {
+                     if(t.includes(k)) { 
+                         const s = slideElements[currentIdx];
+                         if(s && s.dataset.mode === 'options') {
+                              const val = s.querySelector('.opt-active').dataset.val;
+                              ENGINE_STATE.items_detected[val] = { qty: nums[k], price: getPrice(val) };
+                              showToast(`ADDED ${nums[k]} ${val}`);
+                              nextSlide();
+                              matched = true;
+                         }
+                     }
+                 }
+                 if(!matched && (t.includes("yes") || t.includes("ha"))) executeAction("SELECT");
+                 if(!matched && (t.includes("no") || t.includes("na"))) executeAction("SKIP");
+            }
+        };
 
-    if (t.includes("zomato")) return link("zomato");
-    if (t.includes("swiggy")) return link("swiggy");
-    if (t.includes("whatsapp")) return sendWa();
-    if (t.includes("select") || t.includes("add")) return executeAction("SELECT");
-    if (t.includes("skip") || t.includes("next")) return executeAction("SKIP");
-    if (t.includes("browse") || t.includes("show")) return executeAction("BROWSE");
-  };
+        rec.onend = () => {
+            // Auto-restart if user didn't turn it off
+            if (MIC_ENABLED) { 
+                try { rec.start(); } catch(e){} 
+            } else {
+                document.getElementById('mic-toggle').classList.remove('listening');
+            }
+        };
 
-  rec.onend = () => {
-    MIC_RUNNING = false;
-    if (MIC_ENABLED) {
-      setTimeout(() => {
-        try {
-          MIC_RUNNING = true;
-          rec.start();
-        } catch(e){}
-      }, 300);
+        rec.onerror = (e) => {
+            if(e.error === 'not-allowed') {
+                MIC_ENABLED = false;
+                showToast("ALLOW MIC PERMISSION");
+                document.getElementById('mic-toggle').classList.remove('listening');
+            }
+        };
     }
-  };
 
-  rec.onerror = () => {
-    MIC_RUNNING = false;
-  };
-}
+    function toggleListenMode() {
+        initVoice();
+        if (!rec) return;
+
+        const btn = document.getElementById('mic-toggle');
+        MIC_ENABLED = !MIC_ENABLED;
+
+        if (MIC_ENABLED) {
+            btn.classList.add('listening');
+            try { rec.start(); showToast("LISTENING..."); } catch(e){}
+        } else {
+            btn.classList.remove('listening');
+            rec.stop();
+            showToast("MIC OFF");
+        }
+    }
+
+    boot();
     function toggleListenMode() {
   initVoice();
   if (!rec) return;
