@@ -290,6 +290,51 @@
             if(t.includes("next")) return nextSlide();
 
             // C. UNIVERSAL MODIFIERS (ADD/REMOVE/DOUBLE/HALF)
+        let rec;
+    function initVoice() {
+        if(!window.SpeechRecognition && !window.webkitSpeechRecognition) return;
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        rec = new SR(); rec.lang = "en-IN"; rec.continuous = true; rec.interimResults = false;
+
+        rec.onresult = e => {
+            const t = e.results[e.results.length-1][0].transcript.toLowerCase();
+            showToast(`Voice: ${t}`);
+
+            // A. PLATFORM CONTROLS (LATE GAME)
+            if(t.includes("zomato")) return link('zomato');
+            if(t.includes("swiggy")) return link('swiggy');
+            if(t.includes("whatsapp")) return sendWa();
+
+            // B. NAVIGATION CONTROLS
+            if(t.includes("browse") || t.includes("next option")) return executeAction("BROWSE");
+            if(t.includes("skip")) return executeAction("SKIP");
+            if(t.includes("next")) return nextSlide();
+
+            // C. UNIVERSAL MODIFIERS (ADD/REMOVE/DOUBLE/HALF)
+            const menuNames = [];
+            for(let c in RAW_DATA) for(let cat of RAW_DATA[c].categories) for(let i of cat.items) menuNames.push(i.name);
+
+            const words = t.split(" ");
+            const num = parseInt(t.match(/\d+/) || [1])[0];
+            
+            // Search for item in speech
+            let foundItem = menuNames.find(n => t.includes(n.toLowerCase()));
+
+            if (t.includes("remove") || t.includes("delete")) {
+                if(foundItem) { updateCart("REMOVE", foundItem); speak(`Removed ${foundItem}`); }
+            } else if (t.includes("double")) {
+                if(foundItem) { updateCart("DOUBLE", foundItem); speak(`Doubled ${foundItem}`); }
+            } else if (t.includes("half")) {
+                if(foundItem) { updateCart("HALF", foundItem); speak(`Halved ${foundItem}`); }
+            } else if (t.includes("add") || foundItem) {
+                // Default to add if item mentioned or "add" keyword used
+                const itemToAdd = foundItem || (slideElements[currentIdx].dataset.mode === 'options' ? slideElements[currentIdx].querySelector('.opt-active').dataset.val : null);
+                if(itemToAdd) {
+                    updateCart("ADD", itemToAdd, num);
+                    speak(`Added ${num > 1 ? num : ''} ${itemToAdd}`);
+                
+    
+        
             const menuNames = [];
             for(let c in RAW_DATA) for(let cat of RAW_DATA[c].categories) for(let i of cat.items) menuNames.push(i.name);
 
