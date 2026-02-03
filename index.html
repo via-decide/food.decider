@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>| food.decide |[ your branding ]</title>
+    <title>| food.decide | [ your branding ]</title>
 
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0a0a0a">
@@ -100,26 +100,29 @@
           "label": "PUNJABI",
           "categories": [
             { "id": "p_breads", "label": "Breads", "items": [ { "name": "Butter Naan", "price": 40 }, { "name": "Garlic Naan", "price": 50 }, { "name": "Tandoori Roti", "price": 25 }, { "name": "Lachha Paratha", "price": 55 } ] },
-            { "id": "p_mains", "label": "Mains", "items": [ { "name": "Dal Makhani", "price": 220 }, { "name": "Paneer Butter Masala", "price": 240 }, { "name": "Shahi Paneer", "price": 250 }, { "name": "Butter Chicken", "price": 280 } ] }
+            { "id": "p_mains", "label": "Mains", "items": [ { "name": "Dal Makhani", "price": 220 }, { "name": "Paneer Butter Masala", "price": 240 }, { "name": "Shahi Paneer", "price": 250 }, { "name": "Butter Chicken", "price": 280 }, { "name": "Kadai Paneer", "price": 230 } ] }
           ]
         },
         "chinese": {
           "label": "CHINESE",
           "categories": [
-            { "id": "c_dimsum", "label": "Dim Sum", "items": [ { "name": "Veg Crystal Dumpling", "price": 220 }, { "name": "Pork Siu Mai", "price": 260 } ] }
+            { "id": "c_dimsum", "label": "Dim Sum", "items": [ { "name": "Veg Crystal Dumpling", "price": 220 }, { "name": "Pork Siu Mai", "price": 260 }, { "name": "Har Gao", "price": 280 } ] },
+            { "id": "c_noodles", "label": "Noodles", "items": [ { "name": "Lo Mein", "price": 220 }, { "name": "Dan Dan Noodles", "price": 260 }, { "name": "Hakka Noodles", "price": 200 } ] },
+            { "id": "c_wok", "label": "Wok Specials", "items": [ { "name": "Kung Pao Chicken", "price": 280 }, { "name": "Mapo Tofu", "price": 240 }, { "name": "Chilli Chicken", "price": 260 } ] }
           ]
         },
         "pizza": {
           "label": "PIZZA",
           "categories": [
-            { "id": "z_classic", "label": "Classic", "items": [ { "name": "Margherita", "price": 350 }, { "name": "Pepperoni", "price": 450 } ] }
+            { "id": "z_classic", "label": "Classic", "items": [ { "name": "Margherita", "price": 350 }, { "name": "Marinara", "price": 330 }, { "name": "Pepperoni", "price": 450 } ] },
+            { "id": "z_gourmet", "label": "Gourmet", "items": [ { "name": "Burrata Pizza", "price": 550 }, { "name": "Truffle Mushroom Pizza", "price": 520 }, { "name": "Wood Fired Chicken Pizza", "price": 480 } ] }
           ]
         },
         "snacks": {
           "label": "NASTA PANI",
           "categories": [
-            { "id": "s_packaged", "label": "Packaged", "items": [ { "name": "Coke", "price": 40 }, { "name": "Chips", "price": 20 } ] },
-            { "id": "s_hot", "label": "Hot Snacks", "items": [ { "name": "Samosa", "price": 20 }, { "name": "Burger", "price": 60 } ] }
+            { "id": "s_packaged", "label": "Packaged", "items": [ { "name": "Coke", "price": 40 }, { "name": "Thums Up", "price": 40 }, { "name": "Chips", "price": 20 }, { "name": "Kurkure", "price": 20 } ] },
+            { "id": "s_hot", "label": "Hot Snacks", "items": [ { "name": "Samosa", "price": 20 }, { "name": "Veg Puff", "price": 30 }, { "name": "Burger", "price": 60 } ] }
           ]
         }
     };
@@ -133,7 +136,7 @@
     function renderLobby() {
         container.innerHTML = `
         <section class="main-slide active" id="lobby">
-            <div class="slide-header"><span class="header-title">(YOUR -- brand / restaurant / social media handle ) powered by swipe.OS </span></div>
+            <div class="slide-header"><span class="header-title">[ your branding ] powered by swipe.OS </span></div>
             <div class="lobby-container">
                 <h1>AAJ KYA MANGVAAYEGE!</h1>
                 <div id="cuisine-grid" style="display:grid; gap:15px;">
@@ -146,6 +149,7 @@
             </div>
         </section>`;
         slideElements = [document.getElementById('lobby')];
+        if(ENGINE_STATE.cuisines_detected) ENGINE_STATE.cuisines_detected.forEach(c => { const b = document.querySelector(`button[onclick*='${c}']`); if(b) b.classList.add('selected'); });
     }
 
     function toggleCuisine(id, btn) {
@@ -175,7 +179,8 @@
         final.innerHTML = `<div class="sub-slide static"><div class="verdict-container"><div class="choice-header">FINAL ORDER</div><div class="input-group" id="final-list"></div><div class="final-actions"><button class="btn btn-zomato" onclick="link('zomato')">ZOMATO</button><button class="btn btn-swiggy" onclick="link('swiggy')">SWIGGY</button><button class="btn btn-blinkit" onclick="link('blinkit')">BLINKIT</button><button class="btn btn-wa" onclick="goToSlide(currentIdx+1)">WHATSAPP &rarr;</button></div></div></div>`;
         container.appendChild(final);
         const biz = document.createElement('section'); biz.className = 'main-slide next'; biz.id = 'business';
-        biz.innerHTML = `<div class="biz-card">
+        biz.innerHTML = `<div class="sub-slide static">
+<div class="biz-card">
   <span class="biz-tagline">POWERED BY KUTCH AUTOMATION</span>
   <div class="biz-title">BUILD YOUR OWN ENGINE</div>
 
@@ -185,10 +190,11 @@
   </div>
 
   <div class="final-actions">
-    <button class="btn btn-wa">CHAT WITH AI</button>
-    <button class="btn">RESTART</button>
+    <button class="btn btn-wa" onclick="sendWa()">CHAT WITH AI</button>
+    <button class="btn" onclick="location.reload()">RESTART</button>
   </div>
-</div>`;
+</div></div>`;
+        container.appendChild(biz);
         slideElements = Array.from(document.querySelectorAll('.main-slide')); slideElements[0].className = "main-slide active"; currentIdx = 0; attachEvents();
     }
 
@@ -270,7 +276,7 @@
     function sendWa() {
         let total = 0, msg = "📋 *NEW ORDER*\n----------------\n", i = 1;
         for(let [k,v] of Object.entries(ENGINE_STATE.items_detected)) { const line = v.price * v.qty; total += line; msg += `${i}. ${k} (x${v.qty}) - ₹${line}\n`; i++; }
-        msg += "----------------\n💰 *Est. Total: ₹${total}*\n📍 Location: Gandhidham\n“You decide once. We handle the rest.”\n --------------------\nget customized PRE-loaded -- inquiry ,\n like this for your business/personal need with support of log - management\n";
+        msg += `----------------\n💰 *Est. Total: ₹${total}*\n📍 Location: Gandhidham\n“You decide once. We handle the rest.”\n --------------------\nget customized PRE-loaded -- inquiry ,\n like this for your business/personal need with support of log - management\n`;
         window.open(`https://wa.me/916351537770?text=${encodeURIComponent(msg)}`, '_blank');
     }
 
@@ -278,29 +284,98 @@
     function speak(text) { if(!window.speechSynthesis) return; window.speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text); u.lang = "en-IN"; window.speechSynthesis.speak(u); }
 
     function initVoice() {
-        if(!window.SpeechRecognition && !window.webkitSpeechRecognition) return;
-        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-        rec = new SR(); rec.lang = "en-IN"; rec.continuous = true; rec.onresult = e => {
-            const t = e.results[e.results.length-1][0].transcript.toLowerCase();
-            showToast(`Voice: ${t}`);
-            if(t.includes("zomato")) return link('zomato');
-            if(t.includes("whatsapp")) return sendWa();
-            if(t.includes("browse")) return executeAction("BROWSE");
-            if(t.includes("skip")) return executeAction("SKIP");
-            if(t.includes("next")) return nextSlide();
-            const menuNames = []; for(let c in RAW_DATA) for(let cat of RAW_DATA[c].categories) for(let i of cat.items) menuNames.push(i.name);
-            const num = parseInt(t.match(/\d+/) || [1])[0];
-            let foundItem = menuNames.find(n => t.includes(n.toLowerCase()));
-            if (t.includes("remove")) { if(foundItem) { updateCart("REMOVE", foundItem); speak(`Removed ${foundItem}`); } }
-            else if (t.includes("double")) { if(foundItem) { updateCart("DOUBLE", foundItem); speak(`Doubled ${foundItem}`); } }
-            else if (t.includes("half")) { if(foundItem) { updateCart("HALF", foundItem); speak(`Halved ${foundItem}`); } }
-            else if (t.includes("add") || foundItem) {
-                const itemToAdd = foundItem || (slideElements[currentIdx].dataset.mode === 'options' ? slideElements[currentIdx].querySelector('.opt-active').dataset.val : null);
-                if(itemToAdd) { updateCart("ADD", itemToAdd, num); speak(`Added ${num > 1 ? num : ''} ${itemToAdd}`); }
-            }
-        };
-        rec.onend = () => { if(document.getElementById('mic-toggle').classList.contains('listening')) rec.start(); };
+  if (!window.SpeechRecognition && !window.webkitSpeechRecognition) return;
+
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  rec = new SR();
+  rec.lang = "en-IN";
+  rec.continuous = true;
+  rec.interimResults = false;
+
+  // --- PRECOMPUTE MENU NAMES ---
+  const MENU_NAMES = [];
+  for (let c in RAW_DATA)
+    for (let cat of RAW_DATA[c].categories)
+      for (let i of cat.items)
+        MENU_NAMES.push(i.name);
+
+  const numberMap = {
+    one:1, two:2, three:3, four:4, five:5,
+    1:1, 2:2, 3:3, 4:4, 5:5
+  };
+
+  function extractQty(text) {
+    for (let k in numberMap) if (text.includes(k)) return numberMap[k];
+    const m = text.match(/\d+/);
+    return m ? parseInt(m[0],10) : 1;
+  }
+
+  function extractItem(text) {
+    return MENU_NAMES.find(n =>
+      text.includes(n.toLowerCase()) ||
+      n.toLowerCase().split(" ").some(w => text.includes(w))
+    );
+  }
+
+  rec.onresult = e => {
+    const t = e.results[e.results.length - 1][0].transcript.toLowerCase();
+    showToast(`Voice: ${t}`);
+
+    // --- PLATFORM ROUTES ---
+    if (t.includes("zomato")) return link("zomato");
+    if (t.includes("swiggy")) return link("swiggy");
+    if (t.includes("blinkit")) return link("blinkit");
+    if (t.includes("whatsapp")) return sendWa();
+
+    // --- NAVIGATION ---
+    if (t.includes("browse")) return executeAction("BROWSE");
+    if (t.includes("skip")) return executeAction("SKIP");
+    if (t.includes("next")) return nextSlide();
+
+    const qty = extractQty(t);
+    const foundItem = extractItem(t);
+
+    // --- CART OPERATIONS ---
+    if (t.includes("remove") && foundItem) {
+      updateCart("REMOVE", foundItem);
+      speak(`Removed ${foundItem}`);
+      return;
     }
+
+    if (t.includes("double") && foundItem) {
+      updateCart("DOUBLE", foundItem);
+      speak(`Doubled ${foundItem}`);
+      return;
+    }
+
+    if (t.includes("half") && foundItem) {
+      updateCart("HALF", foundItem);
+      speak(`Halved ${foundItem}`);
+      return;
+    }
+
+    // --- ADD / SELECT ---
+    if (t.includes("add") || foundItem) {
+      const fallbackItem =
+        slideElements[currentIdx]?.dataset.mode === "options"
+          ? slideElements[currentIdx]
+              .querySelector(".opt-active")?.dataset.val
+          : null;
+
+      const item = foundItem || fallbackItem;
+      if (!item) return;
+
+      updateCart("ADD", item, qty);
+      speak(`Added ${qty > 1 ? qty : ""} ${item}`);
+      return;
+    }
+  };
+
+  rec.onend = () => {
+    const mic = document.getElementById("mic-toggle");
+    if (mic && mic.classList.contains("listening")) rec.start();
+  };
+    
     function toggleListenMode() {
         if(!rec) initVoice();
         const m = document.getElementById('mic-toggle');
