@@ -244,7 +244,7 @@
 
 <script>
     /* =========================================
-       KUTCH AUTOMATION | SWIPE OS v16.0
+       KUTCH AUTOMATION | SWIPE OS v19.0
        ========================================= */
     
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwwGPAnqLwSdWYVMCkGSx-j-JNuNC4LBIBhUCUzOj6frrvGTYNBMCdrI9Ez8UHHUU2W/exec";
@@ -438,7 +438,7 @@
         section.id = "lobby";
         
         let html = `
-        <div class="slide-header"><span class="header-title">SWIPE-OS v16.0</span></div>
+        <div class="slide-header"><span class="header-title">SWIPE-OS v19.0</span></div>
         <div class="lobby-container">
             <h1 style="text-align:center; margin-bottom:40px;">AAJ KYA MANGVAAYEGE!</h1>
             <div id="cuisine-grid" style="display:grid; gap:15px;">
@@ -522,10 +522,10 @@
                     <div class="sub-slide ${i===0 ? 'opt-active' : 'opt-hidden'}" data-opt-idx="${i}" data-val="${item.name}">
                         <div class="role-label">${cfg.title.split('·')[0].trim()}</div>
                         <h1>${item.name}${item.price ? `<span class="price">₹${item.price}</span>` : ""}</h1>
-                        <div class="primary-question">Tap or Swipe Down</div>
+                        <div class="primary-question">Swipe Down to Select</div>
                         <div class="nav-hint">
                             <span style="flex:1; color:var(--accent-skip); font-weight:bold;">&larr; SKIP</span>
-                            <span style="flex:2; text-align:center; color:var(--accent-go); font-weight:bold;">TAP TO SELECT</span>
+                            <span style="flex:2; text-align:center; color:var(--accent-go); font-weight:bold;">SWIPE DOWN</span>
                             <span style="flex:1; text-align:right;">NEXT &rarr;</span>
                         </div>
                     </div>`;
@@ -573,7 +573,7 @@
     }
 
     /* =========================================
-       3. NAVIGATION & LOGIC (TOUCH + SWIPE)
+       3. NAVIGATION & LOGIC (SWIPE DOWN ONLY)
        ========================================= */
     let dragRatio = 0;
     const MAX_DRAG = 150; 
@@ -704,12 +704,8 @@
                 const duration = Date.now() - startTime;
                 const axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
                 
-                if(Math.abs(dx) < 20 && Math.abs(dy) < 20 && duration < 300) {
-                     if(view.closest('.main-slide').dataset.mode === 'options') {
-                         executeAction('SELECT');
-                     }
-                }
-                else if (axis === 'y') {
+                // 🟢 SWIPE DOWN ONLY (As Requested)
+                if (axis === 'y') {
                     if (dy < -50) executeAction('PREV');
                     else if (dy > 50 && dragRatio > TRIGGER_THRESHOLD) executeAction('SELECT');
                 } else if (axis === 'x' && view.closest('.main-slide').dataset.mode === 'options') {
