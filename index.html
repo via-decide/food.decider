@@ -244,7 +244,7 @@
 
 <script>
     /* =========================================
-       KUTCH AUTOMATION | SWIPE OS v23.0
+       KUTCH AUTOMATION | SWIPE OS v25.0
        ========================================= */
     
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwwGPAnqLwSdWYVMCkGSx-j-JNuNC4LBIBhUCUzOj6frrvGTYNBMCdrI9Ez8UHHUU2W/exec";
@@ -254,23 +254,73 @@
     window.addEventListener("online", () => { NET_STATE.online = true; showToast("ONLINE · SYNC ENABLED"); fetchVoiceConfig(); });
     window.addEventListener("offline", () => { NET_STATE.online = false; showToast("OFFLINE · USING SAVED DATA"); });
 
-    // FALLBACK MENU
+    // 🟢 NEW EXTENDED FALLBACK MENU
     const FALLBACK_MENU = {
-        version: "offline-v1",
-        data: {
-            punjabi: {
-                label: "PUNJABI",
-                categories: [
-                    { id: "p_breads", label: "Breads", items: [{name:"Butter Naan", price:40}, {name:"Tandoori Roti", price:25}, {name:"Garlic Naan", price:50}] },
-                    { id: "p_mains", label: "Mains", items: [{name:"Dal Makhani", price:220}, {name:"Paneer Butter Masala", price:240}, {name:"Butter Chicken", price:280}] }
-                ]
-            }
+      "meta": { "version": "menu.v1", "currency": "INR", "location": "Gandhidham" },
+      "cuisines": {
+        "punjabi": {
+          "label": "PUNJABI",
+          "categories": {
+            "p_breads": { "label": "Breads", "items": [{ "id": "butter_naan", "name": "Butter Naan", "price": 40 }, { "id": "garlic_naan", "name": "Garlic Naan", "price": 50 }, { "id": "tandoori_roti", "name": "Tandoori Roti", "price": 25 }, { "id": "lachha_paratha", "name": "Lachha Paratha", "price": 55 }] },
+            "p_mains": { "label": "Mains", "items": [{ "id": "dal_makhani", "name": "Dal Makhani", "price": 220 }, { "id": "paneer_butter_masala", "name": "Paneer Butter Masala", "price": 240 }, { "id": "shahi_paneer", "name": "Shahi Paneer", "price": 250 }, { "id": "butter_chicken", "name": "Butter Chicken", "price": 280 }, { "id": "kadai_paneer", "name": "Kadai Paneer", "price": 230 }] },
+            "p_rice": { "label": "Rice", "items": [{ "id": "jeera_rice", "name": "Jeera Rice", "price": 150 }, { "id": "veg_pulao", "name": "Veg Pulao", "price": 160 }, { "id": "chicken_biryani", "name": "Chicken Biryani", "price": 290 }] },
+            "p_beverages": { "label": "Beverages", "items": [{ "id": "sweet_lassi", "name": "Sweet Lassi", "price": 60 }, { "id": "salted_lassi", "name": "Salted Lassi", "price": 50 }, { "id": "masala_chaas", "name": "Masala Chaas", "price": 40 }] }
+          }
         },
-        platforms: { zomato: true, swiggy: true, blinkit: true }
+        "chinese": {
+          "label": "CHINESE",
+          "categories": {
+            "c_dimsum": { "label": "Dim Sum", "items": [{ "id": "veg_crystal_dumpling", "name": "Veg Crystal Dumpling", "price": 220 }, { "id": "pork_siu_mai", "name": "Pork Siu Mai", "price": 260 }, { "id": "har_gow", "name": "Har Gao", "price": 280 }] },
+            "c_noodles": { "label": "Noodles", "items": [{ "id": "lo_mein", "name": "Lo Mein", "price": 220 }, { "id": "dan_dan_noodles", "name": "Dan Dan Noodles", "price": 260 }, { "id": "hakka_noodles", "name": "Hakka Noodles", "price": 200 }] },
+            "c_wok": { "label": "Wok Specials", "items": [{ "id": "kung_pao_chicken", "name": "Kung Pao Chicken", "price": 280 }, { "id": "mapo_tofu", "name": "Mapo Tofu", "price": 240 }, { "id": "chilli_chicken", "name": "Chilli Chicken", "price": 260 }] }
+          }
+        },
+        "pizza": {
+          "label": "PIZZA",
+          "categories": {
+            "z_classic": { "label": "Classic", "items": [{ "id": "margherita", "name": "Margherita", "price": 350 }, { "id": "marinara", "name": "Marinara", "price": 330 }, { "id": "pepperoni", "name": "Pepperoni", "price": 450 }] },
+            "z_gourmet": { "label": "Gourmet", "items": [{ "id": "burrata_pizza", "name": "Burrata Pizza", "price": 550 }, { "id": "truffle_mushroom_pizza", "name": "Truffle Mushroom Pizza", "price": 520 }, { "id": "wood_fired_chicken_pizza", "name": "Wood Fired Chicken Pizza", "price": 480 }] }
+          }
+        },
+        "snacks": {
+          "label": "NASTA PANI",
+          "categories": {
+            "s_packaged": { "label": "Packaged", "items": [{ "id": "coke", "name": "Coke", "price": 40 }, { "id": "thums_up", "name": "Thums Up", "price": 40 }, { "id": "chips", "name": "Chips", "price": 20 }, { "id": "kurkure", "name": "Kurkure", "price": 20 }] },
+            "s_hot": { "label": "Hot Snacks", "items": [{ "id": "samosa", "name": "Samosa", "price": 20 }, { "id": "veg_puff", "name": "Veg Puff", "price": 30 }, { "id": "burger", "name": "Burger", "price": 60 }] }
+          }
+        }
+      },
+      "platforms": { "zomato": true, "swiggy": true, "blinkit": true }
     };
 
-    let RAW_DATA = FALLBACK_MENU.data; 
-    
+    // Helper: Normalize New JSON format to Old Array Format for Compatibility
+    function normalizeMenuStructure(source) {
+        const transformed = {};
+        for(let cKey in source) {
+            transformed[cKey.toLowerCase()] = {
+                label: source[cKey].label,
+                categories: []
+            };
+            // Check if categories is Object (New) or Array (Old)
+            const cats = source[cKey].categories;
+            if (Array.isArray(cats)) {
+                transformed[cKey.toLowerCase()].categories = cats;
+            } else {
+                for(let catKey in cats) {
+                    transformed[cKey.toLowerCase()].categories.push({
+                        id: catKey,
+                        label: cats[catKey].label,
+                        items: cats[catKey].items
+                    });
+                }
+            }
+        }
+        return transformed;
+    }
+
+    // Initialize RAW_DATA with normalized fallback
+    let RAW_DATA = normalizeMenuStructure(FALLBACK_MENU.cuisines);
+
     // 🔧 PATCH 2 — DEEP LINK MAP
     const DEEP_LINKS = {
         zomato: {
@@ -295,20 +345,14 @@
             const res = await Promise.race([fetcher, timeout]);
             const json = await res.json();
 
-            let menuData = json.data || json; 
-
-            // NORMALIZE KEYS
-            let normalizedData = {};
-            if (menuData) {
-                for (let k in menuData) {
-                    if (menuData[k].categories) {
-                        normalizedData[k.toLowerCase()] = menuData[k];
-                    }
-                }
-            }
-
-            if (Object.keys(normalizedData).length > 0) {
-                RAW_DATA = normalizedData;
+            // Handle New vs Old Structure from Server
+            let rawSource = json.cuisines || json.data || json;
+            
+            // Normalize
+            let normalized = normalizeMenuStructure(rawSource);
+            
+            if (Object.keys(normalized).length > 0) {
+                RAW_DATA = normalized;
                 if (json.platforms) {
                     ENGINE_STATE.platform_status = json.platforms;
                     localStorage.setItem("PLATFORM_STATUS", JSON.stringify(json.platforms));
@@ -321,12 +365,8 @@
             const cached = localStorage.getItem("MENU_CACHE");
             if (cached) {
                 const cachedJson = JSON.parse(cached);
-                let cachedData = cachedJson.data || cachedJson;
-                let normalizedCache = {};
-                for (let k in cachedData) {
-                    normalizedCache[k.toLowerCase()] = cachedData[k];
-                }
-                RAW_DATA = normalizedCache;
+                let rawSource = cachedJson.cuisines || cachedJson.data || cachedJson;
+                RAW_DATA = normalizeMenuStructure(rawSource);
                 if(cachedJson.platforms) ENGINE_STATE.platform_status = cachedJson.platforms;
             }
             return false;
@@ -465,7 +505,7 @@
         section.id = "lobby";
         
         let html = `
-        <div class="slide-header"><span class="header-title">SWIPE-OS v23.0</span></div>
+        <div class="slide-header"><span class="header-title">SWIPE-OS v25.0</span></div>
         <div class="lobby-container">
             <h1 style="text-align:center; margin-bottom:40px;">AAJ KYA MANGVAAYEGE!</h1>
             <div id="cuisine-grid" style="display:grid; gap:15px;">
@@ -783,15 +823,40 @@
     }
 
     /* =========================================
-       4. MASTER VOICE ROUTER
+       4. MASTER VOICE ROUTER (TRAINED WITH SYNONYMS)
        ========================================= */
     const VOICE_INTENTS = {
-      NAV: { next: ["next","continue","go ahead"], prev: ["back","previous","go back"], jump: ["go to","open","show me"] },
-      ACTION: { select: ["select","choose","pick"], skip: ["skip","ignore"], browse: ["browse","show","next option"] },
-      CART: { add: ["add","include"], remove: ["remove","delete"], reset: ["clear cart","start over","reset order"], read: ["read cart","what did i choose","list items"] },
-      QUANTITY: { double: ["double","two portions","make it two"], half: ["half","less","small portion"] },
-      PLATFORM: { zomato: ["zomato"], swiggy: ["swiggy"], blinkit: ["blinkit"], whatsapp: ["whatsapp"] },
-      SYSTEM: { help: ["help","what can i say","commands"], copy: ["copy","clipboard","phone"], save: ["save","cloud"] }
+      NAV: { 
+        next: ["next", "continue", "go ahead", "forward", "proceed"], 
+        prev: ["back", "previous", "go back", "reverse", "behind"], 
+        jump: ["go to", "open", "show me", "jump to", "switch to"] 
+      },
+      ACTION: { 
+        select: ["select", "choose", "pick", "this one", "i want this", "yes"], 
+        skip: ["skip", "ignore", "pass", "next item", "no", "don't want"], 
+        browse: ["browse", "show", "next option", "see more", "look around"] 
+      },
+      CART: { 
+        add: ["add", "include", "plus", "want", "put in cart"], 
+        remove: ["remove", "delete", "minus", "take out", "cancel"], 
+        reset: ["clear cart", "start over", "reset order", "empty", "delete all"], 
+        read: ["read cart", "what did i choose", "list items", "check", "status"] 
+      },
+      QUANTITY: { 
+        double: ["double", "two portions", "make it two", "2x", "extra"], 
+        half: ["half", "less", "small portion", "1/2", "lite"] 
+      },
+      PLATFORM: { 
+        zomato: ["zomato", "tomato", "zomat"], 
+        swiggy: ["swiggy", "swigy"], 
+        blinkit: ["blinkit", "blink it", "grocery"], 
+        whatsapp: ["whatsapp", "whats app", "message", "chat"] 
+      },
+      SYSTEM: { 
+        help: ["help", "what can i say", "commands", "assist", "guide me"], 
+        copy: ["copy", "clipboard", "phone", "save text", "copy order"], 
+        save: ["save", "cloud", "store", "keep", "upload"] 
+      }
     };
 
     const NUMBER_MAP = {
