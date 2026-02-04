@@ -159,7 +159,6 @@
         .verdict-container { display: flex; flex-direction: column; height: 100%; justify-content: center; }
         .choice-header { font-family: var(--font-tech); color: #666; font-size: 0.8rem; margin-bottom: 20px; text-transform: uppercase; text-align: center; }
         
-        /* Updated Input Group for Clean Order List */
         .input-group { 
             border: 1px solid #333; background: #111; padding: 20px; border-radius: 8px; 
             margin-bottom: 20px; min-height: 100px; max-height: 40vh; overflow-y: auto; 
@@ -245,7 +244,7 @@
 
 <script>
     /* =========================================
-       KUTCH AUTOMATION | SWIPE OS v15.0
+       KUTCH AUTOMATION | SWIPE OS v16.0
        ========================================= */
     
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwwGPAnqLwSdWYVMCkGSx-j-JNuNC4LBIBhUCUzOj6frrvGTYNBMCdrI9Ez8UHHUU2W/exec";
@@ -439,7 +438,7 @@
         section.id = "lobby";
         
         let html = `
-        <div class="slide-header"><span class="header-title">SWIPE-OS v15.0</span></div>
+        <div class="slide-header"><span class="header-title">SWIPE-OS v16.0</span></div>
         <div class="lobby-container">
             <h1 style="text-align:center; margin-bottom:40px;">AAJ KYA MANGVAAYEGE!</h1>
             <div id="cuisine-grid" style="display:grid; gap:15px;">
@@ -1006,7 +1005,8 @@
             return;
         }
 
-        // Deep Link Single Item Override
+        // 🟢 DEEP LINK OVERRIDE (v16.0)
+        // If single item has a direct link, use it immediately.
         if (keys.length === 1) {
             const item = cart[keys[0]];
             if (item.link && item.link.startsWith("http")) {
