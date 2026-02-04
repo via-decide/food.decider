@@ -159,6 +159,7 @@
         .verdict-container { display: flex; flex-direction: column; height: 100%; justify-content: center; }
         .choice-header { font-family: var(--font-tech); color: #666; font-size: 0.8rem; margin-bottom: 20px; text-transform: uppercase; text-align: center; }
         
+        /* Updated Input Group for Clean Order List */
         .input-group { 
             border: 1px solid #333; background: #111; padding: 20px; border-radius: 8px; 
             margin-bottom: 20px; min-height: 100px; max-height: 40vh; overflow-y: auto; 
@@ -167,6 +168,7 @@
         .input-row { display: flex; justify-content: space-between; border-bottom: 1px dashed #333; padding: 10px 0; font-family: var(--font-tech); font-size: 0.8rem; }
         .input-key { color: #888; text-transform: uppercase; }
         .input-val { color: var(--accent-go); font-weight: bold; text-align: right; }
+        .input-total { border-top: 2px solid #444; margin-top: 10px; padding-top: 10px; color: #fff; font-size: 1rem; }
         
         .final-actions { display: grid; gap: 10px; margin-top: 20px; }
         .btn { background: #222; color: #fff; border: 1px solid #333; padding: 15px; border-radius: 8px; font-weight: 600; text-align: center; font-size: 0.9rem; cursor: pointer; display: block; width: 100%; box-sizing: border-box; transition: opacity 0.3s; }
@@ -243,7 +245,7 @@
 
 <script>
     /* =========================================
-       KUTCH AUTOMATION | SWIPE OS v14.0
+       KUTCH AUTOMATION | SWIPE OS v15.0
        ========================================= */
     
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwwGPAnqLwSdWYVMCkGSx-j-JNuNC4LBIBhUCUzOj6frrvGTYNBMCdrI9Ez8UHHUU2W/exec";
@@ -437,7 +439,7 @@
         section.id = "lobby";
         
         let html = `
-        <div class="slide-header"><span class="header-title">SWIPE-OS v14.0</span></div>
+        <div class="slide-header"><span class="header-title">SWIPE-OS v15.0</span></div>
         <div class="lobby-container">
             <h1 style="text-align:center; margin-bottom:40px;">AAJ KYA MANGVAAYEGE!</h1>
             <div id="cuisine-grid" style="display:grid; gap:15px;">
@@ -533,7 +535,7 @@
                 html += `
                 <div class="sub-slide static">
                     <div class="verdict-container">
-                        <div class="choice-header">WHAT YOU CHOSE</div>
+                        <div class="choice-header">FINAL ORDER</div>
                         <div class="input-group" id="final-list"></div>
                         <div class="final-actions">
                             <button class="btn btn-zomato" id="btn-zomato" onclick="copyAndRedirect('auto')">AUTO</button>
@@ -628,7 +630,7 @@
                 total += price * data.qty;
                 html += `<div class="input-row"><span class="input-key">${name}</span><span class="input-val">x${data.qty} · ₹${price * data.qty}</span></div>`;
             }
-            html += `<div class="input-row" style="border-top:1px solid #444; margin-top:10px;"><span class="input-key">TOTAL</span><span class="input-val">₹${total}</span></div>`;
+            html += `<div class="input-row input-total"><span class="input-key">GRAND TOTAL</span><span class="input-val">₹${total}</span></div>`;
         }
         list.innerHTML = html;
     }
