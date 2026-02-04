@@ -244,7 +244,7 @@
 
 <script>
     /* =========================================
-       KUTCH AUTOMATION | SWIPE OS v20.0
+       KUTCH AUTOMATION | SWIPE OS v23.0
        ========================================= */
     
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwwGPAnqLwSdWYVMCkGSx-j-JNuNC4LBIBhUCUzOj6frrvGTYNBMCdrI9Ez8UHHUU2W/exec";
@@ -270,6 +270,22 @@
     };
 
     let RAW_DATA = FALLBACK_MENU.data; 
+    
+    // 🔧 PATCH 2 — DEEP LINK MAP
+    const DEEP_LINKS = {
+        zomato: {
+            app: q => `zomato://search?q=${q}`,
+            web: q => `https://www.zomato.com/search?q=${q}`
+        },
+        swiggy: {
+            app: q => `swiggy://explore?query=${q}`,
+            web: q => `https://www.swiggy.com/search?query=${q}`
+        },
+        blinkit: {
+            app: _ => `blinkit://`,
+            web: q => `https://blinkit.com/s/?q=${q}`
+        }
+    };
 
     /* SAFER MENU FETCHER v2 */
     async function fetchMenuData() {
@@ -342,6 +358,13 @@
         cart_state: { items: [], total: 0 }
     };
 
+    // 🔧 PATCH 1 — HARD RESET CART ON BOOT (MANDATORY)
+    function resetCartOnRefresh() {
+        ENGINE_STATE.items_detected = {};
+        ENGINE_STATE.cart_state = { items: [], total: 0 };
+        localStorage.removeItem("ENGINE_STATE_CACHE");
+    }
+
     function findItemMeta(name) {
         if (!RAW_DATA) return { price: 0, link: "" };
         for (let c in RAW_DATA) {
@@ -408,11 +431,14 @@
     }
 
     function saveLocalState(){ localStorage.setItem("ENGINE_STATE_CACHE", JSON.stringify(ENGINE_STATE)); }
+    
+    // 🔧 PATCH 3 — NEUTRALIZE CART RESTORE (SAFETY LOCK)
     function loadLocalState(){
-        const cached = localStorage.getItem("ENGINE_STATE_CACHE");
-        if(cached) { ENGINE_STATE = JSON.parse(cached); }
         const cachedStatus = localStorage.getItem("PLATFORM_STATUS");
-        if(cachedStatus) { ENGINE_STATE.platform_status = JSON.parse(cachedStatus); }
+        if(cachedStatus) {
+            ENGINE_STATE.platform_status = JSON.parse(cachedStatus);
+        }
+        // 🚫 cart intentionally NOT restored
     }
 
     /* =========================================
@@ -422,11 +448,12 @@
     let slideElements = [];
     let currentIdx = 0;
 
+    // 🔧 PATCH 2 — CALL RESET BEFORE UI BUILDS (CRITICAL)
     async function boot() {
-        renderLobby(); 
-        loadLocalState();
+        resetCartOnRefresh();   // 🔥 force empty cart every refresh
+        renderLobby();          // UI starts clean
         initVoice();
-        await fetchMenuData(); 
+        await fetchMenuData();
         fetchVoiceConfig();
         setTimeout(checkMenuVersion, 3000);
     }
@@ -438,7 +465,7 @@
         section.id = "lobby";
         
         let html = `
-        <div class="slide-header"><span class="header-title">SWIPE-OS v20.0</span></div>
+        <div class="slide-header"><span class="header-title">SWIPE-OS v23.0</span></div>
         <div class="lobby-container">
             <h1 style="text-align:center; margin-bottom:40px;">AAJ KYA MANGVAAYEGE!</h1>
             <div id="cuisine-grid" style="display:grid; gap:15px;">
@@ -537,11 +564,12 @@
                         <div class="choice-header">FINAL ORDER</div>
                         <div class="input-group" id="final-list"></div>
                         <div class="final-actions">
-                            <button class="btn btn-zomato" id="btn-zomato" onclick="copyAndRedirect('auto')">AUTO</button>
+                            <button class="btn btn-zomato" id="btn-zomato" onclick="copyAndRedirect('zomato')">ZOMATO</button>
                             <button class="btn btn-swiggy" id="btn-swiggy" onclick="copyAndRedirect('swiggy')">SWIGGY</button>
                             <button class="btn btn-blinkit" id="btn-blinkit" onclick="copyAndRedirect('blinkit')">BLINKIT</button>
                             <button class="btn btn-copy" onclick="saveAndLog()">COPY ORDER</button>
                             <button class="btn btn-wa" onclick="sendWhatsapp()">WHATSAPP</button>
+                            <button class="btn btn-zomato" style="margin-top:10px; background:#444;" onclick="copyAndRedirect('auto')">AUTO ROUTE</button>
                         </div>
                         <div class="nav-hint"><span style="width:100%; text-align:center; color:var(--brand-orange)">SWIPE DOWN FOR BUSINESS &darr;</span></div>
                     </div>
@@ -594,11 +622,37 @@
         document.getElementById('depth-fill').style.height = '0%';
     }
 
+    // 🔧 PATCH 1 — PURE CART TOTAL CALCULATOR (ADD)
+    function calculateCartTotals() {
+        const cart = ENGINE_STATE.items_detected || {};
+        let total = 0;
+        let lines = [];
+
+        for (const [name, data] of Object.entries(cart)) {
+            const qty = data.qty || 0;
+            const price = data.price || 0;
+            const lineTotal = qty * price;
+            total += lineTotal;
+            lines.push({
+                name,
+                qty,
+                price,
+                lineTotal
+            });
+        }
+
+        return {
+            items: lines,
+            total
+        };
+    }
+
+    // 🔧 PATCH 4 — DEFENSIVE FINAL SLIDE GUARANTEE (OPTIONAL BUT SAFE)
     function updateResult() {
         const list = document.getElementById('final-list');
-        if(!list) return;
-
-        const cart = ENGINE_STATE.items_detected;
+        if (!list) return;
+        
+        // Update button states
         const strategies = ENGINE_STATE.platform_strategy.fulfillment;
         const status = ENGINE_STATE.platform_status;
 
@@ -606,7 +660,6 @@
             const btn = document.getElementById(`btn-${p}`);
             if(btn) {
                 const isOnline = status[p] !== false; 
-                
                 if(!isOnline) {
                     btn.classList.add('disabled');
                     btn.innerText = `${p.toUpperCase()} (OFF)`;
@@ -619,18 +672,28 @@
             }
         });
 
-        let html = '';
-        let total = 0;
-        if (Object.keys(cart).length === 0) {
-            html = '<div style="text-align:center;color:#666;margin-top:20px;">No items selected.</div>';
-        } else {
-            for (const [name, data] of Object.entries(cart)) {
-                const price = data.price || 0;
-                total += price * data.qty;
-                html += `<div class="input-row"><span class="input-key">${name}</span><span class="input-val">x${data.qty} · ₹${price * data.qty}</span></div>`;
-            }
-            html += `<div class="input-row input-total"><span class="input-key">GRAND TOTAL</span><span class="input-val">₹${total}</span></div>`;
+        // 🔧 PATCH 4 CONT.
+        if (!ENGINE_STATE.items_detected || Object.keys(ENGINE_STATE.items_detected).length === 0) {
+            list.innerHTML = "<div style='text-align:center;color:#666;margin-top:20px'>No items selected.</div>";
+            return;
         }
+
+        // Update list
+        const { items, total } = calculateCartTotals();
+        
+        let html = "";
+        items.forEach(i => {
+            html += `<div class="input-row">
+                <span class="input-key">${i.name}</span>
+                <span class="input-val">x${i.qty} · ₹${i.lineTotal}</span>
+            </div>`;
+        });
+
+        html += `<div class="input-row" style="border-top:1px solid #444;margin-top:10px">
+            <span class="input-key">TOTAL</span>
+            <span class="input-val">₹${total}</span>
+        </div>`;
+
         list.innerHTML = html;
     }
 
@@ -928,15 +991,31 @@
 
     function speak(text) { window.speechSynthesis.speak(new SpeechSynthesisUtterance(text)); }
     
-    function buildCartText() { 
-        let str = "";
-        let total = 0;
-        for(let [k,v] of Object.entries(ENGINE_STATE.items_detected)) {
-            str += `${k} (x${v.qty}), `;
-            total += v.price * v.qty;
+    // 🔧 PATCH 2 — CANONICAL CART TEXT BUILDER (ADD)
+    function buildCartText({ forWhatsapp = false } = {}) {
+        const { items, total } = calculateCartTotals();
+        if (!items.length) return "";
+
+        let text = forWhatsapp
+            ? "📋 *NEW ORDER*\n----------------\n"
+            : "ORDER SUMMARY\n----------------\n";
+
+        items.forEach((i, idx) => {
+            text += `${idx + 1}. ${i.name} (x${i.qty}) - ₹${i.lineTotal}\n`;
+        });
+
+        text += "----------------\n";
+        text += `💰 ${forWhatsapp ? "*Est. Total:*" : "TOTAL:"} ₹${total}\n`;
+        text += `📍 Location: Gandhidham\n`;
+
+        if (forWhatsapp) {
+            text += "-------------------\n";
+            text += "get customized \"PRE-loaded\" inquiry like above for your business/personal need with support of log-management\n";
+            text += "-------------------\n";
+            text += "“You decide once. We handle the rest.”";
         }
-        str = str.slice(0, -2) || "No items";
-        return str + ` | TOTAL: ₹${total}`;
+
+        return text;
     }
 
     function saveToCloud() {
@@ -946,11 +1025,17 @@
         .then(() => { showToast("SAVED ✅"); speak("Order saved"); });
     }
 
+    // 🔧 PATCH 3 — CLIPBOARD COPY (REPLACE autoCopy)
     function autoCopy() {
-        const data = buildCartText();
-        navigator.clipboard.writeText(data);
-        showToast("COPIED TO CLIPBOARD");
-        speak("Order copied");
+        const text = buildCartText();
+        if (!text) {
+            showToast("CART EMPTY");
+            return;
+        }
+
+        navigator.clipboard.writeText(text)
+            .then(() => showToast("COPIED TO CLIPBOARD"))
+            .catch(() => showToast("COPY FAILED"));
     }
 
     // 🟢 HYBRID SAVE: COPY + LOG
@@ -965,46 +1050,51 @@
         }
     }
 
-    function buildWhatsappMessage() {
-        const cart = ENGINE_STATE.items_detected;
-        let msg = "📋 *NEW ORDER*\n----------------\n";
-        let total = 0;
-        let i = 1;
-
-        for (let [k, v] of Object.entries(cart)) {
-            const line = v.price * v.qty;
-            total += line;
-            msg += `${i}. ${k} (x${v.qty}) - ₹${line}\n`;
-            i++;
+    // 🔧 PATCH 4 — WHATSAPP SEND (REPLACE)
+    function sendWhatsapp() {
+        const text = buildCartText({ forWhatsapp: true });
+        if (!text) {
+            showToast("CART EMPTY");
+            return;
         }
 
-        msg += "----------------\n";
-        msg += `💰 *Est. Total: ₹${total}*\n`;
-        msg += `📍 Location: Gandhidham\n`;
-        msg += "-------------------\n";
-        msg += "get customized \"PRE-loaded\" inquiry like above for your business/personal need with support of log-management\n";
-        msg += "-------------------\n";
-        msg += "“You decide once. We handle the rest.”";
-
-        return encodeURIComponent(msg);
+        const encoded = encodeURIComponent(text);
+        window.open(`https://wa.me/916351537770?text=${encoded}`, "_blank");
     }
 
     /* =========================================
-       PATCH 2: STRICT PLATFORM FILTERING (v13)
+       PATCH 1 — SMART PLATFORM RESOLVER (ADD NEW)
        ========================================= */
-    function copyAndRedirect(platform) {
+    function resolvePlatformFromCart() {
+        const snackRegex = /coke|chips|kurkure|thumbs|water|samosa|puff|burger|snack/i;
+        let snackCount = 0;
+        let mealCount = 0;
+
+        for (let item in ENGINE_STATE.items_detected) {
+            if (snackRegex.test(item.toLowerCase())) snackCount++;
+            else mealCount++;
+        }
+
+        if (snackCount && !mealCount) return "blinkit";
+        if (mealCount && !snackCount) return "zomato";
+        if (snackCount && mealCount) return "mixed";
+        return null;
+    }
+
+    /* =========================================
+       PATCH 3 — FINAL DEEP LINK EXECUTOR (REPLACE copyAndRedirect)
+       ========================================= */
+    function copyAndRedirect(requestedPlatform = "auto") {
         const cart = ENGINE_STATE.items_detected;
-        const keys = Object.keys(cart);
-        
-        if (!cart || keys.length === 0) {
+        if (!cart || Object.keys(cart).length === 0) {
             showToast("CART IS EMPTY");
             return;
         }
 
-        // 🟢 DEEP LINK OVERRIDE (v16.0)
-        // If single item has a direct link, use it immediately.
-        if (keys.length === 1) {
-            const item = cart[keys[0]];
+        // Deep Link Single Item Override
+        if (Object.keys(cart).length === 1) {
+            const itemKey = Object.keys(cart)[0];
+            const item = cart[itemKey];
             if (item.link && item.link.startsWith("http")) {
                 showToast("OPENING DIRECT LINK");
                 window.location.href = item.link;
@@ -1012,81 +1102,47 @@
             }
         }
 
-        // KEYWORD BUCKETS
-        const GROCERY_KEYS = /chips|kurkure|biscuit|maggi|chocolate|milk|bread|egg|grocery|snack|coke|water|soda/i;
-        const MEAL_KEYS = /pizza|burger|naan|roti|curry|dal|paneer|chicken|biryani|pasta|sandwich|meal|thali/i;
-        const UNIVERSAL_KEYS = /coke|water|sprite|soda|thums/i; // Drinks go everywhere
-
-        let itemsToSend = [];
-
-        // AUTO LOGIC
-        if (platform === "auto") {
-            let hasMeals = keys.some(k => MEAL_KEYS.test(k));
-            let hasGrocery = keys.some(k => GROCERY_KEYS.test(k));
-            
-            // Prioritize Meals
-            if (hasMeals) platform = "zomato"; 
-            else if (hasGrocery) platform = "blinkit";
-            else platform = "zomato"; // Default fallback
-        }
-
-        // STRICT FILTERING LOGIC
-        keys.forEach(key => {
-            let isMeal = MEAL_KEYS.test(key);
-            let isGrocery = GROCERY_KEYS.test(key);
-            let isUniversal = UNIVERSAL_KEYS.test(key);
-
-            if (platform === "blinkit") {
-                // Blinkit takes Grocery + Universal
-                if (isGrocery || isUniversal) itemsToSend.push(key);
-            } else {
-                // Zomato/Swiggy takes Meals + Universal
-                if (isMeal || isUniversal) itemsToSend.push(key);
-                // Also take unknown items as Meals by default
-                if (!isMeal && !isGrocery) itemsToSend.push(key);
-            }
-        });
-
-        if (!itemsToSend.length) {
-            showToast(`NO ITEMS FOR ${platform.toUpperCase()}`);
+        if (!navigator.onLine) {
+            autoCopy();
+            showToast("OFFLINE · COPIED");
             return;
         }
 
-        const query = encodeURIComponent(
-            itemsToSend.map(i => `${i} x${cart[i].qty}`).join(", ")
-        );
+        const mode = requestedPlatform === "auto"
+            ? resolvePlatformFromCart()
+            : requestedPlatform;
 
-        const links = {
-            zomato: {
-                app: `zomato://search?q=${query}`,
-                web: `https://www.zomato.com/search?q=${query}`
-            },
-            swiggy: {
-                app: `swiggy://explore?query=${query}`,
-                web: `https://www.swiggy.com/search?q=${query}`
-            },
-            blinkit: {
-                app: `blinkit://`,
-                web: `https://blinkit.com/s/?q=${query}`
+        const snackRegex = /coke|chips|kurkure|thumbs|water|samosa|puff|burger|snack/i;
+        let items = [];
+
+        for (let item in cart) {
+            if (
+                (mode === "blinkit" && snackRegex.test(item.toLowerCase())) ||
+                (mode !== "blinkit" && !snackRegex.test(item.toLowerCase()))
+            ) {
+                items.push(`${item} x${cart[item].qty}`);
             }
-        };
+        }
 
-        const target = links[platform];
+        if (!items.length) {
+            showToast("NO ITEMS FOR THIS APP");
+            return;
+        }
+
+        const query = encodeURIComponent(items.join(", "));
+        const target = DEEP_LINKS[mode === "mixed" ? "zomato" : mode];
         if (!target) return;
 
-        showToast(`OPENING ${platform.toUpperCase()}`);
+        showToast(`OPENING ${mode.toUpperCase()}`);
 
         const start = Date.now();
-        window.location.href = target.app;
+        window.location.href = target.app(query);
 
         setTimeout(() => {
-            if (Date.now() - start < 2000) window.location.href = target.web;
+            if (Date.now() - start < 1600) {
+                window.location.href = target.web(query);
+            }
         }, 1500);
-    }
-
-    function sendWhatsapp() {
-        const msg = buildWhatsappMessage();
-        window.open(`https://wa.me/916351537770?text=${msg}`, '_blank');
     }
 
     function showToast(msg, type="normal") {
