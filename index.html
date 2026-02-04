@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -49,6 +50,8 @@
             font-family: var(--font-ui);
             overflow: hidden;
             touch-action: none; 
+            -webkit-user-select: none;
+            user-select: none;
         }
 
         #master-container {
@@ -240,10 +243,11 @@
 
 <script>
     /* =========================================
-       0. CONFIGURATION
+       KUTCH AUTOMATION | SWIPE OS v13.0
        ========================================= */
-    // 🔴 IMPORTANT: REPLACE THIS WITH YOUR DEPLOYED WEB APP URL
-    const GOOGLE_SCRIPT_URL = "REPLACE_WITH_YOUR_NEW_V2_SCRIPT_URL_HERE"; 
+    
+    // 🟢 USING LATEST WORKING URL
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwwGPAnqLwSdWYVMCkGSx-j-JNuNC4LBIBhUCUzOj6frrvGTYNBMCdrI9Ez8UHHUU2W/exec";
     
     const SHARE_LINK_TEXT = "food-decider | swipe OS";
 
@@ -283,7 +287,7 @@
             let normalizedData = {};
             if (menuData) {
                 for (let k in menuData) {
-                    if (menuData[k].categories && menuData[k].categories.length > 0) {
+                    if (menuData[k].categories) {
                         normalizedData[k.toLowerCase()] = menuData[k];
                     }
                 }
@@ -347,6 +351,7 @@
         cart_state: { items: [], total: 0 }
     };
 
+    // v2: Finds price AND Deep Link
     function findItemMeta(name) {
         if (!RAW_DATA) return { price: 0, link: "" };
         for (let c in RAW_DATA) {
@@ -446,7 +451,7 @@
         section.id = "lobby";
         
         let html = `
-        <div class="slide-header"><span class="header-title">SWIPE-OS v11.0</span></div>
+        <div class="slide-header"><span class="header-title">SWIPE-OS v13.0</span></div>
         <div class="lobby-container">
             <h1 style="text-align:center; margin-bottom:40px;">AAJ KYA MANGVAAYEGE!</h1>
             <div id="cuisine-grid" style="display:grid; gap:15px;">
@@ -495,7 +500,6 @@
         let itemsFound = 0;
 
         ENGINE_STATE.cuisines_detected.forEach(cId => {
-            // Force lowercase check to match normalized RAW_DATA
             let key = cId.toLowerCase();
             if(RAW_DATA[key]) {
                 RAW_DATA[key].categories.forEach(cat => {
@@ -511,7 +515,7 @@
         });
         
         if(itemsFound === 0) {
-            showToast("NO DATA FOR SELECTION - CHECK SHEET IDs");
+            showToast("NO DATA - CHECK SHEET");
         }
 
         slides.push({ id: "final", type: "final", title: "FINAL ORDER" });
@@ -582,11 +586,11 @@
     }
 
     /* =========================================
-       3. NAVIGATION & LOGIC
+       3. NAVIGATION & LOGIC (TOUCH + SWIPE)
        ========================================= */
     let dragRatio = 0;
-    const MAX_DRAG = 250;
-    const TRIGGER_THRESHOLD = 0.9;
+    const MAX_DRAG = 150; 
+    const TRIGGER_THRESHOLD = 0.3;
 
     function goToSlide(idx) {
         if (idx < 0 || idx >= slideElements.length) return;
@@ -685,9 +689,16 @@
 
     function attachEvents() {
         let startX = 0, startY = 0;
+        let startTime = 0;
+        
         document.querySelectorAll('.carousel-viewport').forEach(view => {
             view._currOpt = 0;
-            view.addEventListener('touchstart', e => { startX = e.touches[0].clientX; startY = e.touches[0].clientY; }, {passive: true});
+            view.addEventListener('touchstart', e => { 
+                startX = e.touches[0].clientX; 
+                startY = e.touches[0].clientY; 
+                startTime = Date.now();
+            }, {passive: true});
+            
             view.addEventListener('touchmove', e => {
                 const dx = e.touches[0].clientX - startX;
                 const dy = e.touches[0].clientY - startY;
@@ -695,21 +706,36 @@
                 if(axis === 'y' && dy > 0) {
                     e.preventDefault();
                     dragRatio = Math.min(dy/MAX_DRAG, 1);
-                    document.getElementById('depth-fill').style.height = (dragRatio*100)+'%';
+                    const fill = document.getElementById('depth-fill');
+                    fill.style.height = (dragRatio*100)+'%';
+                    // Visual feedback color
+                    fill.style.backgroundColor = dragRatio > TRIGGER_THRESHOLD ? 'var(--accent-go)' : '#333';
                 }
             }, {passive: false});
+            
             view.addEventListener('touchend', e => {
                 const dx = e.changedTouches[0].clientX - startX;
                 const dy = e.changedTouches[0].clientY - startY;
+                const duration = Date.now() - startTime;
                 const axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
-                if (axis === 'y') {
+                
+                // 🟢 1. TAP DETECTION
+                if(Math.abs(dx) < 20 && Math.abs(dy) < 20 && duration < 250) {
+                     if(view.closest('.main-slide').dataset.mode === 'options') {
+                         executeAction('SELECT');
+                     }
+                }
+                // 🟢 2. SWIPE DETECTION
+                else if (axis === 'y') {
                     if (dy < -50) executeAction('PREV');
                     else if (dy > 50 && dragRatio > TRIGGER_THRESHOLD) executeAction('SELECT');
                 } else if (axis === 'x' && view.closest('.main-slide').dataset.mode === 'options') {
                     if (dx < -50) executeAction('SKIP');
                     else if (dx > 50) executeAction('BROWSE');
                 }
+                
                 document.getElementById('depth-fill').style.height = '0%';
+                dragRatio = 0;
             });
         });
     }
@@ -788,7 +814,6 @@
           return;
       }
 
-      /* JUMP */
       if (cmd.group === "NAV" && cmd.key === "jump") {
         const n = extractNumber(cmd.raw);
         if (n !== null && slideElements[n - 1]) {
@@ -884,11 +909,11 @@
               RAW_DATA[cId].categories.forEach(cat => {
                   cat.items.forEach(item => {
                       if (!found && txt.includes(item.name.toLowerCase())) {
-                          const meta = findItemMeta(item.name); // Get deep link too
+                          const meta = findItemMeta(item.name);
                           const currentQty = ENGINE_STATE.items_detected[item.name]?.qty || 0;
                           ENGINE_STATE.items_detected[item.name] = { 
                               qty: currentQty + qty, 
-                              price: item.price || 0,
+                              price: meta.price,
                               link: meta.link, 
                               added_at: Date.now() 
                           };
@@ -974,7 +999,7 @@
     }
 
     /* =========================================
-       PATCH 1: SMART ROUTING + v2 DEEP LINKING
+       PATCH 2: STRICT PLATFORM FILTERING (v13)
        ========================================= */
     function copyAndRedirect(platform) {
         const cart = ENGINE_STATE.items_detected;
@@ -985,7 +1010,7 @@
             return;
         }
 
-        // v2: Check for Single Item Deep Link Override
+        // Deep Link Single Item Override
         if (keys.length === 1) {
             const item = cart[keys[0]];
             if (item.link && item.link.startsWith("http")) {
@@ -995,27 +1020,43 @@
             }
         }
 
-        const snackKeywords = /coke|chips|kurkure|thumbs|water|snack|samosa|puff|burger/i;
+        // KEYWORD BUCKETS
+        const GROCERY_KEYS = /chips|kurkure|biscuit|maggi|chocolate|milk|bread|egg|grocery|snack|coke|water|soda/i;
+        const MEAL_KEYS = /pizza|burger|naan|roti|curry|dal|paneer|chicken|biryani|pasta|sandwich|meal|thali/i;
+        const UNIVERSAL_KEYS = /coke|water|sprite|soda|thums/i; // Drinks go everywhere
 
-        let snackItems = [];
-        let mealItems = [];
+        let itemsToSend = [];
 
-        keys.forEach(item => {
-            if (snackKeywords.test(item)) snackItems.push(item);
-            else mealItems.push(item);
-        });
-
-        // AUTO OVERRIDE PLATFORM BASED ON CONTENT
+        // AUTO LOGIC
         if (platform === "auto") {
-            if (snackItems.length && !mealItems.length) platform = "blinkit";
-            else platform = "zomato";
+            let hasMeals = keys.some(k => MEAL_KEYS.test(k));
+            let hasGrocery = keys.some(k => GROCERY_KEYS.test(k));
+            
+            // Prioritize Meals
+            if (hasMeals) platform = "zomato"; 
+            else if (hasGrocery) platform = "blinkit";
+            else platform = "zomato"; // Default fallback
         }
 
-        const itemsToSend =
-            platform === "blinkit" ? snackItems : mealItems.length ? mealItems : snackItems;
+        // STRICT FILTERING LOGIC
+        keys.forEach(key => {
+            let isMeal = MEAL_KEYS.test(key);
+            let isGrocery = GROCERY_KEYS.test(key);
+            let isUniversal = UNIVERSAL_KEYS.test(key);
+
+            if (platform === "blinkit") {
+                // Blinkit takes Grocery + Universal
+                if (isGrocery || isUniversal) itemsToSend.push(key);
+            } else {
+                // Zomato/Swiggy takes Meals + Universal
+                if (isMeal || isUniversal) itemsToSend.push(key);
+                // Also take unknown items as Meals by default
+                if (!isMeal && !isGrocery) itemsToSend.push(key);
+            }
+        });
 
         if (!itemsToSend.length) {
-            showToast("NO ITEMS FOR THIS PLATFORM");
+            showToast(`NO ITEMS FOR ${platform.toUpperCase()}`);
             return;
         }
 
