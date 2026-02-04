@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -167,13 +168,15 @@
         .input-val { color: var(--accent-go); font-weight: bold; text-align: right; }
         
         .final-actions { display: grid; gap: 10px; margin-top: 20px; }
-        .btn { background: #222; color: #fff; border: 1px solid #333; padding: 15px; border-radius: 8px; font-weight: 600; text-align: center; font-size: 0.9rem; cursor: pointer; display: block; width: 100%; box-sizing: border-box;}
+        .btn { background: #222; color: #fff; border: 1px solid #333; padding: 15px; border-radius: 8px; font-weight: 600; text-align: center; font-size: 0.9rem; cursor: pointer; display: block; width: 100%; box-sizing: border-box; transition: opacity 0.3s; }
         .btn-wa { background: #25D366; color: #000; border: none; }
         .btn-zomato { background: var(--accent-zomato); border: none; opacity: 0.5; }
         .btn-swiggy { background: var(--accent-swiggy); border: none; opacity: 0.5; }
         .btn-blinkit { background: var(--accent-blinkit); color: #000; border: none; opacity: 0.5; }
         .btn-cloud { background: #4285F4; border: none; opacity: 1; }
         
+        .btn.disabled { opacity: 0.2 !important; pointer-events: none; filter: grayscale(100%); }
+
         .btn-zomato.active, .btn-swiggy.active, .btn-blinkit.active { opacity: 1; box-shadow: 0 0 10px rgba(255,255,255,0.2); }
 
         .biz-card {
@@ -240,7 +243,9 @@
     /* =========================================
        0. CONFIGURATION
        ========================================= */
-    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwwGPAnqLwSdWYVMCkGSx-j-JNuNC4LBIBhUCUzOj6frrvGTYNBMCdrI9Ez8UHHUU2W/exec";
+    // 🔴 REPLACE THIS WITH YOUR NEW DEPLOYMENT URL
+    const GOOGLE_SCRIPT_URL = "REPLACE_WITH_YOUR_NEW_V2_SCRIPT_URL_HERE"; 
+    
     const SHARE_LINK_TEXT = "food-decider | swipe OS";
 
     const NET_STATE = { online: navigator.onLine };
@@ -255,37 +260,16 @@
                 label: "PUNJABI",
                 categories: [
                     { id: "p_breads", label: "Breads", items: [{name:"Butter Naan", price:40}, {name:"Tandoori Roti", price:25}, {name:"Garlic Naan", price:50}] },
-                    { id: "p_mains", label: "Mains", items: [{name:"Dal Makhani", price:220}, {name:"Paneer Butter Masala", price:240}, {name:"Butter Chicken", price:280}] },
-                    { id: "p_rice", label: "Rice", items: [{name:"Jeera Rice", price:150}, {name:"Chicken Biryani", price:290}] }
-                ]
-            },
-            chinese: {
-                label: "CHINESE",
-                categories: [
-                    { id: "c_dimsum", label: "Dim Sum", items: [{name:"Pork Siu Mai", price:250}, {name:"Veg Crystal Dumpling", price:220}] },
-                    { id: "c_noodles", label: "Noodles", items: [{name:"Hakka Noodles", price:200}, {name:"Lo Mein", price:220}] }
-                ]
-            },
-            pizza: {
-                label: "PIZZA",
-                categories: [
-                    { id: "z_classic", label: "Classic", items: [{name:"Margherita", price:350}, {name:"Pepperoni", price:450}] },
-                    { id: "z_gourmet", label: "Gourmet", items: [{name:"Burrata Pizza", price:550}, {name:"Wood Fired Chicken", price:480}] }
-                ]
-            },
-            snacks: {
-                label: "NASTA PANI",
-                categories: [
-                    { id: "s_pkg", label: "Packaged", items: [{name:"Coke", price:40}, {name:"Chips", price:20}, {name:"Thums Up", price:40}] },
-                    { id: "s_hot", label: "Hot Snacks", items: [{name:"Samosa", price:20}, {name:"Burger", price:60}] }
+                    { id: "p_mains", label: "Mains", items: [{name:"Dal Makhani", price:220}, {name:"Paneer Butter Masala", price:240}, {name:"Butter Chicken", price:280}] }
                 ]
             }
-        }
+        },
+        platforms: { zomato: true, swiggy: true, blinkit: true }
     };
 
     let RAW_DATA = FALLBACK_MENU.data; 
 
-    /* SAFER MENU FETCHER */
+    /* SAFER MENU FETCHER v2 */
     async function fetchMenuData() {
         const timeout = new Promise((_, reject) => setTimeout(() => reject("Timeout"), 3000));
         try {
@@ -293,17 +277,26 @@
             const res = await Promise.race([fetcher, timeout]);
             const json = await res.json();
 
+            // v2: Check for nested data structure
+            let menuData = json.data || json; 
+
             let hasItems = false;
-            if (json.data) {
-                for (let k in json.data) {
-                    if (json.data[k].categories && json.data[k].categories.length > 0) {
+            if (menuData) {
+                for (let k in menuData) {
+                    if (menuData[k].categories && menuData[k].categories.length > 0) {
                         hasItems = true; break;
                     }
                 }
             }
 
             if (hasItems) {
-                RAW_DATA = json.data;
+                RAW_DATA = menuData;
+                // v2: Capture Platform Status
+                if (json.platforms) {
+                    ENGINE_STATE.platform_status = json.platforms;
+                    localStorage.setItem("PLATFORM_STATUS", JSON.stringify(json.platforms));
+                }
+
                 localStorage.setItem("MENU_CACHE", JSON.stringify(json));
                 localStorage.setItem("MENU_CACHE_TS", Date.now());
                 console.log("MENU: LIVE UPDATED");
@@ -315,6 +308,7 @@
             if (cached) {
                 const cachedJson = JSON.parse(cached);
                 if(cachedJson.data) RAW_DATA = cachedJson.data;
+                if(cachedJson.platforms) ENGINE_STATE.platform_status = cachedJson.platforms;
             }
             return false;
         }
@@ -334,26 +328,33 @@
     }
 
     /* =========================================
-       1. UNIFIED INTENT ENGINE v1.2 (STATE)
+       1. UNIFIED INTENT ENGINE v2.0 (STATE)
        ========================================= */
     let ENGINE_STATE = {
         session_id: "auto-" + Date.now(),
         cuisines_detected: [],
         items_detected: {}, 
         platform_strategy: { discover: ["zomato", "swiggy"], fulfillment: ["zomato", "swiggy"] },
+        platform_status: { zomato: true, swiggy: true, blinkit: true, whatsapp: true }, // Default active
         cart_state: { items: [], total: 0 }
     };
 
-    function findItemPrice(name) {
-        if (!RAW_DATA) return 0;
+    // v2: Finds price AND Deep Link
+    function findItemMeta(name) {
+        if (!RAW_DATA) return { price: 0, link: "" };
         for (let c in RAW_DATA) {
             for (let cat of RAW_DATA[c].categories) {
                 for (let item of cat.items) {
-                    if (item.name.toLowerCase() === name.toLowerCase()) return item.price || 0;
+                    if (item.name.toLowerCase() === name.toLowerCase()) {
+                        return { 
+                            price: item.price || 0,
+                            link: item.link || "" 
+                        };
+                    }
                 }
             }
         }
-        return 0;
+        return { price: 0, link: "" };
     }
 
     function engineUpdate(patchType, payload) {
@@ -364,8 +365,14 @@
             ENGINE_STATE.cuisines_detected = ENGINE_STATE.cuisines_detected.filter(c => c !== payload);
         }
         if (patchType === "ADD_ITEM") {
+            const meta = findItemMeta(payload);
             const qty = ENGINE_STATE.items_detected[payload] ? ENGINE_STATE.items_detected[payload].qty + 1 : 1;
-            ENGINE_STATE.items_detected[payload] = { qty: qty, price: findItemPrice(payload), added_at: Date.now() };
+            ENGINE_STATE.items_detected[payload] = { 
+                qty: qty, 
+                price: meta.price, 
+                link: meta.link, // Store deep link
+                added_at: Date.now() 
+            };
             recalcStrategy();
         }
         if (patchType === "REMOVE_ITEM") {
@@ -405,6 +412,9 @@
     function loadLocalState(){
         const cached = localStorage.getItem("ENGINE_STATE_CACHE");
         if(cached) { ENGINE_STATE = JSON.parse(cached); }
+        // Fallback load status
+        const cachedStatus = localStorage.getItem("PLATFORM_STATUS");
+        if(cachedStatus) { ENGINE_STATE.platform_status = JSON.parse(cachedStatus); }
     }
 
     /* =========================================
@@ -516,9 +526,6 @@
                     </div>`;
                 });
             } else if (cfg.type === 'final') {
-                /* =========================================
-                   PATCH 3: SMART AUTO BUTTON APPLIED BELOW
-                   ========================================= */
                 html += `
                 <div class="sub-slide static">
                     <div class="verdict-container">
@@ -588,12 +595,23 @@
 
         const cart = ENGINE_STATE.items_detected;
         const strategies = ENGINE_STATE.platform_strategy.fulfillment;
+        const status = ENGINE_STATE.platform_status;
 
         ['zomato','swiggy','blinkit'].forEach(p => {
             const btn = document.getElementById(`btn-${p}`);
             if(btn) {
-                if(strategies.includes(p)) btn.classList.add('active');
-                else btn.classList.remove('active');
+                // v2: Disable if platform is offline in sheets
+                const isOnline = status[p] !== false; 
+                
+                if(!isOnline) {
+                    btn.classList.add('disabled');
+                    btn.innerText = `${p.toUpperCase()} (OFF)`;
+                } else {
+                    btn.classList.remove('disabled');
+                    btn.innerText = p.toUpperCase();
+                    if(strategies.includes(p)) btn.classList.add('active');
+                    else btn.classList.remove('active');
+                }
             }
         });
 
@@ -790,7 +808,6 @@
           updateResult();
           break;
         case "PLATFORM": 
-             // 🆕 FIXED: Explicit Whatsapp handling
              if(cmd.key === "whatsapp") sendWhatsapp();
              else copyAndRedirect(cmd.key); 
              break;
@@ -818,7 +835,6 @@
             if (intent) {
                 dispatchVoice(intent);
             } else {
-                // 🆕 FIXED: Implicit "Two Naan" command support
                 const num = extractNumber(txt);
                 if (num !== null) handleGlobalAdd(txt); 
             }
@@ -854,10 +870,12 @@
               RAW_DATA[cId].categories.forEach(cat => {
                   cat.items.forEach(item => {
                       if (!found && txt.includes(item.name.toLowerCase())) {
+                          const meta = findItemMeta(item.name); // Get deep link too
                           const currentQty = ENGINE_STATE.items_detected[item.name]?.qty || 0;
                           ENGINE_STATE.items_detected[item.name] = { 
                               qty: currentQty + qty, 
                               price: item.price || 0,
+                              link: meta.link, 
                               added_at: Date.now() 
                           };
                           found = true;
@@ -917,9 +935,6 @@
         speak("Order copied");
     }
 
-    /* =========================================
-       PATCH 2: KUTCH AUTOMATION WHATSAPP INJECTOR
-       ========================================= */
     function buildWhatsappMessage() {
         const cart = ENGINE_STATE.items_detected;
         let msg = "📋 *NEW ORDER*\n----------------\n";
@@ -945,13 +960,25 @@
     }
 
     /* =========================================
-       PATCH 1: SMART ROUTING (AUTO / SPLIT)
+       PATCH 1: SMART ROUTING + v2 DEEP LINKING
        ========================================= */
     function copyAndRedirect(platform) {
         const cart = ENGINE_STATE.items_detected;
-        if (!cart || Object.keys(cart).length === 0) {
+        const keys = Object.keys(cart);
+        
+        if (!cart || keys.length === 0) {
             showToast("CART IS EMPTY");
             return;
+        }
+
+        // v2: Check for Single Item Deep Link Override
+        if (keys.length === 1) {
+            const item = cart[keys[0]];
+            if (item.link && item.link.startsWith("http")) {
+                showToast("OPENING DIRECT LINK");
+                window.location.href = item.link;
+                return;
+            }
         }
 
         const snackKeywords = /coke|chips|kurkure|thumbs|water|snack|samosa|puff|burger/i;
@@ -959,7 +986,7 @@
         let snackItems = [];
         let mealItems = [];
 
-        Object.keys(cart).forEach(item => {
+        keys.forEach(item => {
             if (snackKeywords.test(item)) snackItems.push(item);
             else mealItems.push(item);
         });
