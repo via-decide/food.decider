@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -243,7 +242,7 @@
     /* =========================================
        0. CONFIGURATION
        ========================================= */
-    // 🔴 REPLACE THIS WITH YOUR NEW DEPLOYMENT URL
+    // 🔴 IMPORTANT: REPLACE THIS WITH YOUR DEPLOYED WEB APP URL
     const GOOGLE_SCRIPT_URL = "REPLACE_WITH_YOUR_NEW_V2_SCRIPT_URL_HERE"; 
     
     const SHARE_LINK_TEXT = "food-decider | swipe OS";
@@ -269,7 +268,7 @@
 
     let RAW_DATA = FALLBACK_MENU.data; 
 
-    /* SAFER MENU FETCHER v2 */
+    /* SAFER MENU FETCHER v2 (FIXED CASE SENSITIVITY) */
     async function fetchMenuData() {
         const timeout = new Promise((_, reject) => setTimeout(() => reject("Timeout"), 3000));
         try {
@@ -277,21 +276,22 @@
             const res = await Promise.race([fetcher, timeout]);
             const json = await res.json();
 
-            // v2: Check for nested data structure
             let menuData = json.data || json; 
 
-            let hasItems = false;
+            // 🟢 FIX: NORMALIZE KEYS TO LOWERCASE
+            // This ensures if you type "Punjabi" in sheet, it matches "punjabi" button
+            let normalizedData = {};
             if (menuData) {
                 for (let k in menuData) {
                     if (menuData[k].categories && menuData[k].categories.length > 0) {
-                        hasItems = true; break;
+                        normalizedData[k.toLowerCase()] = menuData[k];
                     }
                 }
             }
 
-            if (hasItems) {
-                RAW_DATA = menuData;
-                // v2: Capture Platform Status
+            if (Object.keys(normalizedData).length > 0) {
+                RAW_DATA = normalizedData;
+                
                 if (json.platforms) {
                     ENGINE_STATE.platform_status = json.platforms;
                     localStorage.setItem("PLATFORM_STATUS", JSON.stringify(json.platforms));
@@ -299,7 +299,7 @@
 
                 localStorage.setItem("MENU_CACHE", JSON.stringify(json));
                 localStorage.setItem("MENU_CACHE_TS", Date.now());
-                console.log("MENU: LIVE UPDATED");
+                console.log("MENU: LIVE UPDATED & NORMALIZED");
                 return true;
             } else { throw new Error("Empty Menu"); }
         } catch (e) {
@@ -307,7 +307,15 @@
             const cached = localStorage.getItem("MENU_CACHE");
             if (cached) {
                 const cachedJson = JSON.parse(cached);
-                if(cachedJson.data) RAW_DATA = cachedJson.data;
+                
+                // Fallback Normalization
+                let cachedData = cachedJson.data || cachedJson;
+                let normalizedCache = {};
+                for (let k in cachedData) {
+                    normalizedCache[k.toLowerCase()] = cachedData[k];
+                }
+                
+                RAW_DATA = normalizedCache;
                 if(cachedJson.platforms) ENGINE_STATE.platform_status = cachedJson.platforms;
             }
             return false;
@@ -335,11 +343,10 @@
         cuisines_detected: [],
         items_detected: {}, 
         platform_strategy: { discover: ["zomato", "swiggy"], fulfillment: ["zomato", "swiggy"] },
-        platform_status: { zomato: true, swiggy: true, blinkit: true, whatsapp: true }, // Default active
+        platform_status: { zomato: true, swiggy: true, blinkit: true, whatsapp: true }, 
         cart_state: { items: [], total: 0 }
     };
 
-    // v2: Finds price AND Deep Link
     function findItemMeta(name) {
         if (!RAW_DATA) return { price: 0, link: "" };
         for (let c in RAW_DATA) {
@@ -370,7 +377,7 @@
             ENGINE_STATE.items_detected[payload] = { 
                 qty: qty, 
                 price: meta.price, 
-                link: meta.link, // Store deep link
+                link: meta.link, 
                 added_at: Date.now() 
             };
             recalcStrategy();
@@ -412,7 +419,6 @@
     function loadLocalState(){
         const cached = localStorage.getItem("ENGINE_STATE_CACHE");
         if(cached) { ENGINE_STATE = JSON.parse(cached); }
-        // Fallback load status
         const cachedStatus = localStorage.getItem("PLATFORM_STATUS");
         if(cachedStatus) { ENGINE_STATE.platform_status = JSON.parse(cachedStatus); }
     }
@@ -486,19 +492,27 @@
     function buildGameDeck() {
         container.innerHTML = ""; 
         let slides = [];
+        let itemsFound = 0;
 
         ENGINE_STATE.cuisines_detected.forEach(cId => {
-            if(RAW_DATA[cId]) {
-                RAW_DATA[cId].categories.forEach(cat => {
+            // Force lowercase check to match normalized RAW_DATA
+            let key = cId.toLowerCase();
+            if(RAW_DATA[key]) {
+                RAW_DATA[key].categories.forEach(cat => {
                     slides.push({
                         id: cat.id,
                         type: 'selector',
-                        title: `${RAW_DATA[cId].label} · ${cat.label.toUpperCase()}`,
+                        title: `${RAW_DATA[key].label} · ${cat.label.toUpperCase()}`,
                         items: cat.items
                     });
+                    itemsFound += cat.items.length;
                 });
             }
         });
+        
+        if(itemsFound === 0) {
+            showToast("NO DATA FOR SELECTION - CHECK SHEET IDs");
+        }
 
         slides.push({ id: "final", type: "final", title: "FINAL ORDER" });
         slides.push({ id: "business", type: "business", title: "KUTCH AUTOMATION" });
