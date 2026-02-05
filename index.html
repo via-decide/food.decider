@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -244,10 +245,10 @@
 
 <script>
     /* =========================================
-       KUTCH AUTOMATION | SWIPE OS v25.0
+       KUTCH AUTOMATION | SWIPE OS v28.0 (FIXED)
        ========================================= */
     
-    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwOc1oCA7qx76Rr_GIcMPIH9osuPk8sGJZp1dU5CDB0j9JxWSqT_oCbX7_I3T7vVqJS/exec";
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwwGPAnqLwSdWYVMCkGSx-j-JNuNC4LBIBhUCUzOj6frrvGTYNBMCdrI9Ez8UHHUU2W/exec";
     const SHARE_LINK_TEXT = "food-decider | swipe OS";
 
     const NET_STATE = { online: navigator.onLine };
@@ -301,7 +302,6 @@
                 label: source[cKey].label,
                 categories: []
             };
-            // Check if categories is Object (New) or Array (Old)
             const cats = source[cKey].categories;
             if (Array.isArray(cats)) {
                 transformed[cKey.toLowerCase()].categories = cats;
@@ -318,13 +318,12 @@
         return transformed;
     }
 
-    // Initialize RAW_DATA with normalized fallback
     let RAW_DATA = normalizeMenuStructure(FALLBACK_MENU.cuisines);
 
     // 🔧 PATCH 2 — DEEP LINK MAP
     const DEEP_LINKS = {
         zomato: {
-            app: q => `zomato://search?q=${q}`,
+            app: q => `intent://search?q=${q}#Intent;scheme=zomato;package=com.application.zomato;end`,
             web: q => `https://www.zomato.com/search?q=${q}`
         },
         swiggy: {
@@ -344,13 +343,8 @@
             const fetcher = fetch(GOOGLE_SCRIPT_URL + "?type=menu", { cache: "no-store" });
             const res = await Promise.race([fetcher, timeout]);
             const json = await res.json();
-
-            // Handle New vs Old Structure from Server
             let rawSource = json.cuisines || json.data || json;
-            
-            // Normalize
             let normalized = normalizeMenuStructure(rawSource);
-            
             if (Object.keys(normalized).length > 0) {
                 RAW_DATA = normalized;
                 if (json.platforms) {
@@ -478,7 +472,6 @@
         if(cachedStatus) {
             ENGINE_STATE.platform_status = JSON.parse(cachedStatus);
         }
-        // 🚫 cart intentionally NOT restored
     }
 
     /* =========================================
@@ -505,7 +498,7 @@
         section.id = "lobby";
         
         let html = `
-        <div class="slide-header"><span class="header-title">SWIPE-OS v25.0</span></div>
+        <div class="slide-header"><span class="header-title">SWIPE-OS v28.0</span></div>
         <div class="lobby-container">
             <h1 style="text-align:center; margin-bottom:40px;">AAJ KYA MANGVAAYEGE!</h1>
             <div id="cuisine-grid" style="display:grid; gap:15px;">
@@ -662,7 +655,7 @@
         document.getElementById('depth-fill').style.height = '0%';
     }
 
-    // 🔧 PATCH 1 — PURE CART TOTAL CALCULATOR (ADD)
+    // 🔧 PATCH 1 — PURE CART TOTAL CALCULATOR
     function calculateCartTotals() {
         const cart = ENGINE_STATE.items_detected || {};
         let total = 0;
@@ -687,7 +680,7 @@
         };
     }
 
-    // 🔧 PATCH 4 — DEFENSIVE FINAL SLIDE GUARANTEE (OPTIONAL BUT SAFE)
+    // 🔧 PATCH 4 — DEFENSIVE FINAL SLIDE GUARANTEE
     function updateResult() {
         const list = document.getElementById('final-list');
         if (!list) return;
@@ -807,7 +800,7 @@
                 const duration = Date.now() - startTime;
                 const axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
                 
-                // 🟢 SWIPE DOWN ONLY (As Requested)
+                // 🟢 SWIPE DOWN ONLY
                 if (axis === 'y') {
                     if (dy < -50) executeAction('PREV');
                     else if (dy > 50 && dragRatio > TRIGGER_THRESHOLD) executeAction('SELECT');
@@ -823,7 +816,7 @@
     }
 
     /* =========================================
-       4. MASTER VOICE ROUTER (TRAINED WITH SYNONYMS)
+       4. MASTER VOICE ROUTER (V26.0 - EXTENDED VOCAB)
        ========================================= */
     const VOICE_INTENTS = {
       NAV: { 
@@ -1194,18 +1187,23 @@
             return;
         }
 
-        const query = encodeURIComponent(items.join(", "));
+        const queryText = items.join(", ");
+        const encodedQuery = encodeURIComponent(queryText);
         const target = DEEP_LINKS[mode === "mixed" ? "zomato" : mode];
+        
         if (!target) return;
+
+        // Force Clipboard Copy for Paste-based Search
+        navigator.clipboard.writeText(queryText).catch(e => console.log(e));
 
         showToast(`OPENING ${mode.toUpperCase()}`);
 
         const start = Date.now();
-        window.location.href = target.app(query);
+        window.location.href = target.app(encodedQuery);
 
         setTimeout(() => {
             if (Date.now() - start < 1600) {
-                window.location.href = target.web(query);
+                window.location.href = target.web(encodedQuery);
             }
         }, 1500);
     }
