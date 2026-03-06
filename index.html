@@ -13,6 +13,9 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="food.decide">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Anek+Gujarati:wght@400;700&display=swap" rel="stylesheet">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="application-name" content="food.decide">
     <meta name="description" content="Voice-first food decision engine">
@@ -222,14 +225,78 @@
         }
         .toast-msg.visible { opacity: 1; }
 
-        #mic-toggle {
-            position: fixed; bottom: 20px; left: 20px; width: 50px; height: 50px;
-            background: #111; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-            border: 1px solid #444; z-index: 2000; cursor: pointer; transition: all 0.3s;
+        /* =========================================
+           MIC FAB + LANG TOGGLE
+           ========================================= */
+        #mic-fab {
+            position: fixed; bottom: 20px; left: 20px; z-index: 2000;
+            display: flex; flex-direction: column; align-items: center; gap: 8px;
         }
-        #mic-toggle svg { width: 24px; height: 24px; fill: #666; }
-        #mic-toggle.listening { border-color: var(--accent-go); box-shadow: 0 0 15px rgba(0,230,118,0.3); }
-        #mic-toggle.listening svg { fill: var(--accent-go); }
+        #mic-label {
+            font-family: var(--font-tech); font-size: 0.55rem;
+            color: var(--accent-go); letter-spacing: 1px;
+            background: #0a0a0acc; padding: 2px 8px; border-radius: 10px;
+            opacity: 0; transition: opacity 0.2s; white-space: nowrap;
+        }
+        #mic-label.visible { opacity: 1; }
+        #mic-btn-wrap {
+            position: relative; width: 54px; height: 54px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        #mic-pulse-ring, #mic-pulse-ring2 {
+            position: absolute; border-radius: 50%;
+            border: 2px solid var(--accent-go); opacity: 0; pointer-events: none;
+        }
+        #mic-pulse-ring  { width: 54px; height: 54px; }
+        #mic-pulse-ring2 { width: 72px; height: 72px; }
+        .mic-listening #mic-pulse-ring  { animation: pulse-ring 1.2s ease-out infinite; }
+        .mic-listening #mic-pulse-ring2 { animation: pulse-ring 1.2s ease-out 0.4s infinite; }
+        @keyframes pulse-ring {
+            0%   { transform: scale(0.9); opacity: 0.6; }
+            100% { transform: scale(1.6); opacity: 0; }
+        }
+        #mic-toggle {
+            width: 50px; height: 50px; border-radius: 50%;
+            background: #111; border: 1px solid #444;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden;
+        }
+        #mic-toggle svg { width: 24px; height: 24px; fill: #666; transition: fill 0.3s; }
+        .mic-listening  #mic-toggle { border-color: var(--accent-go); box-shadow: 0 0 15px rgba(0,230,118,0.3); }
+        .mic-listening  #mic-toggle svg { fill: var(--accent-go); display: none; }
+        .mic-processing #mic-toggle { border-color: var(--brand-orange); }
+        .mic-processing #mic-toggle svg { fill: var(--brand-orange); }
+        .mic-blocked    #mic-toggle { border-color: #ff3333; }
+        .mic-blocked    #mic-toggle svg { fill: #ff3333; }
+        .mic-unsupported #mic-toggle { opacity: 0.3; pointer-events: none; }
+        #mic-waveform {
+            display: none; align-items: flex-end; gap: 2px; height: 20px; position: absolute;
+        }
+        .mic-listening #mic-waveform { display: flex; }
+        #mic-waveform span {
+            width: 3px; background: var(--accent-go); border-radius: 2px;
+            animation: wave-bar 0.7s ease-in-out infinite alternate;
+        }
+        #mic-waveform span:nth-child(1) { height: 8px;  animation-delay: 0s; }
+        #mic-waveform span:nth-child(2) { height: 14px; animation-delay: 0.1s; }
+        #mic-waveform span:nth-child(3) { height: 20px; animation-delay: 0.2s; }
+        #mic-waveform span:nth-child(4) { height: 14px; animation-delay: 0.3s; }
+        #mic-waveform span:nth-child(5) { height: 8px;  animation-delay: 0.4s; }
+        @keyframes wave-bar {
+            from { transform: scaleY(0.4); }
+            to   { transform: scaleY(1); }
+        }
+        #lang-toggle {
+            position: fixed; bottom: 24px; right: 16px; z-index: 2000;
+            display: flex; gap: 6px;
+        }
+        .lang-chip {
+            background: #111; border: 1px solid #333; color: #666;
+            font-family: var(--font-tech); font-size: 0.6rem; font-weight: 700;
+            padding: 6px 10px; border-radius: 20px; cursor: pointer;
+            letter-spacing: 1px; transition: all 0.2s;
+        }
+        .lang-chip.active { background: var(--brand-orange); border-color: var(--brand-orange); color: #000; }
 
         .btn-amazon { background: #ff9900; color: #000; border: none; font-weight: 700; }
         .btn-amazon.disabled { opacity: 0.2 !important; pointer-events: none; filter: grayscale(100%); }
@@ -242,23 +309,208 @@
         }
         .suggestion-bar.visible { display: block; }
 
+        /* =========================================
+           ONBOARDING OVERLAY
+           ========================================= */
+        #onboarding-overlay {
+            position: fixed; inset: 0; z-index: 9999;
+            background: #0a0a0a;
+            display: flex; align-items: center; justify-content: center;
+            transition: opacity 0.4s ease;
+        }
+        #onboarding-overlay.hidden { opacity: 0; pointer-events: none; }
+
+        #onboarding-card {
+            text-align: center; padding: 40px 30px;
+            max-width: 340px; width: 90%;
+        }
+        .ob-brand {
+            font-family: var(--font-tech); font-size: 0.7rem;
+            color: var(--brand-orange); letter-spacing: 3px;
+            margin-bottom: 20px;
+        }
+        .ob-title {
+            font-size: 1.4rem; font-weight: 900;
+            color: #fff; margin: 0 0 36px 0;
+            letter-spacing: 1px;
+        }
+        .ob-gestures {
+            display: flex; justify-content: space-around;
+            gap: 10px; margin-bottom: 40px;
+        }
+        .ob-gesture {
+            display: flex; flex-direction: column;
+            align-items: center; gap: 12px;
+        }
+        .ob-arrow {
+            font-size: 2.8rem; color: var(--brand-orange);
+            line-height: 1;
+        }
+        .ob-label {
+            font-family: var(--font-tech); font-size: 0.6rem;
+            color: #888; letter-spacing: 1px; text-transform: uppercase;
+        }
+        #ob-start-btn {
+            background: var(--brand-orange); color: #000;
+            border: none; padding: 16px 40px;
+            font-size: 1rem; font-weight: 900;
+            border-radius: 8px; cursor: pointer;
+            letter-spacing: 2px; margin-bottom: 24px;
+            width: 100%;
+        }
+        .ob-timer-bar {
+            height: 3px; background: #222; border-radius: 2px; overflow: hidden;
+        }
+        #ob-timer-fill {
+            height: 100%; width: 100%;
+            background: var(--brand-orange);
+            transform-origin: left;
+            animation: ob-drain 5s linear forwards;
+        }
+        @keyframes ob-drain {
+            from { transform: scaleX(1); }
+            to   { transform: scaleX(0); }
+        }
+
     </style>
 </head>
 <body>
+
+<div id="onboarding-overlay">
+  <div id="onboarding-card">
+    <div class="ob-brand">SWIPE-OS</div>
+    <h2 class="ob-title">HOW IT WORKS</h2>
+    <div class="ob-gestures">
+      <div class="ob-gesture">
+        <span class="ob-arrow">↓</span>
+        <span class="ob-label">ADD ITEM</span>
+      </div>
+      <div class="ob-gesture">
+        <span class="ob-arrow">←</span>
+        <span class="ob-label">SKIP ITEM</span>
+      </div>
+      <div class="ob-gesture">
+        <span class="ob-arrow">→</span>
+        <span class="ob-label">BROWSE</span>
+      </div>
+    </div>
+    <button id="ob-start-btn">START →</button>
+    <div class="ob-timer-bar"><div id="ob-timer-fill"></div></div>
+  </div>
+</div>
 
 <div id="master-container"></div>
 <div id="depth-fill"></div>
 <div id="toast" class="toast-msg"></div>
 
-<div id="mic-toggle" onclick="toggleListenMode()">
-    <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+<div id="mic-fab" class="mic-idle">
+    <div id="mic-label"></div>
+    <div id="mic-btn-wrap">
+        <div id="mic-pulse-ring"></div>
+        <div id="mic-pulse-ring2"></div>
+        <div id="mic-toggle" onclick="toggleListenMode()">
+            <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+            <div id="mic-waveform"><span></span><span></span><span></span><span></span><span></span></div>
+        </div>
+    </div>
+</div>
+
+<div id="lang-toggle">
+    <button class="lang-chip active" data-lang="en-IN" onclick="setLang(this)">EN</button>
+    <button class="lang-chip" data-lang="hi-IN" onclick="setLang(this)">HI</button>
+    <button class="lang-chip" data-lang="gu-IN" onclick="setLang(this)">GU</button>
 </div>
 
 <script>
     /* =========================================
        KUTCH AUTOMATION | SWIPE OS v28.0 (FIXED)
        ========================================= */
-    
+
+    /* =========================================
+       LANGUAGE SYSTEM (EN / HI / GU)
+       ========================================= */
+    const UI_STRINGS = {
+        en: {
+            appTitle: 'SWIPE-OS v28.0',
+            lobbyTitle: 'WHAT SHALL WE ORDER?',
+            cuisinePunjabi: 'PUNJABI',
+            cuisineChinese: 'CHINESE',
+            cuisinePizza: 'PIZZA',
+            cuisineSnacks: 'NASTA PANI',
+            huntBtn: 'HUNT →',
+            swipeToSelect: 'Swipe Down to Select',
+            navSkip: '← SKIP',
+            navSwipe: 'SWIPE DOWN',
+            navNext: 'NEXT →',
+            finalHeader: 'FINAL ORDER',
+            finalNavHint: 'SWIPE DOWN FOR BUSINESS ↓',
+            toastSelectOne: 'SELECT AT LEAST ONE!',
+            toastSkipped: 'SKIPPED'
+        },
+        hi: {
+            appTitle: 'SWIPE-OS v28.0',
+            lobbyTitle: 'AAJ KYA MANGVAAYEGE!',
+            cuisinePunjabi: 'PUNJABI',
+            cuisineChinese: 'CHINESE',
+            cuisinePizza: 'PIZZA',
+            cuisineSnacks: 'NASTA PANI',
+            huntBtn: 'DHUNDHO →',
+            swipeToSelect: 'Chunne ke liye Swipe Karein',
+            navSkip: '← SKIP',
+            navSwipe: 'NEECHE SWIPE',
+            navNext: 'AGLA →',
+            finalHeader: 'FINAL ORDER',
+            finalNavHint: 'NEECHE SWIPE KAREIN ↓',
+            toastSelectOne: 'EK TOH CHUNO!',
+            toastSkipped: 'SKIP'
+        },
+        gu: {
+            appTitle: 'SWIPE-OS v28.0',
+            lobbyTitle: 'AAJ SHU MANGAVSHU?',
+            cuisinePunjabi: 'PUNJABI',
+            cuisineChinese: 'CHINESE',
+            cuisinePizza: 'PIZZA',
+            cuisineSnacks: 'NASTA PANI',
+            huntBtn: 'SHODHO →',
+            swipeToSelect: 'Pasand Karva Swipe Karo',
+            navSkip: '← SKIP',
+            navSwipe: 'NEECHE SWIPE',
+            navNext: 'AAGAL →',
+            finalHeader: 'FINAL ORDER',
+            finalNavHint: 'NEECHE SWIPE KARO ↓',
+            toastSelectOne: 'EK TO PASAND KARO!',
+            toastSkipped: 'SKIP'
+        }
+    };
+
+    let currentDisplayLang = 'en';
+    let currentVoiceLang   = 'en-IN';
+
+    function t(key) { return (UI_STRINGS[currentDisplayLang] || UI_STRINGS.en)[key] || key; }
+
+    window.setLang = (el) => {
+        document.querySelectorAll('.lang-chip').forEach(c => c.classList.remove('active'));
+        el.classList.add('active');
+        const full = el.dataset.lang;
+        currentVoiceLang    = full;
+        currentDisplayLang  = full.split('-')[0];
+        localStorage.setItem('food_decide_lang', full);
+        if (typeof rec !== 'undefined' && rec) { try { rec.lang = full; } catch(e) {} }
+        if (inGameMode) { buildGameDeck(); } else { renderLobby(); }
+    };
+
+    function restoreLang() {
+        const saved = localStorage.getItem('food_decide_lang');
+        if (!saved) return;
+        currentVoiceLang   = saved;
+        currentDisplayLang = saved.split('-')[0];
+        const chip = document.querySelector(`.lang-chip[data-lang="${saved}"]`);
+        if (chip) {
+            document.querySelectorAll('.lang-chip').forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+        }
+    }
+
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwwGPAnqLwSdWYVMCkGSx-j-JNuNC4LBIBhUCUzOj6frrvGTYNBMCdrI9Ez8UHHUU2W/exec";
     const SHARE_LINK_TEXT = "food-decider | swipe OS";
 
@@ -334,7 +586,7 @@
     // 🔧 PATCH 2 — DEEP LINK MAP
     const DEEP_LINKS = {
         zomato: {
-            app: q => `intent://search?q=${q}#Intent;scheme=zomato;package=com.application.zomato;end`,
+            app: q => `zomato://search?keyword=${q}`,
             web: q => `https://www.zomato.com/search?q=${q}`
         },
         swiggy: {
@@ -342,7 +594,7 @@
             web: q => `https://www.swiggy.com/search?query=${q}`
         },
         blinkit: {
-            app: _ => `blinkit://`,
+            app: q => `blinkit://search?q=${q}`,
             web: q => `https://blinkit.com/s/?q=${q}`
         }
     };
@@ -495,6 +747,7 @@
     // 🔧 PATCH 2 — CALL RESET BEFORE UI BUILDS (CRITICAL)
     async function boot() {
         resetCartOnRefresh();   // 🔥 force empty cart every refresh
+        restoreLang();          // restore saved language preference
         renderLobby();          // UI starts clean
         initVoice();
         await fetchMenuData();
@@ -503,22 +756,23 @@
     }
 
     function renderLobby() {
+        inGameMode = false;
         container.innerHTML = "";
         const section = document.createElement('section');
         section.className = "main-slide active";
         section.id = "lobby";
-        
+
         let html = `
-        <div class="slide-header"><span class="header-title">SWIPE-OS v28.0</span></div>
+        <div class="slide-header"><span class="header-title">${t('appTitle')}</span></div>
         <div class="lobby-container">
-            <h1 style="text-align:center; margin-bottom:40px;">AAJ KYA MANGVAAYEGE!</h1>
+            <h1 style="text-align:center; margin-bottom:40px;">${t('lobbyTitle')}</h1>
             <div id="cuisine-grid" style="display:grid; gap:15px;">
-                <button class="cuisine-btn" onclick="toggleCuisine('punjabi', this)">PUNJABI</button>
-                <button class="cuisine-btn" onclick="toggleCuisine('chinese', this)">CHINESE</button>
-                <button class="cuisine-btn" onclick="toggleCuisine('pizza', this)">PIZZA</button>
-                <button class="cuisine-btn" onclick="toggleCuisine('snacks', this)">NASTA PANI</button>
+                <button class="cuisine-btn" onclick="toggleCuisine('punjabi', this)">${t('cuisinePunjabi')}</button>
+                <button class="cuisine-btn" onclick="toggleCuisine('chinese', this)">${t('cuisineChinese')}</button>
+                <button class="cuisine-btn" onclick="toggleCuisine('pizza', this)">${t('cuisinePizza')}</button>
+                <button class="cuisine-btn" onclick="toggleCuisine('snacks', this)">${t('cuisineSnacks')}</button>
             </div>
-            <button class="btn hunt-btn" onclick="startHunt()">HUNT &rarr;</button>
+            <button class="btn hunt-btn" onclick="startHunt()">${t('huntBtn')}</button>
         </div>`;
         section.innerHTML = html;
         container.appendChild(section);
@@ -545,7 +799,7 @@
 
     window.startHunt = () => {
         if(ENGINE_STATE.cuisines_detected.length === 0) {
-            showToast("SELECT AT LEAST ONE!");
+            showToast(t('toastSelectOne'));
             speak("Please select a cuisine first");
             return;
         }
@@ -553,7 +807,8 @@
     };
 
     function buildGameDeck() {
-        container.innerHTML = ""; 
+        inGameMode = true;
+        container.innerHTML = "";
         let slides = [];
         let itemsFound = 0;
 
@@ -592,12 +847,12 @@
                     html += `
                     <div class="sub-slide ${i===0 ? 'opt-active' : 'opt-hidden'}" data-opt-idx="${i}" data-val="${item.name}">
                         <div class="role-label">${cfg.title.split('·')[0].trim()}</div>
-                        <h1>${item.name}${item.price ? `<span class="price">₹${item.price}</span>` : ""}</h1>
-                        <div class="primary-question">Swipe Down to Select</div>
+                        <h1>${item.name}</h1>
+                        <div class="primary-question">${t('swipeToSelect')}</div>
                         <div class="nav-hint">
-                            <span style="flex:1; color:var(--accent-skip); font-weight:bold;">&larr; SKIP</span>
-                            <span style="flex:2; text-align:center; color:var(--accent-go); font-weight:bold;">SWIPE DOWN</span>
-                            <span style="flex:1; text-align:right;">NEXT &rarr;</span>
+                            <span style="flex:1; color:var(--accent-skip); font-weight:bold;">${t('navSkip')}</span>
+                            <span style="flex:2; text-align:center; color:var(--accent-go); font-weight:bold;">${t('navSwipe')}</span>
+                            <span style="flex:1; text-align:right;">${t('navNext')}</span>
                         </div>
                     </div>`;
                 });
@@ -605,7 +860,7 @@
                 html += `
                 <div class="sub-slide static">
                     <div class="verdict-container">
-                        <div class="choice-header">FINAL ORDER</div>
+                        <div class="choice-header">${t('finalHeader')}</div>
                         <div class="input-group" id="final-list"></div>
                         <div id="suggestion-bar" class="suggestion-bar"></div>
                         <div class="final-actions">
@@ -617,7 +872,7 @@
                             <button class="btn btn-copy" onclick="saveAndLog()">COPY</button>
                             <button class="btn" style="background:#444;" onclick="copyAndRedirect('auto')">AUTO ROUTE</button>
                         </div>
-                        <div class="nav-hint"><span style="width:100%; text-align:center; color:var(--brand-orange)">SWIPE DOWN FOR BUSINESS &darr;</span></div>
+                        <div class="nav-hint"><span style="width:100%; text-align:center; color:var(--brand-orange)">${t('finalNavHint')}</span></div>
                     </div>
                 </div>`;
             } else if (cfg.type === 'business') {
@@ -783,7 +1038,7 @@
                 break;
             case 'SKIP':
                 if(mode === 'options') {
-                    showToast("SKIPPED", "skip");
+                    showToast(t('toastSkipped'), "skip");
                     goToSlide(currentIdx + 1);
                 }
                 break;
@@ -993,35 +1248,94 @@
       }
     }
 
-    let rec;
+    let inGameMode = false;
+
+    /* MIC STATE MANAGER */
+    const MIC_LABEL = { idle: '', listening: 'LISTENING', processing: '...', blocked: 'ALLOW MIC', unsupported: 'N/A' };
+    function setMicState(state) {
+        const fab = document.getElementById('mic-fab');
+        const lbl = document.getElementById('mic-label');
+        if (!fab) return;
+        fab.className = 'mic-' + state;
+        if (lbl) {
+            lbl.textContent = MIC_LABEL[state] || '';
+            lbl.classList.toggle('visible', ['listening', 'processing', 'blocked'].includes(state));
+        }
+    }
+
+    /* EARCONS (WebAudio) */
+    function playEarcon(type) {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain); gain.connect(ctx.destination);
+            if (type === 'start') { osc.frequency.value = 880; gain.gain.setValueAtTime(0.2, ctx.currentTime); osc.start(); osc.stop(ctx.currentTime + 0.12); }
+            else if (type === 'stop') { osc.frequency.value = 440; gain.gain.setValueAtTime(0.15, ctx.currentTime); osc.start(); osc.stop(ctx.currentTime + 0.1); }
+            else if (type === 'error') { osc.type = 'sawtooth'; osc.frequency.value = 220; gain.gain.setValueAtTime(0.15, ctx.currentTime); osc.start(); osc.stop(ctx.currentTime + 0.15); }
+        } catch(e) {}
+    }
+
+    /* HAPTICS */
+    function doVibrate(pat) { try { if (navigator.vibrate) navigator.vibrate(pat); } catch(e) {} }
+
     function initVoice() {
         const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SR) { showToast("VOICE NOT SUPPORTED"); return; }
-        rec = new SR();
-        rec.lang = "en-IN";
-        rec.continuous = true;
-        rec.interimResults = false;
+        if (!SR) { setMicState('unsupported'); return; }
 
-        rec.onresult = e => {
-            const txt = e.results[e.results.length - 1][0].transcript;
-            showToast(`Heard: "${txt}"`);
-            const intent = parseVoice(txt);
-            if (intent) {
-                dispatchVoice(intent);
-            } else {
-                const num = extractNumber(txt);
-                if (num !== null) handleGlobalAdd(txt); 
-            }
-        };
-        rec.onerror = e => { showToast("VOICE TEMP UNAVAILABLE"); };
-        rec.onend = () => {
-            const mic = document.getElementById('mic-toggle');
-            if (mic && mic.classList.contains('listening')) setTimeout(() => { try { rec.start(); } catch(e) {} }, 300);
-        };
+        function createRec() {
+            rec = new SR();
+            rec.lang = currentVoiceLang;
+            rec.continuous = true;
+            rec.interimResults = false;
+
+            rec.onstart = () => { setMicState('listening'); doVibrate([30]); playEarcon('start'); };
+
+            rec.onresult = e => {
+                setMicState('processing');
+                const txt = e.results[e.results.length - 1][0].transcript;
+                showToast(`Heard: "${txt}"`);
+                const intent = parseVoice(txt);
+                if (intent) { dispatchVoice(intent); }
+                else { const num = extractNumber(txt); if (num !== null) handleGlobalAdd(txt); }
+                setMicState('listening');
+            };
+
+            rec.onerror = e => {
+                if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+                    permBlocked = true;
+                    setMicState('blocked');
+                    playEarcon('error');
+                    showToast("MIC BLOCKED · TAP TO RETRY");
+                    return;
+                }
+                playEarcon('error');
+                showToast("VOICE TEMP UNAVAILABLE");
+                setMicState('idle');
+            };
+
+            rec.onend = () => {
+                const fab = document.getElementById('mic-fab');
+                if (fab && fab.classList.contains('mic-listening')) {
+                    setTimeout(() => { try { rec.start(); } catch(e) {} }, 300);
+                } else {
+                    setMicState('idle');
+                }
+            };
+        }
+
+        createRec();
+
         window.toggleListenMode = () => {
-            const mic = document.getElementById('mic-toggle');
-            if(mic.classList.contains('listening')) { rec.stop(); mic.classList.remove('listening'); }
-            else { try { rec.start(); } catch(e) {} mic.classList.add('listening'); }
+            if (permBlocked) { permBlocked = false; createRec(); }
+            const fab = document.getElementById('mic-fab');
+            if (!fab) return;
+            if (fab.classList.contains('mic-listening')) {
+                rec.stop(); doVibrate([20]); playEarcon('stop');
+                setMicState('idle');
+            } else {
+                try { createRec(); rec.start(); } catch(e) { showToast("VOICE NOT READY"); }
+            }
         };
     }
 
@@ -1229,7 +1543,10 @@
         // Force Clipboard Copy for Paste-based Search
         navigator.clipboard.writeText(queryText).catch(e => console.log(e));
 
-        showToast(`OPENING ${mode.toUpperCase()}`);
+        const clipMsg = (mode === 'swiggy')
+            ? `OPENING ${mode.toUpperCase()}`
+            : `OPENING ${mode.toUpperCase()} · PASTE TO SEARCH`;
+        showToast(clipMsg, "normal", 4000);
 
         const start = Date.now();
         window.location.href = target.app(encodedQuery);
@@ -1282,10 +1599,47 @@
         window.open(url, "_blank");
     }
 
-    function showToast(msg, type="normal") {
+    /* =========================================
+       ONBOARDING CONTROLLER
+       ========================================= */
+    (function initOnboarding() {
+        if (localStorage.getItem('swipeos_onboarding_seen')) return;
+
+        const overlay = document.getElementById('onboarding-overlay');
+        if (!overlay) return;
+
+        let dismissed = false;
+        function dismiss() {
+            if (dismissed) return;
+            dismissed = true;
+            localStorage.setItem('swipeos_onboarding_seen', '1');
+            overlay.classList.add('hidden');
+            setTimeout(() => overlay.remove(), 450);
+        }
+
+        document.getElementById('ob-start-btn').addEventListener('click', dismiss);
+
+        const autoTimer = setTimeout(dismiss, 5000);
+
+        let obStartY = 0, obStartX = 0;
+        overlay.addEventListener('touchstart', e => {
+            obStartY = e.touches[0].clientY;
+            obStartX = e.touches[0].clientX;
+        }, { passive: true });
+        overlay.addEventListener('touchend', e => {
+            const dy = e.changedTouches[0].clientY - obStartY;
+            const dx = e.changedTouches[0].clientX - obStartX;
+            if (Math.abs(dy) > 30 || Math.abs(dx) > 30) {
+                clearTimeout(autoTimer);
+                dismiss();
+            }
+        }, { passive: true });
+    })();
+
+    function showToast(msg, type="normal", duration=2000) {
         const t = document.getElementById('toast');
         t.innerText = msg; t.classList.add('visible');
-        setTimeout(() => t.classList.remove('visible'), 2000);
+        setTimeout(() => t.classList.remove('visible'), duration);
     }
 
     boot();
