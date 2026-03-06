@@ -242,9 +242,95 @@
         }
         .suggestion-bar.visible { display: block; }
 
+        /* =========================================
+           ONBOARDING OVERLAY
+           ========================================= */
+        #onboarding-overlay {
+            position: fixed; inset: 0; z-index: 9999;
+            background: #0a0a0a;
+            display: flex; align-items: center; justify-content: center;
+            transition: opacity 0.4s ease;
+        }
+        #onboarding-overlay.hidden { opacity: 0; pointer-events: none; }
+
+        #onboarding-card {
+            text-align: center; padding: 40px 30px;
+            max-width: 340px; width: 90%;
+        }
+        .ob-brand {
+            font-family: var(--font-tech); font-size: 0.7rem;
+            color: var(--brand-orange); letter-spacing: 3px;
+            margin-bottom: 20px;
+        }
+        .ob-title {
+            font-size: 1.4rem; font-weight: 900;
+            color: #fff; margin: 0 0 36px 0;
+            letter-spacing: 1px;
+        }
+        .ob-gestures {
+            display: flex; justify-content: space-around;
+            gap: 10px; margin-bottom: 40px;
+        }
+        .ob-gesture {
+            display: flex; flex-direction: column;
+            align-items: center; gap: 12px;
+        }
+        .ob-arrow {
+            font-size: 2.8rem; color: var(--brand-orange);
+            line-height: 1;
+        }
+        .ob-label {
+            font-family: var(--font-tech); font-size: 0.6rem;
+            color: #888; letter-spacing: 1px; text-transform: uppercase;
+        }
+        #ob-start-btn {
+            background: var(--brand-orange); color: #000;
+            border: none; padding: 16px 40px;
+            font-size: 1rem; font-weight: 900;
+            border-radius: 8px; cursor: pointer;
+            letter-spacing: 2px; margin-bottom: 24px;
+            width: 100%;
+        }
+        .ob-timer-bar {
+            height: 3px; background: #222; border-radius: 2px; overflow: hidden;
+        }
+        #ob-timer-fill {
+            height: 100%; width: 100%;
+            background: var(--brand-orange);
+            transform-origin: left;
+            animation: ob-drain 5s linear forwards;
+        }
+        @keyframes ob-drain {
+            from { transform: scaleX(1); }
+            to   { transform: scaleX(0); }
+        }
+
     </style>
 </head>
 <body>
+
+<div id="onboarding-overlay">
+  <div id="onboarding-card">
+    <div class="ob-brand">SWIPE-OS</div>
+    <h2 class="ob-title">HOW IT WORKS</h2>
+    <div class="ob-gestures">
+      <div class="ob-gesture">
+        <span class="ob-arrow">↓</span>
+        <span class="ob-label">ADD ITEM</span>
+      </div>
+      <div class="ob-gesture">
+        <span class="ob-arrow">←</span>
+        <span class="ob-label">SKIP ITEM</span>
+      </div>
+      <div class="ob-gesture">
+        <span class="ob-arrow">→</span>
+        <span class="ob-label">BROWSE</span>
+      </div>
+    </div>
+    <button id="ob-start-btn">START →</button>
+    <div class="ob-timer-bar"><div id="ob-timer-fill"></div></div>
+  </div>
+</div>
 
 <div id="master-container"></div>
 <div id="depth-fill"></div>
@@ -1284,6 +1370,43 @@
         showToast(`AMAZON: ${suggestion.name}`);
         window.open(url, "_blank");
     }
+
+    /* =========================================
+       ONBOARDING CONTROLLER
+       ========================================= */
+    (function initOnboarding() {
+        if (localStorage.getItem('swipeos_onboarding_seen')) return;
+
+        const overlay = document.getElementById('onboarding-overlay');
+        if (!overlay) return;
+
+        let dismissed = false;
+        function dismiss() {
+            if (dismissed) return;
+            dismissed = true;
+            localStorage.setItem('swipeos_onboarding_seen', '1');
+            overlay.classList.add('hidden');
+            setTimeout(() => overlay.remove(), 450);
+        }
+
+        document.getElementById('ob-start-btn').addEventListener('click', dismiss);
+
+        const autoTimer = setTimeout(dismiss, 5000);
+
+        let obStartY = 0, obStartX = 0;
+        overlay.addEventListener('touchstart', e => {
+            obStartY = e.touches[0].clientY;
+            obStartX = e.touches[0].clientX;
+        }, { passive: true });
+        overlay.addEventListener('touchend', e => {
+            const dy = e.changedTouches[0].clientY - obStartY;
+            const dx = e.changedTouches[0].clientX - obStartX;
+            if (Math.abs(dy) > 30 || Math.abs(dx) > 30) {
+                clearTimeout(autoTimer);
+                dismiss();
+            }
+        }, { passive: true });
+    })();
 
     function showToast(msg, type="normal", duration=2000) {
         const t = document.getElementById('toast');
