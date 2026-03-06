@@ -231,6 +231,17 @@
         #mic-toggle.listening { border-color: var(--accent-go); box-shadow: 0 0 15px rgba(0,230,118,0.3); }
         #mic-toggle.listening svg { fill: var(--accent-go); }
 
+        .btn-amazon { background: #ff9900; color: #000; border: none; font-weight: 700; }
+        .btn-amazon.disabled { opacity: 0.2 !important; pointer-events: none; filter: grayscale(100%); }
+
+        .suggestion-bar {
+            background: #111; border: 1px dashed #ff9900; border-radius: 8px;
+            padding: 10px 15px; margin-top: 8px; display: none;
+            font-family: var(--font-tech); font-size: 0.75rem; color: #ff9900;
+            text-align: center;
+        }
+        .suggestion-bar.visible { display: block; }
+
     </style>
 </head>
 <body>
@@ -596,13 +607,15 @@
                     <div class="verdict-container">
                         <div class="choice-header">FINAL ORDER</div>
                         <div class="input-group" id="final-list"></div>
+                        <div id="suggestion-bar" class="suggestion-bar"></div>
                         <div class="final-actions">
                             <button class="btn btn-zomato" id="btn-zomato" onclick="copyAndRedirect('zomato')">ZOMATO</button>
                             <button class="btn btn-swiggy" id="btn-swiggy" onclick="copyAndRedirect('swiggy')">SWIGGY</button>
                             <button class="btn btn-blinkit" id="btn-blinkit" onclick="copyAndRedirect('blinkit')">BLINKIT</button>
-                            <button class="btn btn-copy" onclick="saveAndLog()">COPY ORDER</button>
+                            <button class="btn btn-amazon disabled" id="btn-amazon" onclick="openAmazonAffiliate()">AMAZON INGREDIENT</button>
                             <button class="btn btn-wa" onclick="sendWhatsapp()">WHATSAPP</button>
-                            <button class="btn btn-zomato" style="margin-top:10px; background:#444;" onclick="copyAndRedirect('auto')">AUTO ROUTE</button>
+                            <button class="btn btn-copy" onclick="saveAndLog()">COPY</button>
+                            <button class="btn" style="background:#444;" onclick="copyAndRedirect('auto')">AUTO ROUTE</button>
                         </div>
                         <div class="nav-hint"><span style="width:100%; text-align:center; color:var(--brand-orange)">SWIPE DOWN FOR BUSINESS &darr;</span></div>
                     </div>
@@ -728,6 +741,28 @@
         </div>`;
 
         list.innerHTML = html;
+
+        // Amazon suggestion bar + button state
+        const suggestion = getIngredientSuggestion();
+        const btnAmazon = document.getElementById('btn-amazon');
+        const suggBar = document.getElementById('suggestion-bar');
+        if (btnAmazon) {
+            if (suggestion) {
+                btnAmazon.classList.remove('disabled');
+                btnAmazon.textContent = `AMAZON: ${suggestion.name}`;
+            } else {
+                btnAmazon.classList.add('disabled');
+                btnAmazon.textContent = 'AMAZON INGREDIENT';
+            }
+        }
+        if (suggBar) {
+            if (suggestion) {
+                suggBar.textContent = `SUGGESTED INGREDIENT · ${suggestion.name}`;
+                suggBar.classList.add('visible');
+            } else {
+                suggBar.classList.remove('visible');
+            }
+        }
     }
 
     function executeAction(action) {
@@ -1133,9 +1168,9 @@
             else mealCount++;
         }
 
-        if (snackCount && !mealCount) return "blinkit";
-        if (mealCount && !snackCount) return "zomato";
-        if (snackCount && mealCount) return "mixed";
+        if (snackCount && !mealCount) return "blinkit";   // snacks only  → Blinkit
+        if (mealCount && !snackCount) return "zomato";    // meals only   → Zomato
+        if (snackCount && mealCount)  return "swiggy";    // mixed        → Swiggy
         return null;
     }
 
@@ -1174,12 +1209,10 @@
         let items = [];
 
         for (let item in cart) {
-            if (
-                (mode === "blinkit" && snackRegex.test(item.toLowerCase())) ||
-                (mode !== "blinkit" && !snackRegex.test(item.toLowerCase()))
-            ) {
-                items.push(`${item} x${cart[item].qty}`);
-            }
+            const isSnack = snackRegex.test(item.toLowerCase());
+            if (mode === "blinkit" && isSnack)      items.push(`${item} x${cart[item].qty}`);
+            else if (mode === "zomato" && !isSnack) items.push(`${item} x${cart[item].qty}`);
+            else if (mode === "swiggy")             items.push(`${item} x${cart[item].qty}`);
         }
 
         if (!items.length) {
@@ -1189,7 +1222,7 @@
 
         const queryText = items.join(", ");
         const encodedQuery = encodeURIComponent(queryText);
-        const target = DEEP_LINKS[mode === "mixed" ? "zomato" : mode];
+        const target = DEEP_LINKS[mode] || DEEP_LINKS["zomato"];
         
         if (!target) return;
 
@@ -1206,6 +1239,47 @@
                 window.location.href = target.web(encodedQuery);
             }
         }, 1500);
+    }
+
+    /* =========================================
+       AMAZON AFFILIATE SYSTEM v1.0
+       Affiliate ID: decideengine-21
+       ========================================= */
+    const AMAZON_AFFILIATE_ID = "decideengine-21";
+
+    function analyzeCuisineFromCart() {
+        const cart = ENGINE_STATE.items_detected;
+        const score = { punjabi: 0, chinese: 0, pizza: 0, snacks: 0 };
+        const patterns = {
+            punjabi: /naan|paneer|dal|butter chicken|makhani|roti/i,
+            chinese: /noodles|manchurian|schezwan|kung pao/i,
+            pizza:   /pizza|pepperoni|margherita/i,
+            snacks:  /chips|coke|kurkure|samosa|burger/i
+        };
+        for (let item in cart) {
+            const name = item.toLowerCase();
+            for (let cuisine in patterns) {
+                if (patterns[cuisine].test(name)) score[cuisine]++;
+            }
+        }
+        return score;
+    }
+
+    function getIngredientSuggestion() {
+        const score = analyzeCuisineFromCart();
+        if (score.punjabi >= 2) return { name: "MDH Punjabi Masala",  query: "mdh+punjabi+masala" };
+        if (score.chinese >= 2) return { name: "Schezwan Sauce",       query: "schezwan+sauce" };
+        if (score.pizza   >= 2) return { name: "Mozzarella Cheese",    query: "mozzarella+cheese" };
+        if (score.snacks  >= 2) return { name: "Lays Chips Combo",     query: "lays+chips+combo" };
+        return null;
+    }
+
+    function openAmazonAffiliate() {
+        const suggestion = getIngredientSuggestion();
+        if (!suggestion) { showToast("NO SUGGESTION YET"); return; }
+        const url = `https://www.amazon.in/s?k=${suggestion.query}&tag=${AMAZON_AFFILIATE_ID}`;
+        showToast(`AMAZON: ${suggestion.name}`);
+        window.open(url, "_blank");
     }
 
     function showToast(msg, type="normal") {
